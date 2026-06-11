@@ -1,0 +1,215 @@
+:root {
+  /* ALDI Brand Colors */
+  --aldi-navy: #001F78;
+  --aldi-light-blue: #00B5DB;
+  --aldi-orange: #FA6E0A;
+  --aldi-yellow: #FFBF45;
+  --aldi-red: #F03D14;
+  --aldi-white: #FFFFFF;
+  --aldi-gray: #f5f7fa;
+  --aldi-dark-gray: #333333;
+  
+  /* Typography */
+  --font-family: 'Outfit', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background: linear-gradient(135deg, var(--aldi-gray) 0%, #e4e9f2 100%);
+  color: var(--aldi-dark-gray);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Navigation */
+.navbar {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-logo {
+  text-decoration: none;
+  color: var(--aldi-white);
+  font-weight: 700;
+  font-size: 1.5rem;
+  letter-spacing: 1px;
+}
+
+.aldi-logo {
+  background-color: var(--aldi-light-blue);
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.nav-links a {
+  color: var(--aldi-white);
+  text-decoration: none;
+  margin-left: 1.5rem;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--aldi-yellow);
+}
+
+/* Auth Container */
+.auth-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* Glassmorphism Card */
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 32px rgba(0, 31, 120, 0.1);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 450px;
+  padding: 2.5rem;
+  animation: slideUp 0.5s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+  font-size: 1.75rem;
+  color: var(--aldi-navy);
+  margin-bottom: 0.5rem;
+}
+
+.auth-header p {
+  color: #666;
+  font-size: 0.95rem;
+}
+
+/* Forms */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--aldi-dark-gray);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  background-color: rgba(255,255,255,0.9);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--aldi-light-blue);
+  box-shadow: 0 0 0 3px rgba(0, 181, 219, 0.2);
+}
+
+/* Buttons */
+.btn-primary {
+  width: 100%;
+  padding: 0.875rem;
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  font-family: var(--font-family);
+  margin-top: 1rem;
+}
+
+.btn-primary:hover {
+  background-color: #d95e08;
+}
+
+.btn-primary:active {
+  transform: translateY(2px);
+}
+
+/* Error and Success Messages */
+.error-message {
+  color: var(--aldi-red);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  min-height: 1.2rem;
+}
+
+.success-message {
+  background-color: #e6f7e6;
+  color: #2e7d32;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.95rem;
+  border: 1px solid #c8e6c9;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Footer */
+.auth-footer {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.text-link {
+  color: var(--aldi-navy);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.text-link:hover {
+  color: var(--aldi-light-blue);
+  text-decoration: underline;
+}

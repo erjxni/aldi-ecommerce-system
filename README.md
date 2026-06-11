@@ -41,9 +41,9 @@ Integrated ALDI E-Commerce System featuring registration and login capabilities.
    pip install -r requirements.txt
    ```
 
-5. Run the FastAPI development server:
+5. Run the FastAPI development server (run this from the **project root directory**):
    ```bash
-   uvicorn main:app --reload
+   uvicorn backend.main:app --reload
    ```
    The API will be available at `http://127.0.0.1:8000`. The interactive OpenAPI docs are accessible at `http://127.0.0.1:8000/docs`.
 
@@ -71,6 +71,12 @@ Integrated ALDI E-Commerce System featuring registration and login capabilities.
 
 ## IDE Configuration (VS Code)
 
-To ensure that code linting and autocomplete work correctly:
-- The project root contains a `.vscode/settings.json` file that points VS Code's Python extension to the correct virtual environment path (`backend/.venv`) and adds `./backend` to the analysis path.
-- When prompted in VS Code, choose **Python: Select Interpreter** and select the interpreter inside `backend/.venv`.
+To get the best development experience and proper diagram rendering:
+
+1. **Python Environment**:
+   - When prompted, choose **Python: Select Interpreter** and select the interpreter inside `backend/.venv` to ensure autocomplete and linting resolve correctly.
+
+2. **Recommended Extensions**:
+   - **Python** (Microsoft): For full Python language support, testing, and IntelliSense.
+   - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the flow and architecture diagrams located in [docs/architecture.md](file:///e:/projects/antigravity/aldi-ecommerce-system/docs/architecture.md).
+

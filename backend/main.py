@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 
-import models
-import schemas
-from database import engine, get_db
+from . import models
+from . import schemas
+from .database import engine, get_db
 
 # Create all tables in the database
 models.Base.metadata.create_all(bind=engine)

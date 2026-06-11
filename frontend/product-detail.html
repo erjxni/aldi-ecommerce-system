@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Detail – ALDI Online</title>
+  <meta name="description" content="View full product details, specifications and features on ALDI Online.">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="/index.html" class="logo-link" id="logo-home-link">
+        <img src="/assets/images/aldi_logo.png" alt="ALDI logo" class="logo-img" id="logo-img">
+      </a>
+      <nav class="main-nav" aria-label="Main navigation">
+        <ul>
+          <li><a href="/index.html"    class="nav-item"        id="nav-home">Home</a></li>
+          <li><a href="/products.html" class="nav-item active" id="nav-products">Products</a></li>
+          <li><a href="/products.html" class="btn-nav"         id="nav-shop-now">Shop Now</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main>
+    <div class="detail-wrap" id="detail-page-wrap">
+
+      <!-- Loading state -->
+      <div id="detail-loader" class="loader-wrap">
+        <div class="spinner"></div>
+        <p>Loading product…</p>
+      </div>
+
+      <!-- Content injected by app.js -->
+      <div id="product-detail-container"></div>
+
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-col">
+        <h4>ALDI</h4>
+        <ul>
+          <li><a href="/index.html"    id="foot-home">Home</a></li>
+          <li><a href="/products.html" id="foot-products">Products</a></li>
+          <li><a href="#"              id="foot-about">About Us</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Categories</h4>
+        <ul>
+          <li><a href="/products.html" id="foot-cat-snacks">Snacks &amp; Candy</a></li>
+          <li><a href="/products.html" id="foot-cat-bev">Beverages</a></li>
+          <li><a href="/products.html" id="foot-cat-dairy">Dairy &amp; Eggs</a></li>
+          <li><a href="/products.html" id="foot-cat-meat">Meat &amp; Seafood</a></li>
+        </ul>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="#" id="foot-help">Help Center</a></li>
+          <li><a href="#" id="foot-returns">Returns</a></li>
+          <li><a href="#" id="foot-contact">Contact Us</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2026 ALDI E-Commerce System. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -21,7 +21,8 @@
 
 body {
   font-family: var(--font-family);
-  background: linear-gradient(135deg, var(--aldi-gray) 0%, #e4e9f2 100%);
+  background: linear-gradient(rgba(0, 31, 120, 0.6), rgba(0, 31, 120, 0.4)), url('/aldi_bg.png') no-repeat center center fixed;
+  background-size: cover;
   color: var(--aldi-dark-gray);
   min-height: 100vh;
   display: flex;
@@ -32,7 +33,7 @@ body {
 .navbar {
   background-color: var(--aldi-navy);
   color: var(--aldi-white);
-  padding: 1rem 2rem;
+  padding: 0.5rem 2rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
@@ -46,17 +47,16 @@ body {
 
 .nav-logo {
   text-decoration: none;
-  color: var(--aldi-white);
-  font-weight: 700;
-  font-size: 1.5rem;
-  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
 }
 
-.aldi-logo {
-  background-color: var(--aldi-light-blue);
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
+.aldi-logo-img {
+  height: 45px;
+  width: auto;
+  display: block;
 }
+
 
 .nav-links a {
   color: var(--aldi-white);

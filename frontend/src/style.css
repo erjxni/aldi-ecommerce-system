@@ -213,3 +213,35 @@ body {
   color: var(--aldi-light-blue);
   text-decoration: underline;
 }
+
+/* Password Visibility Toggle */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  padding-right: 4.5rem !important; /* prevent text overlap with show button */
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--aldi-navy);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  user-select: none;
+}
+
+.toggle-password:hover {
+  background-color: rgba(0, 31, 120, 0.1);
+}
+

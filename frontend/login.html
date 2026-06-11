@@ -39,13 +39,19 @@
 
         <div class="form-group">
           <label for="password">Password</label>
-          <input type="password" id="password" name="password" required placeholder="Enter a strong password" />
+          <div class="password-wrapper">
+            <input type="password" id="password" name="password" required placeholder="Enter a strong password" />
+            <button type="button" class="toggle-password" data-target="password">Show</button>
+          </div>
         </div>
 
         <div class="form-group">
           <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" name="confirm-password" required
-            placeholder="Confirm your password" />
+          <div class="password-wrapper">
+            <input type="password" id="confirm-password" name="confirm-password" required
+              placeholder="Confirm your password" />
+            <button type="button" class="toggle-password" data-target="confirm-password">Show</button>
+          </div>
           <div id="password-error" class="error-message"></div>
         </div>
 

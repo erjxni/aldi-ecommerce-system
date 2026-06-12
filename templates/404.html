@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="content-card">
+    <h1>Page not found</h1>
+    <p>The page you requested does not exist.</p>
+    <a class="primary-link" href="{{ url_for('index') }}">Return to Home</a>
+</section>
+{% endblock %}

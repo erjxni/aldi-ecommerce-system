@@ -1,31 +1,53 @@
-# Aldi E-Commerce System
-Integrated ALDI E-Commerce System developed using Scrum methodology.
+# Secure Login User Story Prototype
 
-## Requirements
-- Python 3.14.5
+This VSCode project implements the user story:
 
-## Environment Variables
-Create a .env file in the root of the project and add the following keys:
+> As a user, I want to log in with my email and password so that I can access my account securely.
 
-DATABASE_URL=
-SECRET_KEY=
-DEBUG=
+## Run
 
-## Setup Instructions
-1. Clone the repository:
-   git clone https://github.com/erjxni/aldi-ecommerce-system.git
+```bash
+python -m venv .venv
+```
 
-2. Navigate into the project folder:
-   cd aldi-ecommerce-system
+Windows PowerShell:
 
-3. Install dependencies:
-   pip install -r requirements.txt
+```bash
+.venv\Scripts\Activate.ps1
+```
 
-4. Copy the .env file and fill in the values:
-   cp .env.example .env
+macOS / Linux:
 
-5. Run the app:
-   python app.py
+```bash
+source .venv/bin/activate
+```
 
-## Database
-- Connection parameters to be added once confirmed by the team.
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+Start the app:
+
+```bash
+python app.py
+```
+
+Open:
+
+```text
+http://127.0.0.1:5000
+```
+
+## Demo Accounts
+
+```text
+Email: student@example.com
+Password: Password123
+```
+
+```text
+Email: admin@example.com
+Password: Admin123
+```

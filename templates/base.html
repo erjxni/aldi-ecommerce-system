@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or "Secure Login" }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<header class="site-header">
+    <a class="brand" href="{{ url_for('index') }}">Secure Account Portal</a>
+
+    <nav class="nav-links" aria-label="Main navigation">
+        {% if session.get("user_email") %}
+            <a href="{{ url_for('home') }}">Home</a>
+            <a href="{{ url_for('account') }}">Account</a>
+            <form class="logout-form" method="post" action="{{ url_for('logout') }}">
+                <button class="link-button" type="submit">Logout</button>
+            </form>
+        {% else %}
+            <a href="{{ url_for('login') }}">Login</a>
+        {% endif %}
+    </nav>
+</header>
+
+<main class="page">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <section class="messages" aria-label="System messages">
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </section>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+</main>
+</body>
+</html>

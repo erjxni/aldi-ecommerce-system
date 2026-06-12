@@ -1,31 +1,82 @@
 # Aldi E-Commerce System
-Integrated ALDI E-Commerce System developed using Scrum methodology.
 
-## Requirements
-- Python 3.14.5
+Integrated ALDI E-Commerce System featuring registration and login capabilities.
 
-## Environment Variables
-Create a .env file in the root of the project and add the following keys:
+## Project Structure
 
-DATABASE_URL=
-SECRET_KEY=
-DEBUG=
+- **`frontend/`**: Vanilla JS, HTML, and CSS application powered by Vite.
+- **`backend/`**: FastAPI backend utilizing SQLite for storage and SQLAlchemy for ORM.
 
-## Setup Instructions
-1. Clone the repository:
-   git clone https://github.com/erjxni/aldi-ecommerce-system.git
+## Prerequisites
 
-2. Navigate into the project folder:
-   cd aldi-ecommerce-system
+- **Python 3.10+**
+- **Node.js & npm**
 
-3. Install dependencies:
+---
+
+## Backend Setup
+
+1. Navigate to the backend directory:
+   ```bash
+   cd backend
+   ```
+
+2. Create a virtual environment:
+   ```bash
+   python -m venv .venv
+   ```
+
+3. Activate the virtual environment:
+   - **Windows (PowerShell):**
+     ```powershell
+     .venv\Scripts\Activate.ps1
+     ```
+   - **macOS/Linux:**
+     ```bash
+     source .venv/bin/activate
+     ```
+
+4. Install the required dependencies:
+   ```bash
    pip install -r requirements.txt
+   ```
 
-4. Copy the .env file and fill in the values:
-   cp .env.example .env
+5. Run the FastAPI development server (run this from the **project root directory**):
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
+   The API will be available at `http://127.0.0.1:8000`. The interactive OpenAPI docs are accessible at `http://127.0.0.1:8000/docs`.
 
-5. Run the app:
-   python app.py
+---
 
-## Database
-- Connection parameters to be added once confirmed by the team.
+## Frontend Setup
+
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+   The frontend application will be served at the URL printed in the terminal (typically `http://localhost:5173`).
+
+---
+
+## IDE Configuration (VS Code)
+
+To get the best development experience and proper diagram rendering:
+
+1. **Python Environment**:
+   - When prompted, choose **Python: Select Interpreter** and select the interpreter inside `backend/.venv` to ensure autocomplete and linting resolve correctly.
+
+2. **Recommended Extensions**:
+   - **Python** (Microsoft): For full Python language support, testing, and IntelliSense.
+   - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the flow and architecture diagrams located in [docs/architecture.md](file:///e:/projects/antigravity/aldi-ecommerce-system/docs/architecture.md).
+

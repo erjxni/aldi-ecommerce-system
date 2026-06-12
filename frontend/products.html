@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALDI E-Commerce Store - Products</title>
+  
+  <!-- Use Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <div id="products-app">
+    <!-- Top Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-left">
+          <a href="/index.html" class="nav-logo">
+            <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+          </a>
+          <div class="nav-links">
+            <a href="/index.html" class="nav-link">Home</a>
+            <a href="/products.html" class="nav-link active">Products</a>
+          </div>
+          <!-- Search Bar -->
+          <div class="search-wrapper">
+            <input type="text" id="search-input" placeholder="Search ALDI products..." aria-label="Search products" />
+            <span class="search-icon">&#x1F50D;</span>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <!-- Auth Section: Dynamically updated in main.js -->
+          <div id="nav-auth-section" class="nav-auth-container">
+            <a href="/login.html" class="btn-login-nav">Login / Register</a>
+          </div>
+          <!-- Cart Button -->
+          <button id="cart-toggle-btn" class="nav-cart-btn" aria-label="Open Cart" aria-expanded="false" aria-controls="cart-drawer">
+            <span class="cart-icon">&#x1F6D2;</span>
+            <span class="cart-text">Cart</span>
+            <span id="cart-count-badge" class="cart-badge">0</span>
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="storefront-container">
+      
+      <!-- Category Filter Tabs -->
+      <section class="categories-section">
+        <div class="category-tabs">
+          <button class="category-tab active" data-category="all">All Products</button>
+          <button class="category-tab" data-category="grocery">Fresh Groceries</button>
+          <button class="category-tab" data-category="bakery">Bakery & Sweets</button>
+          <button class="category-tab" data-category="beverages">Beverages</button>
+        </div>
+      </section>
+
+      <!-- Products Grid -->
+      <section id="product-grid-section" class="products-section">
+        <h2 class="section-title">This Week's Deals</h2>
+        <div id="product-grid" class="product-grid">
+          <!-- Dynamic Products Loaded via main.js -->
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Sliding Cart Drawer (Native Popover + Scroll Snap) -->
+    <div class="Drawer" id="cart-drawer" popover="manual">
+      <div class="Drawer-scroller">
+        <!-- Spacer creating the closed offset -->
+        <div class="Drawer-spacer"></div>
+        
+        <!-- Cart Sheet -->
+        <div class="Drawer-sheet" tabindex="-1" id="cart-sheet">
+          <div class="cart-header">
+            <h2>Shopping Cart</h2>
+            <button id="cart-close-btn" class="close-btn" aria-label="Close cart">&times;</button>
+          </div>
+          
+          <div class="cart-body">
+            <div id="cart-items" class="cart-items-container">
+              <!-- Dynamically populated cart list -->
+              <div class="empty-cart-state">
+                <span class="empty-cart-icon">&#x1F6D2;</span>
+                <p>Your cart is empty</p>
+                <button class="btn-continue-shopping" id="continue-shopping-btn">Start Shopping</button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="cart-footer">
+            <div class="cart-totals">
+              <div class="total-row">
+                <span class="total-label">Subtotal</span>
+                <span id="cart-subtotal-price">$0.00</span>
+              </div>
+              <div class="total-row delivery">
+                <span class="total-label">Estimated Delivery</span>
+                <span class="free-badge">FREE</span>
+              </div>
+              <hr class="totals-divider" />
+              <div class="total-row main-total">
+                <span class="total-label">Total (GST Incl.)</span>
+                <span id="cart-total-price" class="total-amount">$0.00</span>
+              </div>
+            </div>
+            <button id="checkout-btn" class="btn-checkout" disabled>Place Order</button>
+            <div id="checkout-success" class="checkout-success-banner hidden">
+              <span class="success-check">&#x2714;</span>
+              <p>Order placed successfully! Redirecting...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

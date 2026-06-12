@@ -1,9 +1,14 @@
 import csv
 import sqlite3
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load secure environment configuration
+load_dotenv()
 
 # =====================================================================
-# 1. TRANSFORMATION & CLEANING LAYER (Pure Logic)
+# 1. TRANSFORMATION & CLEANING LAYER
 # =====================================================================
 
 def standardize_date(date_str):
@@ -34,17 +39,14 @@ def clean_and_validate_record(row):
     """
     Validates essential fields and strips whitespace/applies fallbacks.
     """
-    # Critical Check: If email is missing, the record is unresolvable
     email = row.get('email', '').strip().lower()
     if not email:
         raise ValueError("Critical field missing: 'email' cannot be empty.")
         
-    # Standardize the date using our helper
     clean_date = standardize_date(row.get('signup_date', ''))
     
-    # Optional Check: Apply fallback default values if non-critical data is missing
     phone = row.get('phone', '').strip()
-    if not phone:
+    if not phone or phone.lower() in ["n/a", "unknown"]:
         phone = "Unknown"
         
     return {
@@ -55,114 +57,143 @@ def clean_and_validate_record(row):
     }
 
 # =====================================================================
-# 2. IN-MEMORY DEDUPLICATION LAYER
+# 2. IN-MEMORY DEDUPLICATION & LOGGING LAYER
 # =====================================================================
 
-def deduplicate_records(raw_rows):
+def deduplicate_records(raw_rows, error_log_path="database/migration_errors.log"):
     """
-    Processes raw records line-by-line. If a duplicate email is found,
-    it retains only the record with the most recent signup date.
+    Processes raw records line-by-line. Standardizes format, logs corrupt rows
+    to an audit file, and deduplicates emails (retains latest signup_date).
     """
     processed_records = {}
-    error_log = []
+    error_count = 0
     
-    for line_num, row in enumerate(raw_rows, start=1):
-        try:
-            # Clean and validate the string structures first
-            clean_row = clean_and_validate_record(row)
-            email = clean_row['email']
-            
-            if email not in processed_records:
-                # First time seeing this user
-                processed_records[email] = clean_row
-            else:
-                # Duplicate found! Compare timestamps to keep the newest profile
-                existing_date = datetime.strptime(processed_records[email]['signup_date'], "%Y-%m-%d %H:%M:%S")
-                incoming_date = datetime.strptime(clean_row['signup_date'], "%Y-%m-%d %H:%M:%S")
+    # Open error log file for auditing skipped records
+    with open(error_log_path, mode='w', encoding='utf-8') as err_file:
+        err_file.write(f"--- MIGRATION ERRORS LOG: {datetime.now()} ---\n")
+        
+        for line_num, row in enumerate(raw_rows, start=1):
+            try:
+                # Clean and validate the record structures
+                clean_row = clean_and_validate_record(row)
+                email = clean_row['email']
                 
-                if incoming_date > existing_date:
-                    processed_records[email] = clean_row  # Overwrite with newer data
-        
-        except ValueError as err:
-            # Log structural issues or unparseable rows without crashing the entire script
-            error_log.append(f"Row {line_num} skipped error: {err}")
+                if email not in processed_records:
+                    # First time seeing this user
+                    processed_records[email] = clean_row
+                else:
+                    # Duplicate email found! Compare timestamps to keep the newest profile
+                    existing_date = datetime.strptime(processed_records[email]['signup_date'], "%Y-%m-%d %H:%M:%S")
+                    incoming_date = datetime.strptime(clean_row['signup_date'], "%Y-%m-%d %H:%M:%S")
+                    
+                    if incoming_date > existing_date:
+                        processed_records[email] = clean_row  # Overwrite with newer data
             
-    # Print extraction errors to console for engineering visibility
-    for log in error_log:
-        print(f"[LOG - FAILED ROW]: {log}")
-        
+            except ValueError as err:
+                error_count += 1
+                # Log broken row details gracefully to error file
+                err_file.write(f"Row {line_num} | Skipping due to error: {err} | Raw Content: {row}\n")
+                
+    print(f"Extraction logged {error_count} corrupt/missing rows to '{error_log_path}' for review.")
     return list(processed_records.values())
 
 # =====================================================================
-# 3. CORE ORCHESTRATION LAYER (Extract, Transform, Load)
+# 3. CORE ORCHESTRATION LAYER (ETL)
 # =====================================================================
 
-def run_migration(csv_file_path, db_path):
-    print("--- Starting Migration Pipeline ---")
+def run_migration(csv_file_path, db_url, run_verification_only=False):
+    # Parse DB path from connection URL (sqlite:///path -> path)
+    if db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "")
+    else:
+        db_path = db_url
+        
+    print(f"\n--- Starting Migration Pipeline (Target: {db_path}) ---")
     
     # --- PHASE 1: EXTRACTION ---
-    print("Extracting raw records from source file...")
     raw_rows = []
-    with open(csv_file_path, mode='r', encoding='utf-8') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            raw_rows.append(row)
-            
-    # --- PHASE 2: TRANSFORMATION & DEDUPLICATION ---
-    print(f"Processing and cleaning {len(raw_rows)} records...")
-    final_clean_data = deduplicate_records(raw_rows)
+    try:
+        with open(csv_file_path, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                raw_rows.append(row)
+    except FileNotFoundError:
+        print(f"[ERROR]: Legacy source CSV file '{csv_file_path}' not found.")
+        return False
+        
+    # --- PHASE 2: VERIFICATION RUN (100 Sample Records) ---
+    if run_verification_only or len(raw_rows) > 0:
+        sample_subset = raw_rows[:100]
+        print(f"Executing localized verification test run on a sample subset of {len(sample_subset)} legacy records...")
+        verified_data = deduplicate_records(sample_subset, error_log_path="database/verification_errors.log")
+        print(f"Verification run complete: {len(verified_data)} sample rows successfully parsed & mapped.")
+        
+        if run_verification_only:
+            print("--- Verification Run Complete (Full loading skipped) ---")
+            return True
+
+    # --- PHASE 3: FULL TRANSFORMATION & DEDUPLICATION ---
+    print(f"Processing full database load of {len(raw_rows)} records...")
+    final_clean_data = deduplicate_records(raw_rows, error_log_path="database/migration_errors.log")
     print(f"Data cleaning complete. Ready to load {len(final_clean_data)} unique records.")
     
-    # --- PHASE 3: TRANSACTIONAL LOADING ---
-    print("Connecting to target production database...")
+    # --- PHASE 4: TRANSACTIONAL LOADING ---
+    print("Connecting to target database and establishing transaction bounds...")
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
-    # Create the production target table with strict constraints
+    # Ensure production users table matches database models
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
             email TEXT UNIQUE NOT NULL,
-            created_at DATETIME NOT NULL,
-            phone TEXT NOT NULL
+            password_hash TEXT,
+            name TEXT,
+            phone TEXT,
+            created_at DATETIME
         );
     """)
     
+    success = False
     try:
-        # Explicitly open a secure database transaction guard
+        # Open transaction
         cursor.execute("BEGIN TRANSACTION;")
         
         insert_query = """
-            INSERT INTO users (name, email, created_at, phone)
-            VALUES (?, ?, ?, ?);
+            INSERT OR REPLACE INTO users (email, password_hash, name, phone, created_at)
+            VALUES (?, ?, ?, ?, ?);
         """
         
-        # Batch insert the perfectly formatted rows
+        # Batch insert clean users
         for user in final_clean_data:
             cursor.execute(insert_query, (
-                user['name'],
                 user['email'],
-                user['signup_date'],
-                user['phone']
+                None, # password_hash starts empty for legacy imports
+                user['name'],
+                user['phone'],
+                user['signup_date']
             ))
             
-        # If no exceptions were raised, commit everything permanently to disk
         conn.commit()
-        print("Database transaction successfully committed!")
+        print(f"Migration completed successfully! Loaded {len(final_clean_data)} users into database.")
+        success = True
         
     except sqlite3.Error as db_error:
-        # CRITICAL GUARDRAIL: If a unique or null constraint is broken, roll back everything
         conn.rollback()
-        print(f"[FATAL MIGRATION ERROR]: Transaction rolled back entirely. Error: {db_error}")
+        print(f"[FATAL MIGRATION ERROR]: Database load failed. Transaction rolled back. Error: {db_error}")
         
     finally:
         conn.close()
         print("--- Migration Pipeline Stopped ---")
+        
+    return success
 
-# =====================================================================
-# 4. SCRIPT EXECUTION ENTRYPOINT
-# =====================================================================
 if __name__ == "__main__":
-    # Point the pipeline to your data files and trigger execution
-    run_migration('mock_legacy_users.csv', 'aldi_ecommerce.db')
+    # Load database URL securely from env configuration
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./backend/ecommerce.db")
+    
+    # 1. Run Verification Migration first (100 sample subset)
+    run_migration('database/mock_legacy_users.csv', DATABASE_URL, run_verification_only=True)
+    
+    # 2. Run Full Migration
+    run_migration('database/mock_legacy_users.csv', DATABASE_URL, run_verification_only=False)

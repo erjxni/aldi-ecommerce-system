@@ -1,117 +1,83 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ALDI Marketplace</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>ALDI E-Commerce Store - Home</title>
+  
+  <!-- Use Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
 </head>
+
 <body>
+  <div id="homepage-app">
+    <!-- Top Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-left">
+          <a href="/index.html" class="nav-logo">
+            <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+          </a>
+          <div class="nav-links">
+            <a href="/index.html" class="nav-link active">Home</a>
+            <a href="/products.html" class="nav-link">Products</a>
+          </div>
+        </div>
 
-  <header class="top-header">
-    <div class="brand">
-      <div class="aldi-logo">ALDI</div>
-      <div>
-        <h2>ALDI Marketplace</h2>
-        <p>Fresh food. Better prices.</p>
+        <div class="nav-right">
+          <!-- Auth Section: Dynamically updated in main.js -->
+          <div id="nav-auth-section" class="nav-auth-container">
+            <a href="/login.html" class="btn-login-nav">Login / Register</a>
+          </div>
+        </div>
       </div>
-    </div>
-
-    <nav>
-      <button onclick="showHome()">Home</button>
-      <button onclick="showCatalog()">Catalog</button>
-      <button onclick="showLogin()">Login</button>
     </nav>
-  </header>
 
-  <section id="homePage" class="page">
-    <div class="hero">
-      <div class="hero-text">
-        <span class="badge">Weekly Fresh Deals</span>
-        <h1>Shop everyday groceries at great ALDI prices</h1>
-        <p>
-          Discover fresh fruit, drinks, bakery products, meat, dairy and snacks
-          in a simple online shopping experience.
-        </p>
-        <button onclick="showCatalog()">Shop Now</button>
-      </div>
+    <!-- Main Content -->
+    <main class="storefront-container">
+      
+      <!-- Hero Banner -->
+      <section class="hero-banner glassmorphism">
+        <div class="hero-content">
+          <span class="hero-badge">Welcome to ALDI</span>
+          <h1>Good Different. Good Value.</h1>
+          <p>Experience ALDI's award-winning selection of groceries, bakery treats, and organic beverages at unbeatable prices.</p>
+          <div class="hero-cta-group">
+            <a href="/products.html" class="btn-shop-now">Browse Products</a>
+            <a href="/login.html" id="hero-login-btn" class="btn-login-nav">Sign In</a>
+          </div>
+        </div>
+        <div class="hero-glow"></div>
+      </section>
 
-      <div class="hero-card">
-        <h3>Today’s Offer</h3>
-        <p>Fresh Bananas</p>
-        <strong>€0.99</strong>
-        <span>Limited time deal</span>
-      </div>
-    </div>
+      <!-- Features Section -->
+      <section class="about-section glassmorphism">
+        <h2 class="about-title">Why Shop at ALDI?</h2>
+        <div class="features-grid">
+          <div class="feature-card">
+            <span class="feature-icon">🏅</span>
+            <h3>Premium Quality</h3>
+            <p>Our Specially Selected range represents the very best of local and international sourcing.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">💰</span>
+            <h3>Unbeatable Prices</h3>
+            <p>We work directly with growers and manufacturers to pass the savings directly to you.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">🌱</span>
+            <h3>Organic & Sustainable</h3>
+            <p>Our commitment to organic farming ensures fresh, delicious, and healthy choices.</p>
+          </div>
+        </div>
+      </section>
 
-    <h2 class="section-title">Shop by Category</h2>
+    </main>
+  </div>
 
-    <div class="categories">
-      <div class="category" onclick="filterByCategory('Drinks')">🥤 Drinks</div>
-      <div class="category" onclick="filterByCategory('Fruits')">🍌 Fruits</div>
-      <div class="category" onclick="filterByCategory('Dairy')">🥛 Dairy</div>
-      <div class="category" onclick="filterByCategory('Bakery')">🍞 Bakery</div>
-      <div class="category" onclick="filterByCategory('Meat')">🍗 Meat</div>
-      <div class="category" onclick="filterByCategory('Snacks')">🍫 Snacks</div>
-    </div>
-  </section>
-
-  <section id="catalogPage" class="page hidden">
-    <div class="catalog-header">
-      <div>
-        <h1>Product Catalog</h1>
-        <p>Browse ALDI products by category, search term, or product name.</p>
-      </div>
-    </div>
-
-    <div class="controls">
-      <input 
-        type="text" 
-        id="searchInput" 
-        placeholder="Search products, e.g. milk, bread, chocolate..." 
-        oninput="searchProducts()" 
-      />
-
-      <select id="categoryFilter" onchange="searchProducts()">
-        <option value="All">All Categories</option>
-        <option value="Drinks">Drinks</option>
-        <option value="Fruits">Fruits</option>
-        <option value="Dairy">Dairy</option>
-        <option value="Bakery">Bakery</option>
-        <option value="Meat">Meat</option>
-        <option value="Snacks">Snacks</option>
-      </select>
-    </div>
-
-    <div id="productGrid" class="product-grid"></div>
-  </section>
-
-  <section id="detailsPage" class="page hidden">
-    <button class="back-btn" onclick="showCatalog()">← Back to Products</button>
-    <div id="productDetails" class="details"></div>
-  </section>
-
-  <section id="loginPage" class="page hidden">
-    <div class="login-box">
-      <h1>Customer Login</h1>
-      <label>Email address</label>
-      <input type="email" placeholder="example@email.com" />
-
-      <label>Password</label>
-      <input type="password" placeholder="Enter password" />
-
-      <button>Login</button>
-
-      <p class="small-text">
-        This page is only a visual prototype. Backend login is handled by another module.
-      </p>
-    </div>
-  </section>
-
-  <footer>
-    <p>ALDI Marketplace Frontend Prototype | Created by Tianshuo Xie</p>
-  </footer>
-
-  <script src="script.js"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registration - ALDI E-Commerce</title>
+  <!-- Use Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <!-- Top Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="#" class="nav-logo">
+        <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+      </a>
+      <div class="nav-links">
+        <a href="/login.html" class="nav-link active">Register</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="auth-container">
+    <div class="auth-card glassmorphism">
+      
+      <!-- Login View -->
+      <div id="login-view" class="auth-view">
+        <div class="auth-header">
+          <h1>Welcome Back</h1>
+          <p>Sign in to your ALDI account to shop.</p>
+        </div>
+
+        <form id="login-form" class="auth-form">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" name="email" required placeholder="name@example.com" />
+          </div>
+
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="login-password" name="password" required placeholder="Enter your password" />
+              <button type="button" class="toggle-password" data-target="login-password">Show</button>
+            </div>
+            <div id="login-error" class="error-message"></div>
+          </div>
+
+          <button type="submit" class="btn-primary">Log In</button>
+        </form>
+
+        <div class="auth-footer">
+          <p>Don't have an account? <a href="#" id="go-to-register" class="text-link">Register here</a></p>
+        </div>
+      </div>
+
+      <!-- Register View -->
+      <div id="register-view" class="auth-view hidden">
+        <div class="auth-header">
+          <h1>Create an Account</h1>
+          <p>Join ALDI to manage your orders easily.</p>
+        </div>
+
+        <form id="registration-form" class="auth-form">
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" name="email" required placeholder="name@example.com" />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="password" name="password" required placeholder="Enter a strong password" />
+              <button type="button" class="toggle-password" data-target="password">Show</button>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="confirm-password">Confirm Password</label>
+            <div class="password-wrapper">
+              <input type="password" id="confirm-password" name="confirm-password" required
+                placeholder="Confirm your password" />
+              <button type="button" class="toggle-password" data-target="confirm-password">Show</button>
+            </div>
+            <div id="password-error" class="error-message"></div>
+          </div>
+
+          <button type="submit" class="btn-primary">Register Account</button>
+
+          <div id="success-message" class="success-message hidden">
+            Registration successful! You can now log in.
+          </div>
+        </form>
+
+        <div class="auth-footer">
+          <p>Already have an account? <a href="#" id="go-to-login" class="text-link">Log in here</a></p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script type="module" src="/src/login.js"></script>
+</body>
+
+</html>

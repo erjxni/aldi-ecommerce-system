@@ -1,7 +1,6 @@
 # Documentation Directory
 
-This folder contains the technical documentation, design specifications, and architecture diagrams for the project.
+This directory contains project documentation and diagrams.
 
-## Documents
-
-* **[System Architecture](file:///e:/projects/antigravity/aldi-ecommerce-system/docs/architecture.md)**: Details the frontend design, backend REST APIs, SQLite database structure, and the sequence flow for user registration.
+## Files
+- `architecture.md`: A markdown file containing Mermaid diagrams and detailed explanations of the system's architecture, including the backend, frontend, and database interactions.

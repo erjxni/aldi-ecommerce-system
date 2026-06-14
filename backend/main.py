@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 import bcrypt
 import os
 from dotenv import load_dotenv
+from contextlib import asynccontextmanager
 from backend import models
 from backend import schemas
 from backend.database import engine, get_db, SessionLocal
@@ -14,20 +15,9 @@ load_dotenv()
 # Create all tables in the database securely on startup
 models.Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="ALDI E-Commerce API")
-
-# Setup CORS to allow the frontend to communicate with the backend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"], # In production, restrict this to trusted domains
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Startup Seeding Event
-@app.on_event("startup")
-def startup_event():
+@asynccontextmanager
+async def lifespan(app: FastAPI):
     db = SessionLocal()
     try:
         # 1. Seed Products if empty
@@ -124,6 +114,19 @@ def startup_event():
         print(f"Error seeding database: {e}")
     finally:
         db.close()
+        
+    yield
+
+app = FastAPI(title="ALDI E-Commerce API", lifespan=lifespan)
+
+# Setup CORS to allow the frontend to communicate with the backend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # In production, restrict this to trusted domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 def get_password_hash(password: str) -> str:
     pwd_bytes = password.encode('utf-8')
     salt = bcrypt.gensalt()
@@ -171,7 +174,7 @@ def login_user(credentials: schemas.UserLogin, db: Session = Depends(get_db)):
         )
     
     # 2. Verify password hash
-    if not db_user.password_hash or not verify_password(credentials.password, db_user.password_hash):
+    if not db_user.password_hash or not verify_password(credentials.password, str(db_user.password_hash)):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password."

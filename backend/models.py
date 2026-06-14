@@ -10,7 +10,7 @@ class User(Base):
     password_hash = Column(String, nullable=True)  # Nullable to accommodate legacy users during ETL migration
     name = Column(String, nullable=True)
     phone = Column(String, nullable=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.datetime.now(datetime.timezone.utc))
 
 class Product(Base):
     __tablename__ = "products"

@@ -4,9 +4,15 @@ Integrated ALDI E-Commerce System featuring registration and login capabilities.
 
 ## Project Structure
 
-- **`frontend/`**: Vanilla JS, HTML, and CSS application powered by Vite.
-- **`backend/`**: FastAPI backend utilizing SQLite for storage and SQLAlchemy for ORM.
-- **`legacy/`**: Contains legacy prototypes and previously used configurations (e.g., Flask login prototype, old Express setup).
+This project is organized into several distinct directories. For a detailed breakdown of the specific files within each, please refer to their respective `README.md` files:
+
+- **[`backend/`](backend/README.md)**: Contains the main FastAPI application, SQLAlchemy database models, validation schemas, and API endpoints.
+- **[`database/`](database/README.md)**: Contains ETL migration scripts, mock data generators, and raw SQL schemas.
+- **[`docs/`](docs/README.md)**: Contains project architecture documentation and system flow diagrams.
+- **[`frontend/`](frontend/README.md)**: Contains the Vite-powered Vanilla JS, HTML, and CSS application.
+- **[`legacy/`](legacy/README.md)**: Serves as an archive for old prototypes (e.g., Flask login story, Express servers) and configurations.
+- **[`scratch/`](scratch/README.md)**: A temporary workspace for experimental code, drafts, and UI component documentation.
+- **[`tests/`](tests/README.md)**: Reserved for automated unit, integration, and end-to-end testing suites.
 
 ## Prerequisites
 

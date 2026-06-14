@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="content-card">
+    <h1>Your Account</h1>
+
+    <dl class="account-details">
+        <dt>Name</dt>
+        <dd>{{ user_name }}</dd>
+
+        <dt>Email</dt>
+        <dd>{{ user_email }}</dd>
+    </dl>
+</section>
+{% endblock %}

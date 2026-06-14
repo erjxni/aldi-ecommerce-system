@@ -1,0 +1,14 @@
+{
+  "name": "aldi-ecommerce-system",
+  "version": "1.0.0",
+  "description": "Integrated ALDI E-Commerce System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "node backend/server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

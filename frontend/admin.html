@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ALDI E-Commerce - Admin Dashboard</title>
+  
+  <!-- Administrator Security Guard (checks session immediately to prevent content flashes) -->
+  <script>
+    const userEmail = localStorage.getItem('userEmail');
+    const userToken = localStorage.getItem('userToken');
+    if (!userEmail || !userToken || userEmail !== 'saidgalimjanov24@gmail.com') {
+      window.location.href = '/index.html';
+    }
+  </script>
+
+  <!-- Use Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body>
+  <div id="admin-app">
+    <!-- Top Navigation -->
+    <nav class="navbar">
+      <div class="nav-container">
+        <div class="nav-left">
+          <a href="/index.html" class="nav-logo">
+            <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+          </a>
+          <div class="nav-links">
+            <a href="/index.html" class="nav-link">Home</a>
+            <a href="/products.html" class="nav-link">Products</a>
+            <a href="/admin.html" class="nav-link active">Admin Dashboard</a>
+          </div>
+        </div>
+
+        <div class="nav-right">
+          <!-- User info & Logout -->
+          <div id="nav-auth-section" class="nav-auth-container">
+            <div class="user-profile">
+              <span class="user-avatar">&#x1F464;</span>
+              <span class="user-email" id="user-email-display">saidgalimjanov24@gmail.com</span>
+            </div>
+            <button id="logout-btn" class="btn-logout" title="Log Out">
+              <span class="logout-icon">&#x21AA;</span>
+              <span class="logout-text">Logout</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Admin Container -->
+    <main class="storefront-container admin-container">
+      <div class="admin-header-row">
+        <h1>Administrator Operations Portal</h1>
+        <p class="admin-subtitle">Monitoring sales losses and migrated customer database records.</p>
+      </div>
+
+      <!-- Sales Losses Section -->
+      <section class="admin-analytics-grid">
+        <!-- Sales Loss Card -->
+        <div class="analytics-card glassmorphism loss-summary-card">
+          <div class="card-icon">&#x26A0;</div>
+          <div class="card-info">
+            <h2>Total Revenue Losses</h2>
+            <p class="loss-amount" id="total-loss-amount">$0.00</p>
+            <p class="loss-timeframe">This Week (Simulated)</p>
+          </div>
+        </div>
+
+        <!-- Sales Loss breakdown -->
+        <div class="analytics-card glassmorphism loss-breakdown-card">
+          <h3>Loss Categories</h3>
+          <div id="loss-categories-list" class="loss-categories-container">
+            <div class="loading-state-admin">Loading loss breakdown...</div>
+          </div>
+        </div>
+
+        <!-- Weekly Trend Chart -->
+        <div class="analytics-card glassmorphism loss-trend-card">
+          <h3>Daily Losses Trend</h3>
+          <div id="loss-trend-chart" class="loss-trend-chart-container">
+            <div class="loading-state-admin">Loading trend chart...</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Customer Database Section -->
+      <section class="admin-database-section glassmorphism">
+        <div class="db-header-row">
+          <h2>Customer Record Ingestion Database</h2>
+          <div class="db-search-wrapper">
+            <input type="text" id="customer-search-input" placeholder="Search by name or email..." aria-label="Search customers" />
+            <span class="db-search-icon">&#x1F50D;</span>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="customer-table" id="customer-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Email Address</th>
+                <th>Phone Number</th>
+                <th>Ingested At</th>
+                <th>Account Status</th>
+              </tr>
+            </thead>
+            <tbody id="customer-table-body">
+              <tr>
+                <td colspan="6" class="loading-state-admin">Loading customer database...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footer-row">
+          <span id="customer-table-count">Showing 0 records</span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

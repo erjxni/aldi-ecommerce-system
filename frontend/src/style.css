@@ -1,0 +1,1708 @@
+:root {
+  /* ALDI Brand Colors */
+  --aldi-navy: #001F78;
+  --aldi-light-blue: #00B5DB;
+  --aldi-orange: #FA6E0A;
+  --aldi-yellow: #FFBF45;
+  --aldi-red: #F03D14;
+  --aldi-white: #FFFFFF;
+  --aldi-gray: #f5f7fa;
+  --aldi-dark-gray: #333333;
+  --bg-dark-glass: rgba(15, 23, 42, 0.7);
+  --border-glass: rgba(255, 255, 255, 0.15);
+  
+  /* Typography */
+  --font-family: 'Outfit', sans-serif;
+  
+  /* Shared state */
+  --drawer-backdrop: 0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-family);
+  background: linear-gradient(rgba(0, 31, 120, 0.75), rgba(0, 31, 120, 0.5)), url('/aldi_bg.png') no-repeat center center fixed;
+  background-size: cover;
+  color: var(--aldi-dark-gray);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Global Utilities */
+.hidden {
+  display: none !important;
+}
+
+/* Navigation */
+.navbar {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  padding: 0.75rem 2rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.nav-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex: 1;
+}
+
+.nav-logo {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+}
+
+.aldi-logo-img {
+  height: 48px;
+  width: auto;
+  display: block;
+  transition: transform 0.3s ease;
+}
+
+.aldi-logo-img:hover {
+  transform: scale(1.05);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  color: var(--aldi-white);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.nav-links a:hover, .nav-links a.active {
+  color: var(--aldi-yellow);
+}
+
+/* Search Bar */
+.search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 0.5rem 1rem 0.5rem 2.2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--aldi-white);
+  transition: all 0.3s ease;
+}
+
+.search-wrapper input::placeholder {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.search-wrapper input:focus {
+  outline: none;
+  background: var(--aldi-white);
+  color: var(--aldi-dark-gray);
+  border-color: var(--aldi-light-blue);
+  box-shadow: 0 0 10px rgba(0, 181, 219, 0.3);
+}
+
+.search-icon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  transition: color 0.3s ease;
+}
+
+.search-wrapper input:focus + .search-icon {
+  color: var(--aldi-navy);
+}
+
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.nav-auth-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-login-nav {
+  background-color: transparent;
+  color: var(--aldi-white);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.btn-login-nav:hover {
+  background-color: var(--aldi-white);
+  color: var(--aldi-navy);
+  border-color: var(--aldi-white);
+}
+
+/* User Profile Badge */
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--aldi-white);
+}
+
+.user-avatar {
+  font-size: 0.95rem;
+}
+
+.user-email {
+  font-size: 0.85rem;
+  font-weight: 500;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Cart Toggle Button */
+.nav-cart-btn {
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 10px rgba(250, 110, 10, 0.3);
+}
+
+.nav-cart-btn:hover {
+  background-color: #e66000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 15px rgba(250, 110, 10, 0.45);
+}
+
+.nav-cart-btn:active {
+  transform: translateY(1px);
+}
+
+.cart-badge {
+  background-color: var(--aldi-yellow);
+  color: var(--aldi-navy);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.1rem 0.5rem;
+  border-radius: 10px;
+  display: inline-block;
+  min-width: 1.5rem;
+  text-align: center;
+}
+
+.pop-animation {
+  animation: popBadge 0.3s ease-out;
+}
+
+@keyframes popBadge {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+/* Logout Button */
+.btn-logout {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--aldi-white);
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+  background: var(--aldi-red);
+  border-color: var(--aldi-red);
+  box-shadow: 0 4px 10px rgba(240, 61, 20, 0.3);
+}
+
+/* Auth Cards & Layout */
+.auth-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+.glassmorphism {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-radius: 16px;
+  border: 1px solid var(--border-glass);
+  box-shadow: 0 10px 40px rgba(0, 31, 120, 0.2);
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 450px;
+  padding: 2.5rem;
+  position: relative;
+  overflow: hidden;
+  animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.auth-header h1 {
+  font-size: 1.85rem;
+  color: var(--aldi-navy);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+}
+
+.auth-header p {
+  color: #555;
+  font-size: 0.95rem;
+}
+
+/* Forms controls */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--aldi-dark-gray);
+}
+
+.form-group input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  background-color: rgba(255, 255, 255, 0.9);
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--aldi-light-blue);
+  box-shadow: 0 0 0 3px rgba(0, 181, 219, 0.2);
+}
+
+/* Password Visibility Toggle */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  padding-right: 4.5rem !important;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--aldi-navy);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  user-select: none;
+}
+
+.toggle-password:hover {
+  background-color: rgba(0, 31, 120, 0.08);
+}
+
+/* Primary Button */
+.btn-primary {
+  width: 100%;
+  padding: 0.9rem;
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: var(--font-family);
+  margin-top: 1rem;
+  box-shadow: 0 4px 10px rgba(250, 110, 10, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: #e66000;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 15px rgba(250, 110, 10, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+/* Success and Error messages */
+.error-message {
+  color: var(--aldi-red);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  min-height: 1.2rem;
+  font-weight: 500;
+}
+
+.success-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.95rem;
+  border: 1px solid #c8e6c9;
+  font-weight: 500;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 2rem;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.text-link {
+  color: var(--aldi-navy);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+.text-link:hover {
+  color: var(--aldi-light-blue);
+  text-decoration: underline;
+}
+
+/* Storefront Dashboard Layout */
+.storefront-container {
+  max-width: 1200px;
+  width: 100%;
+  margin: 2rem auto;
+  padding: 0 2rem;
+  flex: 1;
+}
+
+/* Hero Section */
+.hero-banner {
+  background: linear-gradient(135deg, rgba(0, 31, 120, 0.85), rgba(0, 181, 219, 0.6)), url('/aldi_bg.png') no-repeat center center;
+  background-size: cover;
+  border-radius: 20px;
+  padding: 4rem 3rem;
+  position: relative;
+  overflow: hidden;
+  color: var(--aldi-white);
+  margin-bottom: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 2;
+  max-width: 600px;
+}
+
+.hero-badge {
+  background-color: var(--aldi-yellow);
+  color: var(--aldi-navy);
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: inline-block;
+  margin-bottom: 1.5rem;
+}
+
+.hero-content h1 {
+  font-size: 2.75rem;
+  line-height: 1.15;
+  margin-bottom: 1rem;
+  font-weight: 800;
+}
+
+.hero-content p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.hero-cta-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.btn-shop-now {
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.8rem 2rem;
+  border-radius: 25px;
+  display: inline-block;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 6px 20px rgba(250, 110, 10, 0.4);
+}
+
+.btn-shop-now:hover {
+  background-color: #e66000;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px rgba(250, 110, 10, 0.5);
+}
+
+.hero-glow {
+  position: absolute;
+  width: 300px;
+  height: 300px;
+  background: var(--aldi-yellow);
+  filter: blur(120px);
+  bottom: -100px;
+  right: -50px;
+  opacity: 0.35;
+  z-index: 1;
+}
+
+/* About & Features Section (Home) */
+.about-section {
+  padding: 3rem 2.5rem;
+  color: var(--aldi-navy);
+  margin-bottom: 3rem;
+}
+
+.about-title {
+  font-size: 1.75rem;
+  margin-bottom: 2rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--aldi-navy);
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  padding: 2rem 1.5rem;
+  border-radius: 12px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px rgba(0, 31, 120, 0.1);
+}
+
+.feature-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.feature-card h3 {
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--aldi-navy);
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* Category Filter Tabs */
+.categories-section {
+  margin-bottom: 2rem;
+}
+
+.category-tabs {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+  scrollbar-width: none;
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.category-tab {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--aldi-navy);
+  padding: 0.6rem 1.5rem;
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  backdrop-filter: blur(5px);
+}
+
+.category-tab:hover {
+  background: rgba(255, 255, 255, 0.95);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 31, 120, 0.1);
+}
+
+.category-tab.active {
+  background: var(--aldi-navy);
+  color: var(--aldi-white);
+  border-color: var(--aldi-navy);
+  box-shadow: 0 4px 12px rgba(0, 31, 120, 0.25);
+}
+
+/* Products Grid */
+.products-section {
+  margin-bottom: 4rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  color: var(--aldi-white);
+  margin-bottom: 1.5rem;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 2rem;
+}
+
+.no-results {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  font-weight: 500;
+  color: #666;
+}
+
+/* Product Card */
+.product-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.product-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 15px 30px rgba(0, 31, 120, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.product-visual {
+  background: linear-gradient(135deg, rgba(0, 31, 120, 0.08), rgba(0, 181, 219, 0.15));
+  height: 180px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.product-emoji {
+  font-size: 4.5rem;
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.15));
+  transition: transform 0.5s ease;
+}
+
+.product-card:hover .product-emoji {
+  transform: scale(1.1) rotate(5deg);
+}
+
+.product-category-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--aldi-navy);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.6rem;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(0, 31, 120, 0.1);
+}
+
+.product-details {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.product-rating-row {
+  margin-bottom: 0.5rem;
+}
+
+.star-rating {
+  color: #fbc02d;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(251, 192, 45, 0.1);
+  padding: 0.15rem 0.4rem;
+  border-radius: 8px;
+}
+
+.product-title {
+  font-size: 1.1rem;
+  color: var(--aldi-navy);
+  margin-bottom: 0.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.product-description {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 1.25rem;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.product-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+}
+
+.product-price {
+  font-size: 1.25rem;
+  color: var(--aldi-dark-gray);
+  font-weight: 700;
+}
+
+.btn-add-to-cart {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 15px;
+  font-family: var(--font-family);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-add-to-cart:hover {
+  background-color: var(--aldi-light-blue);
+  box-shadow: 0 4px 10px rgba(0, 181, 219, 0.25);
+}
+
+.btn-add-to-cart:active {
+  transform: scale(0.95);
+}
+
+/* Product Detail Page Styles */
+.back-link-container {
+  margin-bottom: 1.5rem;
+}
+
+.back-link {
+  color: var(--aldi-white);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.back-link:hover {
+  color: var(--aldi-yellow);
+  text-decoration: underline;
+}
+
+.product-detail-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr;
+  overflow: hidden;
+  margin-bottom: 3rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.detail-visual {
+  background: linear-gradient(135deg, rgba(0, 31, 120, 0.08), rgba(0, 181, 219, 0.15));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  position: relative;
+  border-right: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.detail-emoji {
+  font-size: 8rem;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.2));
+}
+
+.detail-category-tag {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--aldi-navy);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+  border: 1px solid rgba(0, 31, 120, 0.1);
+}
+
+.detail-info {
+  padding: 3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.95);
+}
+
+.detail-rating-row {
+  margin-bottom: 1rem;
+}
+
+.detail-title {
+  font-size: 2.25rem;
+  color: var(--aldi-navy);
+  margin-bottom: 1rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.detail-description {
+  font-size: 1.05rem;
+  color: #444;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.detail-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.detail-price {
+  font-size: 2rem;
+  color: var(--aldi-dark-gray);
+  font-weight: 800;
+}
+
+.btn-add-to-cart-detail {
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 25px;
+  font-family: var(--font-family);
+  font-weight: 700;
+  font-size: 1.05rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(250, 110, 10, 0.3);
+}
+
+.btn-add-to-cart-detail:hover {
+  background-color: #e66000;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(250, 110, 10, 0.45);
+}
+
+.loading-state, .error-state {
+  padding: 4rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.btn-secondary-nav {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: var(--aldi-white);
+  text-decoration: none;
+  font-weight: 700;
+  padding: 0.8rem 2rem;
+  border-radius: 25px;
+  display: inline-block;
+  transition: all 0.3s ease;
+}
+
+.btn-secondary-nav:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--aldi-white);
+}
+
+/* Sliding Cart Drawer Setup */
+.Drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1000;
+  overflow: hidden;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.Drawer::backdrop {
+  background: #000;
+  opacity: calc(var(--drawer-backdrop) * 0.55);
+  transition: opacity 0.3s ease;
+}
+
+.Drawer-scroller {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: 100% min(26em, 85vw);
+  overflow-x: scroll;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.Drawer-scroller::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .Drawer-scroller {
+    scroll-behavior: smooth;
+  }
+}
+
+.Drawer-spacer {
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: start;
+}
+
+.Drawer-sheet {
+  height: 100vh;
+  scroll-snap-align: end;
+  background: rgba(10, 20, 50, 0.95);
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  box-shadow: -10px 0 40px rgba(0, 0, 0, 0.4);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  color: var(--aldi-white);
+  display: flex;
+  flex-direction: column;
+  overflow-y: hidden;
+  outline: none;
+}
+
+/* Scroll-Driven Animation Timelines (Chrome/Safari 19+) */
+@supports (animation-timeline: scroll()) {
+  .Drawer {
+    timeline-scope: --drawer-fade;
+    animation: fade-drawer-backdrop linear both;
+    animation-timeline: --drawer-fade;
+  }
+
+  .Drawer-scroller {
+    scroll-timeline: --drawer-fade x;
+  }
+
+  @property --drawer-backdrop {
+    syntax: '<number>';
+    inherits: true;
+    initial-value: 0;
+  }
+
+  @keyframes fade-drawer-backdrop {
+    0% { --drawer-backdrop: 0 }
+    100% { --drawer-backdrop: 1 }
+  }
+}
+
+/* Cart Header */
+.cart-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.cart-header h2 {
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 2rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s ease;
+  padding: 0 0.5rem;
+}
+
+.close-btn:hover {
+  color: var(--aldi-white);
+}
+
+/* Cart Body */
+.cart-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+.cart-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cart-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.cart-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.empty-cart-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.empty-cart-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.empty-cart-state p {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.95rem;
+}
+
+.btn-continue-shopping {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--aldi-white);
+  padding: 0.5rem 1.2rem;
+  border-radius: 18px;
+  font-family: var(--font-family);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.btn-continue-shopping:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--aldi-white);
+}
+
+/* Cart Items Rows */
+.cart-item-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.2s ease;
+}
+
+.cart-item-row:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cart-item-emoji {
+  font-size: 2.2rem;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.2));
+}
+
+.cart-item-info {
+  flex: 1;
+}
+
+.cart-item-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+  line-height: 1.3;
+}
+
+.cart-item-price {
+  font-size: 0.85rem;
+  color: var(--aldi-light-blue);
+  font-weight: 700;
+}
+
+.cart-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.quantity-controller {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-qty-dec, .btn-qty-inc {
+  background: transparent;
+  border: none;
+  color: var(--aldi-white);
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  transition: background-color 0.2s ease;
+}
+
+.btn-qty-dec:hover, .btn-qty-inc:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.item-qty-value {
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 1.2rem;
+  text-align: center;
+}
+
+.btn-remove-item {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  line-height: 1;
+}
+
+.btn-remove-item:hover {
+  color: var(--aldi-red);
+}
+
+/* Cart Footer */
+.cart-footer {
+  padding: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(5, 10, 30, 0.6);
+}
+
+.cart-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.total-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.free-badge {
+  background-color: rgba(0, 181, 219, 0.15);
+  color: var(--aldi-light-blue);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.1rem 0.4rem;
+  border-radius: 5px;
+}
+
+.totals-divider {
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin: 0.2rem 0;
+}
+
+.main-total {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--aldi-white);
+}
+
+.total-amount {
+  color: var(--aldi-yellow);
+}
+
+.btn-checkout {
+  width: 100%;
+  padding: 0.9rem;
+  background-color: var(--aldi-orange);
+  color: var(--aldi-white);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-family);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(250, 110, 10, 0.25);
+}
+
+.btn-checkout:hover:not(:disabled) {
+  background-color: #e66000;
+  box-shadow: 0 6px 20px rgba(250, 110, 10, 0.4);
+}
+
+.btn-checkout:disabled {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.3);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.checkout-success-banner {
+  margin-top: 1rem;
+  background-color: rgba(46, 125, 50, 0.2);
+  border: 1px solid rgba(46, 125, 50, 0.4);
+  color: #81c784;
+  padding: 0.8rem;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: slideUp 0.3s ease;
+}
+
+.success-check {
+  font-size: 1rem;
+  color: #4caf50;
+  background-color: var(--aldi-white);
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+/* =====================================================================
+   ADMINISTRATOR DASHBOARD STYLES
+   ===================================================================== */
+.admin-header-row {
+  margin-bottom: 2rem;
+  color: var(--aldi-white);
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.admin-header-row h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+}
+
+.admin-subtitle {
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
+.admin-analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1.2fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.analytics-card {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Sales Loss Summary Card */
+.loss-summary-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(240, 61, 20, 0.12);
+  border-color: rgba(240, 61, 20, 0.3);
+}
+
+.loss-summary-card .card-icon {
+  font-size: 3.5rem;
+  color: var(--aldi-red);
+  filter: drop-shadow(0 4px 10px rgba(240, 61, 20, 0.25));
+}
+
+.loss-summary-card h2 {
+  font-size: 1.15rem;
+  color: var(--aldi-white);
+  opacity: 0.9;
+  font-weight: 600;
+  margin-bottom: 0.2rem;
+}
+
+.loss-amount {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: #ff8a80;
+  line-height: 1.1;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.loss-timeframe {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.4rem;
+}
+
+/* Loss Categories Card */
+.loss-breakdown-card {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--aldi-white);
+}
+
+.loss-breakdown-card h3, .loss-trend-card h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 0.5rem;
+  color: var(--aldi-yellow);
+}
+
+.loss-categories-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.loss-category-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.loss-cat-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.loss-cat-name {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.loss-cat-value {
+  color: var(--aldi-light-blue);
+  font-weight: 700;
+}
+
+.loss-progress-track {
+  background: rgba(255, 255, 255, 0.1);
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.loss-progress-bar {
+  background: linear-gradient(90deg, var(--aldi-orange), var(--aldi-red));
+  height: 100%;
+  border-radius: 4px;
+}
+
+/* Trend Column Chart */
+.loss-trend-card {
+  background: rgba(15, 23, 42, 0.75);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--aldi-white);
+}
+
+.loss-trend-chart-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 140px;
+  padding-top: 1rem;
+}
+
+.trend-bar-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 16%;
+}
+
+.trend-bar-wrapper {
+  background: rgba(255, 255, 255, 0.08);
+  width: 24px;
+  height: 90px;
+  border-radius: 12px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trend-bar-inner {
+  background: linear-gradient(to top, var(--aldi-light-blue), var(--aldi-yellow));
+  width: 100%;
+  border-radius: 12px;
+  transition: height 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trend-bar-day {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 0.4rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.trend-bar-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--aldi-yellow);
+  margin-top: 0.2rem;
+}
+
+.loading-state-admin, .error-state-admin, .no-results-admin {
+  text-align: center;
+  padding: 2rem;
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.6);
+  width: 100%;
+}
+
+/* Customer Ingested Database section */
+.admin-database-section {
+  padding: 2.5rem;
+  background: rgba(255, 255, 255, 0.95);
+  margin-bottom: 4rem;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--aldi-dark-gray);
+}
+
+.db-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.db-header-row h2 {
+  font-size: 1.4rem;
+  color: var(--aldi-navy);
+  font-weight: 700;
+}
+
+.db-search-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 350px;
+}
+
+.db-search-wrapper input {
+  width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.4rem;
+  border: 1px solid #ccc;
+  border-radius: 20px;
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  background: var(--aldi-white);
+  transition: all 0.3s ease;
+}
+
+.db-search-wrapper input:focus {
+  outline: none;
+  border-color: var(--aldi-light-blue);
+  box-shadow: 0 0 8px rgba(0, 181, 219, 0.2);
+}
+
+.db-search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.9rem;
+  color: #888;
+  pointer-events: none;
+}
+
+/* Customer Table Styles */
+.table-responsive {
+  overflow-x: auto;
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: var(--aldi-white);
+  margin-bottom: 1rem;
+}
+
+.customer-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.customer-table th {
+  background-color: var(--aldi-gray);
+  color: var(--aldi-navy);
+  padding: 1rem;
+  font-weight: 700;
+  border-bottom: 2px solid #e0e0e0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.customer-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
+  color: #444;
+}
+
+.customer-table tr:last-child td {
+  border-bottom: none;
+}
+
+.customer-table tr:hover td {
+  background-color: rgba(0, 31, 120, 0.02);
+}
+
+.col-id {
+  font-weight: 700;
+  color: var(--aldi-navy);
+}
+
+.col-name {
+  font-weight: 600;
+}
+
+.status-pill {
+  padding: 0.25rem 0.6rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  display: inline-block;
+  letter-spacing: 0.5px;
+}
+
+.admin-pill {
+  background-color: rgba(250, 110, 10, 0.15);
+  color: var(--aldi-orange);
+}
+
+.customer-pill {
+  background-color: rgba(0, 31, 120, 0.08);
+  color: var(--aldi-navy);
+}
+
+.table-footer-row {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Responsive Overrides */
+@media (max-width: 992px) {
+  .admin-analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .storefront-container {
+    padding: 0 1rem;
+    margin: 1.5rem auto;
+  }
+  .hero-banner {
+    padding: 2.5rem 1.5rem;
+  }
+  .hero-content h1 {
+    font-size: 2rem;
+  }
+  .navbar {
+    padding: 0.75rem 1rem;
+  }
+  .search-wrapper {
+    max-width: 150px;
+  }
+  .user-email, .logout-text, .cart-text {
+    display: none;
+  }
+  .nav-cart-btn {
+    padding: 0.4rem 0.8rem;
+  }
+  .btn-logout {
+    padding: 0.4rem;
+  }
+  .nav-left {
+    gap: 0.75rem;
+  }
+  
+  /* Details Mobile Overrides */
+  .product-detail-layout {
+    grid-template-columns: 1fr;
+  }
+  .detail-visual {
+    height: 250px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  .detail-info {
+    padding: 1.5rem;
+  }
+  .detail-title {
+    font-size: 1.75rem;
+  }
+  .detail-description {
+    font-size: 0.95rem;
+  }
+  
+  .db-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .db-search-wrapper {
+    max-width: 100%;
+  }
+}

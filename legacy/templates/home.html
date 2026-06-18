@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block content %}
+<section class="content-card">
+    <h1>Welcome, {{ user_name }}</h1>
+    <p>You have successfully logged in.</p>
+
+    <div class="action-row">
+        <a class="primary-link" href="{{ url_for('account') }}">Go to Account</a>
+    </div>
+</section>
+{% endblock %}

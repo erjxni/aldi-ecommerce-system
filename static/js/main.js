@@ -157,18 +157,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const itemRow = document.createElement('div');
         itemRow.className = 'cart-item-row';
         itemRow.innerHTML = `
-          <span class="cart-item-emoji">${item.emoji}</span>
+          <div class="cart-item-visual">
+            <img src="${item.image}" alt="${item.name}" class="cart-item-image" />
+          </div>
           <div class="cart-item-info">
             <h4 class="cart-item-title">${item.name}</h4>
-            <span class="cart-item-price">$${item.price.toFixed(2)}</span>
+            <span class="cart-item-price">€${item.price.toFixed(2)}</span>
           </div>
           <div class="cart-item-actions">
+            <button class="btn-remove-item" data-id="${item.id}">&times;</button>
             <div class="quantity-controller">
               <button class="btn-qty-dec" data-id="${item.id}">-</button>
               <span class="item-qty-value">${item.quantity}</span>
               <button class="btn-qty-inc" data-id="${item.id}">+</button>
             </div>
-            <button class="btn-remove-item" data-id="${item.id}">&times;</button>
           </div>
         `;
 
@@ -183,10 +185,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Totals
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    if (cartSubtotalPrice) cartSubtotalPrice.textContent = `$${subtotal.toFixed(2)}`;
+    if (cartSubtotalPrice) cartSubtotalPrice.textContent = `€${subtotal.toFixed(2)}`;
     
     const totalDisplay = document.querySelector('.total-amount');
-    if (totalDisplay) totalDisplay.textContent = `$${subtotal.toFixed(2)}`;
+    if (totalDisplay) totalDisplay.textContent = `€${subtotal.toFixed(2)}`;
   }
 
   // Drawer Open/Close Mechanics
@@ -484,7 +486,7 @@ document.addEventListener('DOMContentLoaded', () => {
       .then(data => {
         // Render total loss amount
         if (totalLossAmount) {
-          totalLossAmount.textContent = `$${data.total_loss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          totalLossAmount.textContent = `€${data.total_loss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
         // Render categories list
@@ -496,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
             row.innerHTML = `
               <div class="loss-cat-info">
                 <span class="loss-cat-name">${cat.name}</span>
-                <span class="loss-cat-value">$${cat.amount.toFixed(2)} (${cat.loss_percentage}%)</span>
+                <span class="loss-cat-value">€${cat.amount.toFixed(2)} (${cat.loss_percentage}%)</span>
               </div>
               <div class="loss-progress-track">
                 <div class="loss-progress-bar" style="width: ${cat.loss_percentage}%"></div>
@@ -518,10 +520,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             col.innerHTML = `
               <div class="trend-bar-wrapper">
-                <div class="trend-bar-inner" style="height: ${pctHeight}%" title="$${trend.loss.toFixed(2)} lost"></div>
+                <div class="trend-bar-inner" style="height: ${pctHeight}%" title="€${trend.loss.toFixed(2)} lost"></div>
               </div>
               <span class="trend-bar-day">${trend.day}</span>
-              <span class="trend-bar-label">$${Math.round(trend.loss)}</span>
+              <span class="trend-bar-label">€${Math.round(trend.loss)}</span>
             `;
             lossTrendChart.appendChild(col);
           });

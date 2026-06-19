@@ -10,7 +10,7 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 
 // Serve static files from the frontend folder
-app.use(express.static(path.join(__dirname, '../frontend')));
+app.use(express.static(path.join(__dirname, '../static')));
 
 // Helper function to read database/products.json
 const getProductsData = () => {
@@ -48,7 +48,7 @@ app.get('*', (req, res, next) => {
   if (req.url.startsWith('/api')) {
     return next();
   }
-  res.sendFile(path.join(__dirname, '../frontend/index.html'));
+  res.sendFile(path.join(__dirname, '../static/index.html'));
 });
 
 // Start the server

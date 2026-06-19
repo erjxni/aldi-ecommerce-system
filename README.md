@@ -21,55 +21,18 @@ This project is organized into several distinct directories. For a detailed brea
 
 ---
 
-## Backend Setup (FastAPI)
+## Setup
 
-1. Navigate to the backend directory and set up a virtual environment:
-   ```bash
-   cd backend
-   python -m venv .venv
-   ```
-
-2. Activate the virtual environment:
-   - **Windows (PowerShell):**
-     ```powershell
-     .venv\Scripts\Activate.ps1
-     ```
-   - **macOS/Linux:**
-     ```bash
-     source .venv/bin/activate
-     ```
-
-3. Install the required dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Run the FastAPI development server (run this from the **project root directory**):
-   ```bash
-   cd ..
-   uvicorn backend.main:app --reload
-   ```
-   The API will be available at `http://127.0.0.1:8000`. The interactive OpenAPI docs are accessible at `http://127.0.0.1:8000/docs`.
-
----
-
-## Frontend Setup (Vite)
-
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-
+1. Navigate to the root
 2. Install dependencies:
    ```bash
    npm install
    ```
 
-3. Start the Vite development server:
+3. Start the development server:
    ```bash
    npm run dev
    ```
-   The frontend application will be served at the URL printed in the terminal (typically `http://localhost:5173`).
 
 ---
 
@@ -77,9 +40,6 @@ This project is organized into several distinct directories. For a detailed brea
 
 To get the best development experience and proper diagram rendering:
 
-1. **Python Environment**:
-   - When prompted, choose **Python: Select Interpreter** and select the interpreter inside `backend/.venv` to ensure autocomplete and linting resolve correctly.
-
-2. **Recommended Extensions**:
+1. **Recommended Extensions**:
    - **Python** (Microsoft): For full Python language support, testing, and IntelliSense.
    - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the flow and architecture diagrams located in [docs/architecture.md](file:///e:/projects/antigravity/aldi-ecommerce-system/docs/architecture.md).

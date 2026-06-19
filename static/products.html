@@ -8,7 +8,7 @@
   
   <!-- Use Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 
 <body>
@@ -18,16 +18,11 @@
       <div class="nav-container">
         <div class="nav-left">
           <a href="/index.html" class="nav-logo">
-            <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+            <img src="/assets/public/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
           </a>
           <div class="nav-links">
             <a href="/index.html" class="nav-link">Home</a>
             <a href="/products.html" class="nav-link active">Products</a>
-          </div>
-          <!-- Search Bar -->
-          <div class="search-wrapper">
-            <input type="text" id="search-input" placeholder="Search ALDI products..." aria-label="Search products" />
-            <span class="search-icon">&#x1F50D;</span>
           </div>
         </div>
 
@@ -47,26 +42,32 @@
     </nav>
 
     <!-- Main Content -->
-    <main class="storefront-container">
+    <main class="products-layout-container">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-header">CATEGORIES</div>
+        <ul class="category-list">
+          <li class="category-item active" data-category="all">All Products</li>
+          <li class="category-item" data-category="Snacks & Candy">Snacks & Candy</li>
+          <li class="category-item" data-category="Beverages">Beverages</li>
+          <li class="category-item" data-category="Dairy & Eggs">Dairy & Eggs</li>
+          <li class="category-item" data-category="Meat & Seafood">Meat & Seafood</li>
+        </ul>
+      </aside>
       
-      <!-- Category Filter Tabs -->
-      <section class="categories-section">
-        <div class="category-tabs">
-          <button class="category-tab active" data-category="all">All Products</button>
-          <button class="category-tab" data-category="grocery">Fresh Groceries</button>
-          <button class="category-tab" data-category="bakery">Bakery & Sweets</button>
-          <button class="category-tab" data-category="beverages">Beverages</button>
+      <!-- Products Main -->
+      <section class="products-main">
+        <div class="products-header">
+          <h1 class="page-title" id="page-category-title">All Products</h1>
+          <div class="search-wrapper-main">
+            <span class="search-icon">&#x1F50D;</span>
+            <input type="text" id="search-input" placeholder="Search products..." aria-label="Search products" />
+          </div>
         </div>
-      </section>
-
-      <!-- Products Grid -->
-      <section id="product-grid-section" class="products-section">
-        <h2 class="section-title">This Week's Deals</h2>
         <div id="product-grid" class="product-grid">
           <!-- Dynamic Products Loaded via main.js -->
         </div>
       </section>
-
     </main>
 
     <!-- Sliding Cart Drawer (Native Popover + Scroll Snap) -->
@@ -120,6 +121,41 @@
     </div>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/js/main.js"></script>
+  <!-- Footer Section -->
+  <footer class="aldi-footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-column">
+          <h4>ALDI</h4>
+          <ul>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/products.html">Products</a></li>
+            <li><a href="#">About Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>CATEGORIES</h4>
+          <ul>
+            <li><a href="/products.html">Snacks & Candy</a></li>
+            <li><a href="/products.html">Beverages</a></li>
+            <li><a href="/products.html">Dairy & Eggs</a></li>
+            <li><a href="/products.html">Meat & Seafood</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>SUPPORT</h4>
+          <ul>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Returns</a></li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 ALDI E-Commerce System. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

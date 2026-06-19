@@ -1,5 +1,4 @@
-// Import global CSS
-import './style.css';
+// CSS is linked in HTML
 
 document.addEventListener('DOMContentLoaded', () => {
   const userEmail = localStorage.getItem('userEmail');
@@ -90,12 +89,12 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
   }
 
-  function addToCart(product) {
+  function addToCart(product, quantity = 1) {
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
-      existing.quantity += 1;
+      existing.quantity += quantity;
     } else {
-      cart.push({ ...product, quantity: 1 });
+      cart.push({ ...product, quantity: quantity, emoji: product.emoji || '🛒' });
     }
     saveCart();
     openCart();
@@ -205,11 +204,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function closeCart() {
-    if (!scroller) return;
-    scroller.scrollTo({
-      left: 0,
-      behavior: 'auto'
-    });
+    if (cartDrawer) {
+      cartDrawer.hidePopover();
+    }
+    if (cartToggleBtn) {
+      cartToggleBtn.setAttribute('aria-expanded', 'false');
+    }
   }
 
   function onCartClosed() {
@@ -274,11 +274,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 3. PAGE SPECIFIC ROUTING ---
 
-  // A. PRODUCT LISTINGS PAGE (products.html)
   if (pathname.includes('/products.html')) {
     const productGrid = document.getElementById('product-grid');
     const searchInput = document.getElementById('search-input');
-    const categoryTabs = document.querySelectorAll('.category-tab');
+    const categoryTabs = document.querySelectorAll('.category-item');
+    const pageTitle = document.getElementById('page-category-title');
     
     let allProducts = [];
     let activeCategory = 'all';
@@ -306,41 +306,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
       filtered.forEach(p => {
         const card = document.createElement('div');
-        card.className = 'product-card glassmorphism';
+        card.className = 'product-card';
         
         card.innerHTML = `
           <div class="product-visual clickable-visual" data-id="${p.id}">
-            <span class="product-emoji">${p.emoji}</span>
-            <span class="product-category-tag">${p.category}</span>
+            <img src="${p.image}" alt="${p.name}" class="product-image" />
           </div>
           <div class="product-details">
-            <div class="product-rating-row">
-              <span class="star-rating">&#x2605; ${p.rating}</span>
-            </div>
+            <span class="product-category-text">${p.category.toUpperCase()}</span>
             <h3 class="product-title clickable-title" data-id="${p.id}">${p.name}</h3>
-            <p class="product-description">${p.description}</p>
+            <span class="product-size">${p.size}</span>
             <div class="product-footer">
-              <span class="product-price">$${p.price.toFixed(2)}</span>
-              <button class="btn-add-to-cart" data-id="${p.id}">Add to Cart</button>
+              <span class="product-price">€${p.price.toFixed(2)}</span>
+              <button class="btn-view" data-id="${p.id}">View</button>
             </div>
           </div>
         `;
 
-        card.querySelectorAll('.clickable-visual, .clickable-title').forEach(el => {
+        card.querySelectorAll('.clickable-visual, .clickable-title, .btn-view').forEach(el => {
           el.addEventListener('click', () => {
             window.location.href = `/product-detail.html?id=${p.id}`;
           });
-        });
-
-        card.querySelector('.btn-add-to-cart').addEventListener('click', () => {
-          addToCart(p);
         });
 
         productGrid.appendChild(card);
       });
     }
 
-    fetch('http://127.0.0.1:8000/api/products')
+    fetch('/api/products')
       .then(res => {
         if (!res.ok) throw new Error("API call failed");
         return res.json();
@@ -366,6 +359,9 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryTabs.forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
         activeCategory = tab.getAttribute('data-category');
+        if (pageTitle) {
+          pageTitle.textContent = tab.textContent;
+        }
         renderProductGrid();
       });
     });
@@ -382,33 +378,78 @@ document.addEventListener('DOMContentLoaded', () => {
         detailCard.innerHTML = `<div class="error-state"><p>Product ID is missing in query string.</p></div>`;
       }
     } else {
-      fetch(`http://127.0.0.1:8000/api/products/${productId}`)
+      fetch(`/api/products/${productId}`)
         .then(res => {
           if (!res.ok) throw new Error("Product not found");
           return res.json();
         })
         .then(product => {
-          if (!detailCard) return;
+          const breadcrumbCurrent = document.getElementById('breadcrumb-current');
+          if(breadcrumbCurrent) breadcrumbCurrent.textContent = product.name;
+
+          let featuresHtml = '';
+          if (product.features && product.features.length > 0) {
+            featuresHtml = '<ul class="detail-features">' + product.features.map(f => `<li>${f}</li>`).join('') + '</ul>';
+          }
+
+          detailCard.className = 'product-detail-layout';
           detailCard.innerHTML = `
             <div class="detail-visual">
-              <span class="detail-emoji">${product.emoji}</span>
-              <span class="detail-category-tag">${product.category}</span>
+              <img src="${product.image}" alt="${product.name}" class="detail-image" />
             </div>
             <div class="detail-info">
-              <div class="detail-rating-row">
-                <span class="star-rating">&#x2605; ${product.rating} / 5.0</span>
-              </div>
+              <div class="detail-category">${product.category.toUpperCase()}</div>
               <h1 class="detail-title">${product.name}</h1>
+              <div class="detail-size">${product.size}</div>
+              <div class="detail-price">€${product.price.toFixed(2)}</div>
+              
               <p class="detail-description">${product.description}</p>
-              <div class="detail-footer">
-                <span class="detail-price">$${product.price.toFixed(2)}</span>
+              ${featuresHtml}
+              
+              <div class="detail-actions">
+                <div class="detail-quantity-wrapper">
+                  <button class="btn-qty-minus">-</button>
+                  <input type="number" class="detail-qty-input" value="1" min="1" id="detail-qty" readonly />
+                  <button class="btn-qty-plus">+</button>
+                </div>
                 <button class="btn-add-to-cart-detail">Add to Cart</button>
               </div>
             </div>
           `;
 
+          const specsSection = document.getElementById('product-specs-section');
+          if (specsSection && product.specifications) {
+            let specRows = '';
+            for (const [key, value] of Object.entries(product.specifications)) {
+              specRows += `
+                <div class="spec-row">
+                  <div class="spec-key">${key}</div>
+                  <div class="spec-value">${value}</div>
+                </div>
+              `;
+            }
+            specsSection.innerHTML = `
+              <div class="specs-tabs">
+                <div class="spec-tab active">Specifications</div>
+              </div>
+              <div class="specs-content">
+                ${specRows}
+              </div>
+            `;
+          }
+
+          // Qty logic
+          let currentQty = 1;
+          const qtyInput = detailCard.querySelector('#detail-qty');
+          detailCard.querySelector('.btn-qty-minus').addEventListener('click', () => {
+            if (currentQty > 1) { currentQty--; qtyInput.value = currentQty; }
+          });
+          detailCard.querySelector('.btn-qty-plus').addEventListener('click', () => {
+            currentQty++; qtyInput.value = currentQty;
+          });
+
           detailCard.querySelector('.btn-add-to-cart-detail').addEventListener('click', () => {
-            addToCart(product);
+            addToCart(product, currentQty);
           });
         })
         .catch(err => {
@@ -435,7 +476,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const customerTableCount = document.getElementById('customer-table-count');
 
     // 1. Load Sales Losses Data
-    fetch('http://127.0.0.1:8000/api/admin/sales-losses')
+    fetch('/api/admin/sales-losses')
       .then(res => {
         if (!res.ok) throw new Error("Failed to load loss metrics");
         return res.json();
@@ -498,7 +539,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!customerTableBody) return;
       customerTableBody.innerHTML = `<tr><td colspan="6" class="loading-state-admin">Loading customer database...</td></tr>`;
 
-      fetch(`http://127.0.0.1:8000/api/admin/customers?search=${encodeURIComponent(query)}`)
+      fetch(`/api/admin/customers?search=${encodeURIComponent(query)}`)
         .then(res => {
           if (!res.ok) throw new Error("Failed to fetch customer list");
           return res.json();

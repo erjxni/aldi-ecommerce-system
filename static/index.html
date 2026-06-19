@@ -1,77 +1,114 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ALDI E-Commerce Store - Home</title>
   
-  <!-- Use Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/src/style.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
-
 <body>
   <div id="homepage-app">
-    <!-- Top Navigation -->
-    <nav class="navbar">
-      <div class="nav-container">
-        <div class="nav-left">
-          <a href="/index.html" class="nav-logo">
-            <img src="/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
-          </a>
-        </div>
+    <!-- Top Navigation and Hero wrapped in a dark blue container -->
+    <div class="top-section">
+      <nav class="navbar">
+        <div class="nav-container">
+          <div class="nav-left">
+            <a href="/index.html" class="nav-logo">
+              <img src="/assets/public/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+            </a>
+          </div>
 
-        <div class="nav-right">
-          <!-- Auth Section: Dynamically updated in main.js -->
-          <div id="nav-auth-section" class="nav-auth-container">
-            <a href="/login.html" class="btn-login-nav">Login / Register</a>
+          <div class="nav-right">
+            <a href="/products.html" class="btn-shop-now">Shop Now</a>
+            <div id="nav-auth-section" class="nav-auth-container" style="display: none;"></div>
           </div>
         </div>
-      </div>
-    </nav>
+      </nav>
 
-    <!-- Main Content -->
-    <main class="storefront-container">
-      <!-- Hero Banner -->
-      <section class="hero-banner glassmorphism">
-        <div class="hero-content">
-          <span class="hero-badge">Welcome to ALDI</span>
-          <h1>Good Different. Good Value.</h1>
-          <p>Experience ALDI's award-winning selection of groceries, bakery treats, and organic beverages at unbeatable prices.</p>
-          <div class="hero-cta-group">
-            <a href="/products.html" class="btn-shop-now">Browse Products</a>
-            <a href="/login.html" id="hero-login-btn" class="btn-login-nav">Sign In</a>
+      <main class="storefront-container">
+        <!-- Hero Banner -->
+        <section class="hero-banner">
+          <div class="hero-content">
+            <h1>Quality you can trust.<br>Prices you'll love.</h1>
+            <p>Browse our handpicked selection of everyday essentials – fresh, tasty<br>and always great value.</p>
+            <div class="hero-cta-group">
+              <a href="/products.html" class="btn-hero-shop">Browse Products</a>
+            </div>
           </div>
-        </div>
-        <div class="hero-glow"></div>
-      </section>
+        </section>
+      </main>
+    </div>
 
-      <!-- Features Section -->
-      <section class="about-section glassmorphism">
-        <h2 class="about-title">Why Shop at ALDI?</h2>
+    <section class="about-section">
+      <div class="about-container">
+        <div class="about-title-wrapper">
+          <h2 class="about-title">Why Shop at ALDI?</h2>
+        </div>
+        
         <div class="features-grid">
           <div class="feature-card">
-            <span class="feature-icon">🏅</span>
-            <h3>Premium Quality</h3>
-            <p>Our Specially Selected range represents the very best of local and international sourcing.</p>
+            <span class="feature-icon">🏆</span>
+            <h3>Tested Quality</h3>
+            <p>Every product is rigorously quality-checked before hitting our shelves.</p>
           </div>
           <div class="feature-card">
             <span class="feature-icon">💰</span>
-            <h3>Unbeatable Prices</h3>
-            <p>We work directly with growers and manufacturers to pass the savings directly to you.</p>
+            <h3>Everyday Low Prices</h3>
+            <p>Our lean supply chain means you always get the best price.</p>
           </div>
           <div class="feature-card">
             <span class="feature-icon">🌱</span>
-            <h3>Organic & Sustainable</h3>
-            <p>Our commitment to organic farming ensures fresh, delicious, and healthy choices.</p>
+            <h3>Fresh & Organic</h3>
+            <p>From organic juices to natural snacks, we stock what matters.</p>
+          </div>
+          <div class="feature-card">
+            <span class="feature-icon">🛒</span>
+            <h3>Simple Shopping</h3>
+            <p>Easy to browse, easy to buy. No clutter, no confusion.</p>
           </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-    </main>
   </div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/js/main.js"></script>
+  <!-- Footer Section -->
+  <footer class="aldi-footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-column">
+          <h4>ALDI</h4>
+          <ul>
+            <li><a href="/index.html">Home</a></li>
+            <li><a href="/products.html">Products</a></li>
+            <li><a href="#">About Us</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>CATEGORIES</h4>
+          <ul>
+            <li><a href="/products.html">Snacks & Candy</a></li>
+            <li><a href="/products.html">Beverages</a></li>
+            <li><a href="/products.html">Dairy & Eggs</a></li>
+            <li><a href="/products.html">Meat & Seafood</a></li>
+          </ul>
+        </div>
+        <div class="footer-column">
+          <h4>SUPPORT</h4>
+          <ul>
+            <li><a href="#">Help Center</a></li>
+            <li><a href="#">Returns</a></li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2026 ALDI E-Commerce System. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>

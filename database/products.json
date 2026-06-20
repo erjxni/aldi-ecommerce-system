@@ -1,0 +1,57 @@
+[
+  {
+    "id": "1",
+    "name": "Flips Classic",
+    "size": "200g",
+    "price": 0.69,
+    "category": "Snacks & Candy",
+    "image": "/assets/images/flips.png",
+    "description": "Sun Snacks Erdnuss Flips Classic – crispy peanut puffs with a light, crunchy texture. Vegan-friendly and perfect for snacking.",
+    "features": ["Vegan", "DLG Award Winner", "Nutri-Score D"],
+    "specifications": { "Weight": "200g", "Allergens": "Peanuts, Gluten", "Storage": "Store in a cool, dry place" }
+  },
+  {
+    "id": "2",
+    "name": "Cashew Nuts",
+    "size": "200g",
+    "price": 1.99,
+    "category": "Snacks & Candy",
+    "image": "/assets/images/cashew_nuts.png",
+    "description": "Farmer Naturals Cashew Kerne – naturally sourced cashew nuts, a good source of magnesium. Resealable bag, vegan certified.",
+    "features": ["Vegan", "Resealable Bag", "Magnesium Source", "Nutri-Score B"],
+    "specifications": { "Weight": "200g", "Allergens": "Tree nuts", "Storage": "Store in a cool, dry place" }
+  },
+  {
+    "id": "3",
+    "name": "Organic Orange Juice",
+    "size": "1L",
+    "price": 2.45,
+    "category": "Beverages",
+    "image": "/assets/images/orange_juice.png",
+    "description": "Bio Orangensaft – 100% organic orange juice made from directly pressed oranges. Vegan, EU organic certified, 1 Litre.",
+    "features": ["100% Organic", "Vegan", "EU Organic Certified", "Nutri-Score B"],
+    "specifications": { "Volume": "1 Litre", "Type": "Direct juice (Direktsaft)", "Storage": "Refrigerate after opening" }
+  },
+  {
+    "id": "4",
+    "name": "UHT Sour Cream",
+    "size": "200g",
+    "price": 0.60,
+    "category": "Dairy & Eggs",
+    "image": "/assets/images/sour_cream.png",
+    "description": "Milsani Schmand – creamy sour cream with 24% fat content. Made in Germany without genetic engineering.",
+    "features": ["24% Fat", "No GMO", "Made in Germany", "Nutri-Score B"],
+    "specifications": { "Weight": "200g", "Fat Content": "24%", "Storage": "Refrigerate, use within 3 days of opening" }
+  },
+  {
+    "id": "5",
+    "name": "Savory Beef Salami",
+    "size": "100g",
+    "price": 1.99,
+    "category": "Meat & Seafood",
+    "image": "/assets/images/beef_salami.png",
+    "description": "Gut Bartelsheide Herzhafte Rindfleischsalami – mildly smoked beef salami of top quality. Animal welfare certified, fresh cold cuts.",
+    "features": ["Animal Welfare Certified", "Top Quality", "Mild Smoke Cured", "Nutri-Score E"],
+    "specifications": { "Weight": "100g", "Allergens": "None listed", "Storage": "Keep refrigerated, consume within 2 days of opening" }
+  }
+]

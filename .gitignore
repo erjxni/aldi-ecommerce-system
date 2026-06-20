@@ -1,0 +1,6 @@
+TODO.md
+__pycache__
+node_modules/
+.env
+.venv
+

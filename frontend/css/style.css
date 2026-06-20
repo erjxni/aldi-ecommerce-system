@@ -1,0 +1,723 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ========================================
+   ALDI COLOR SYSTEM
+   ======================================== */
+:root {
+  --aldi-navy:   #001C5C;
+  --aldi-red:    #CC0000;
+  --aldi-yellow: #FFD700;
+  --aldi-white:  #FFFFFF;
+  --aldi-light:  #F5F5F5;
+  --aldi-border: #E0E0E0;
+  --aldi-text:   #1A1A1A;
+  --aldi-muted:  #666666;
+  --aldi-hover:  #001040;
+}
+
+/* ========================================
+   RESET & BASE
+   ======================================== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; }
+
+body {
+  font-family: 'Inter', Arial, sans-serif;
+  background-color: var(--aldi-white);
+  color: var(--aldi-text);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+a { text-decoration: none; color: inherit; }
+ul { list-style: none; }
+img { display: block; max-width: 100%; }
+button { cursor: pointer; font-family: inherit; }
+
+/* ========================================
+   HEADER / NAV
+   ======================================== */
+.site-header {
+  background-color: var(--aldi-navy);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.header-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+/* Logo */
+.logo-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.logo-img {
+  height: 52px;
+  width: auto;
+  flex-shrink: 0;
+  display: block;
+}
+
+/* Main nav */
+.main-nav { margin-left: auto; }
+
+.main-nav ul {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-item {
+  color: var(--aldi-white);
+  font-size: 0.9rem;
+  font-weight: 500;
+  padding: 0.5rem 0.9rem;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.nav-item:hover {
+  background-color: rgba(255,255,255,0.12);
+}
+
+.nav-item.active {
+  background-color: rgba(255,255,255,0.18);
+}
+
+.btn-nav {
+  background-color: var(--aldi-red);
+  color: var(--aldi-white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0.5rem 1.1rem;
+  border-radius: 4px;
+  border: none;
+  transition: background 0.15s;
+  display: inline-block;
+}
+
+.btn-nav:hover { background-color: #aa0000; }
+
+/* ========================================
+   MAIN CONTENT WRAPPER
+   ======================================== */
+main { flex: 1; }
+
+/* ========================================
+   HOMEPAGE HERO BANNER
+   ======================================== */
+.hero-banner {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.hero-banner h1 {
+  font-size: 2.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+  line-height: 1.2;
+}
+
+.hero-banner p {
+  font-size: 1.05rem;
+  color: rgba(255,255,255,0.8);
+  max-width: 560px;
+  margin: 0 auto 2rem;
+}
+
+.hero-cta {
+  display: inline-block;
+  background-color: var(--aldi-red);
+  color: var(--aldi-white);
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.8rem 2rem;
+  border-radius: 4px;
+  border: none;
+  transition: background 0.15s;
+}
+
+.hero-cta:hover { background-color: #aa0000; }
+
+/* ========================================
+   SECTION TITLE
+   ======================================== */
+.section-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--aldi-navy);
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 3px solid var(--aldi-red);
+  display: inline-block;
+}
+
+/* ========================================
+   FEATURES ROW (Homepage)
+   ======================================== */
+.features-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  margin-top: 1rem;
+}
+
+.feature-tile {
+  background: var(--aldi-light);
+  border: 1px solid var(--aldi-border);
+  border-radius: 6px;
+  padding: 1.5rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.feature-tile .tile-icon {
+  font-size: 1.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.feature-tile h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--aldi-navy);
+}
+
+.feature-tile p {
+  font-size: 0.875rem;
+  color: var(--aldi-muted);
+}
+
+/* ========================================
+   PRODUCTS PAGE LAYOUT  (sidebar + grid)
+   ======================================== */
+.catalog-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 2rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .catalog-layout { grid-template-columns: 1fr; }
+  .catalog-sidebar { display: none; }
+}
+
+/* Sidebar */
+.catalog-sidebar {
+  background: var(--aldi-white);
+  border: 1px solid var(--aldi-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sidebar-heading {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  font-size: 0.875rem;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.sidebar-list li { border-bottom: 1px solid var(--aldi-border); }
+.sidebar-list li:last-child { border-bottom: none; }
+
+.sidebar-link {
+  display: block;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  color: var(--aldi-text);
+  transition: background 0.12s, color 0.12s;
+}
+
+.sidebar-link:hover,
+.sidebar-link.active {
+  background-color: var(--aldi-light);
+  color: var(--aldi-navy);
+  font-weight: 600;
+}
+
+/* ========================================
+   CATALOG MAIN AREA
+   ======================================== */
+.catalog-main {}
+
+/* Toolbar */
+.catalog-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.catalog-toolbar h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--aldi-navy);
+}
+
+.search-wrap {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+  max-width: 360px;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  border: 1px solid var(--aldi-border);
+  border-radius: 4px;
+  padding: 0.55rem 1rem 0.55rem 2.25rem;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background-color: var(--aldi-white);
+  color: var(--aldi-text);
+  transition: border-color 0.15s;
+}
+
+.search-input:focus { outline: none; border-color: var(--aldi-navy); }
+
+.search-icon-wrap {
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--aldi-muted);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+/* ========================================
+   PRODUCT GRID
+   ======================================== */
+.products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.product-card {
+  background: var(--aldi-white);
+  border: 1px solid var(--aldi-border);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s, border-color 0.2s;
+  cursor: pointer;
+}
+
+.product-card:hover {
+  box-shadow: 0 4px 16px rgba(0,28,92,0.12);
+  border-color: var(--aldi-navy);
+}
+
+.product-card:hover .card-img { transform: scale(1.03); }
+
+.card-img-wrap {
+  background-color: var(--aldi-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  height: 190px;
+  padding: 0.75rem;
+}
+
+.card-img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+  transition: transform 0.25s;
+}
+
+.card-body {
+  padding: 0.875rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border-top: 1px solid var(--aldi-border);
+}
+
+.card-category {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--aldi-muted);
+}
+
+.card-name {
+  font-size: 0.925rem;
+  font-weight: 600;
+  color: var(--aldi-text);
+  line-height: 1.35;
+}
+
+.card-size {
+  font-size: 0.8rem;
+  color: var(--aldi-muted);
+}
+
+.card-footer {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-price {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--aldi-navy);
+}
+
+.btn-add {
+  background-color: var(--aldi-navy);
+  color: var(--aldi-white);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  border: none;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-add:hover { background-color: var(--aldi-hover); }
+
+/* Empty/Error state */
+.catalog-empty {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--aldi-muted);
+  font-size: 0.95rem;
+}
+
+/* Loader */
+.loader-wrap {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--aldi-muted);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--aldi-border);
+  border-top-color: var(--aldi-navy);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ========================================
+   PRODUCT DETAIL PAGE
+   ======================================== */
+.detail-wrap {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  color: var(--aldi-muted);
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.breadcrumb a { color: var(--aldi-navy); }
+.breadcrumb a:hover { text-decoration: underline; }
+.breadcrumb-sep { color: var(--aldi-border); }
+
+/* Grid */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 3rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .detail-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+}
+
+/* Image panel */
+.detail-img-panel {
+  border: 1px solid var(--aldi-border);
+  border-radius: 6px;
+  background-color: var(--aldi-white);
+  overflow: hidden;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 350px;
+}
+
+.detail-img {
+  max-height: 340px;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+/* Info panel */
+.detail-info {}
+
+.detail-category {
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--aldi-red);
+  margin-bottom: 0.5rem;
+}
+
+.detail-name {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--aldi-text);
+  line-height: 1.25;
+  margin-bottom: 0.25rem;
+}
+
+.detail-size {
+  font-size: 0.9rem;
+  color: var(--aldi-muted);
+  margin-bottom: 1rem;
+}
+
+.detail-price {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--aldi-navy);
+  margin-bottom: 1.25rem;
+}
+
+.divider {
+  height: 1px;
+  background-color: var(--aldi-border);
+  margin: 1.25rem 0;
+}
+
+.detail-description {
+  font-size: 0.95rem;
+  color: var(--aldi-muted);
+  line-height: 1.65;
+  margin-bottom: 1.5rem;
+}
+
+/* Features */
+.features-list {
+  list-style: none;
+  margin-bottom: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.features-list li {
+  font-size: 0.9rem;
+  color: var(--aldi-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.features-list li::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: var(--aldi-red);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Action row */
+.detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.qty-control {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--aldi-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.qty-btn {
+  background: var(--aldi-light);
+  border: none;
+  width: 36px;
+  height: 40px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--aldi-text);
+  transition: background 0.12s;
+}
+
+.qty-btn:hover { background: var(--aldi-border); }
+
+.qty-num {
+  width: 44px;
+  height: 40px;
+  text-align: center;
+  border: none;
+  border-left: 1px solid var(--aldi-border);
+  border-right: 1px solid var(--aldi-border);
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--aldi-text);
+}
+
+.qty-num::-webkit-outer-spin-button,
+.qty-num::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.btn-primary {
+  background-color: var(--aldi-red);
+  color: var(--aldi-white);
+  border: none;
+  padding: 0.7rem 1.75rem;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+
+.btn-primary:hover { background-color: #aa0000; }
+
+/* Tabs */
+.tabs-bar {
+  display: flex;
+  border-bottom: 2px solid var(--aldi-border);
+  gap: 0;
+  margin-bottom: 1.25rem;
+}
+
+.tab-btn {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--aldi-muted);
+  transition: color 0.15s, border-color 0.15s;
+  cursor: pointer;
+}
+
+.tab-btn:hover { color: var(--aldi-navy); }
+
+.tab-btn.active {
+  color: var(--aldi-navy);
+  border-bottom-color: var(--aldi-navy);
+}
+
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Specs table */
+.specs-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.specs-table tr { border-bottom: 1px solid var(--aldi-border); }
+.specs-table tr:last-child { border-bottom: none; }
+.specs-table td { padding: 0.6rem 0.5rem; }
+.specs-table .spec-key { color: var(--aldi-muted); font-weight: 500; width: 40%; }
+.specs-table .spec-val { color: var(--aldi-text); }
+
+/* ========================================
+   FOOTER
+   ======================================== */
+.site-footer {
+  background-color: var(--aldi-navy);
+  color: rgba(255,255,255,0.75);
+  padding: 2.5rem 1.5rem 1.5rem;
+  margin-top: auto;
+}
+
+.footer-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.footer-col h4 {
+  color: var(--aldi-white);
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.footer-col ul { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.footer-col ul li a {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.65);
+  transition: color 0.15s;
+}
+
+.footer-col ul li a:hover { color: var(--aldi-white); }
+
+.footer-bottom {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(255,255,255,0.15);
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.45);
+  text-align: center;
+}

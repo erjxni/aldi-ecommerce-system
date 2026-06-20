@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Order Confirmation - ALDI E-Commerce</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="confirmation-body">
+  <div id="confirmation-app">
+    <!-- Header -->
+    <nav class="navbar solid-nav">
+      <div class="nav-container">
+        <div class="nav-left">
+          <a href="/index.html" class="nav-logo">
+            <img src="/assets/public/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+          </a>
+        </div>
+        <div class="nav-right">
+          <div id="nav-auth-section" class="nav-auth-container" style="display: none;"></div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <main class="confirmation-container">
+      <div class="confirmation-card">
+        <div class="success-icon">✓</div>
+        <h1>Thank you for your order!</h1>
+        <p class="order-number">Order number: <strong id="display-order-number">#123456</strong></p>
+        <p class="confirmation-message">
+          We've received your order and will contact you as soon as your package is shipped. You can find your purchase details in your email.
+        </p>
+        <a href="/products.html" class="btn-primary btn-continue-shopping">Continue Shopping</a>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

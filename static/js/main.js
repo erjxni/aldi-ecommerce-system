@@ -262,15 +262,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (checkoutBtn) {
     checkoutBtn.addEventListener('click', () => {
-      checkoutBtn.disabled = true;
-      if (checkoutSuccessBanner) checkoutSuccessBanner.classList.remove('hidden');
-
-      setTimeout(() => {
-        cart = [];
-        saveCart();
-        if (checkoutSuccessBanner) checkoutSuccessBanner.classList.add('hidden');
-        closeCart();
-      }, 2000);
+      if (!userToken) {
+        window.location.href = '/login.html';
+      } else {
+        window.location.href = '/checkout.html';
+      }
     });
   }
 
@@ -603,6 +599,73 @@ document.addEventListener('DOMContentLoaded', () => {
         fetchAndRenderCustomers(query);
       });
     }
+  }
+
+  if (pathname.includes('/checkout.html')) {
+    if (!userToken) {
+      window.location.href = '/login.html';
+    }
+
+    const checkoutItemsContainer = document.getElementById('checkout-items-container');
+    const checkoutSubtotal = document.getElementById('checkout-subtotal');
+    const checkoutTotal = document.getElementById('checkout-total');
+    const checkoutForm = document.getElementById('checkout-form');
+
+    // Auto-fill form if logged in
+    if (userEmail) {
+      const emailInput = document.getElementById('shipping-email');
+      if (emailInput) emailInput.value = userEmail;
+    }
+
+    // Render Cart in Checkout
+    if (cart.length === 0) {
+      checkoutItemsContainer.innerHTML = '<p style="padding: 15px;">Your cart is empty. Please add items before checking out.</p>';
+      const btn = document.getElementById('submit-order-btn');
+      if (btn) btn.disabled = true;
+    } else {
+      let subtotal = 0;
+      checkoutItemsContainer.innerHTML = '';
+      cart.forEach(item => {
+        subtotal += (item.price * item.quantity);
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'checkout-item';
+        itemDiv.innerHTML = `
+          <img src="${item.image}" alt="${item.name}" class="checkout-item-img" />
+          <div class="checkout-item-details">
+            <h4 class="checkout-item-title">${item.name}</h4>
+            <div class="checkout-item-qty">Qty: ${item.quantity}</div>
+            <div class="checkout-item-price">€${(item.price * item.quantity).toFixed(2)}</div>
+          </div>
+        `;
+        checkoutItemsContainer.appendChild(itemDiv);
+      });
+
+      if (checkoutSubtotal) checkoutSubtotal.textContent = `€${subtotal.toFixed(2)}`;
+      if (checkoutTotal) checkoutTotal.textContent = `€${subtotal.toFixed(2)}`;
+    }
+
+    // Handle Form Submission
+    if (checkoutForm) {
+      checkoutForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        // Assume valid if we reach here due to required fields HTML validation
+        window.location.href = '/order-confirmation.html';
+      });
+    }
+  }
+
+  if (pathname.includes('/order-confirmation.html')) {
+    // Generate Order ID
+    const orderDisplay = document.getElementById('display-order-number');
+    if (orderDisplay) {
+      const randomOrderNum = Math.floor(100000 + Math.random() * 900000);
+      orderDisplay.textContent = `#${randomOrderNum}`;
+    }
+
+    // Clear the cart
+    cart = [];
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    updateCartUI();
   }
 
   // Initialize UI values

@@ -1,4 +1,0 @@
---- MIGRATION ERRORS LOG: 2026-06-12 14:30:28.309759 ---
-Row 65 | Skipping due to error: Unrecognized date format: 'messy-date-string' | Raw Content: {'name': 'Joseph Thomas', 'email': 'user_65@aldi-legacy.com', 'signup_date': 'messy-date-string', 'phone': 'N/A'}
-Row 68 | Skipping due to error: Unrecognized date format: 'messy-date-string' | Raw Content: {'name': 'William Brown', 'email': 'user_68@aldi-legacy.com', 'signup_date': 'messy-date-string', 'phone': '+61 415 265 641'}
-Row 94 | Skipping due to error: Critical field missing: 'email' cannot be empty. | Raw Content: {'name': 'Joseph Wilson', 'email': '', 'signup_date': '2022-09-21', 'phone': '+61 449 200 763'}

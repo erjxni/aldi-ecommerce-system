@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Logging in...';
 
-    fetch('http://127.0.0.1:8000/api/login', {
+    fetch('/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -140,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
     submitBtn.disabled = true;
     submitBtn.textContent = 'Registering...';
 
-    fetch('http://127.0.0.1:8000/api/register', {
+    fetch('/api/register', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

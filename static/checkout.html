@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkout - ALDI E-Commerce</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="checkout-body">
+  <div id="checkout-app">
+    <!-- Header -->
+    <nav class="navbar solid-nav">
+      <div class="nav-container">
+        <div class="nav-left">
+          <a href="/index.html" class="nav-logo">
+            <img src="/assets/public/aldi_logo.svg" alt="ALDI Logo" class="aldi-logo-img" />
+          </a>
+          <a href="/products.html" class="nav-link">< Back to Shop</a>
+        </div>
+        <div class="nav-right">
+          <div id="nav-auth-section" class="nav-auth-container" style="display: none;"></div>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Checkout Container -->
+    <main class="checkout-container">
+      <div class="checkout-grid">
+        
+        <!-- Left Column: Form -->
+        <div class="checkout-form-section">
+          <h2>Checkout</h2>
+          
+          <form id="checkout-form" class="checkout-form">
+            <!-- Shipping Information -->
+            <div class="form-section">
+              <h3>1. Shipping Information</h3>
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label for="shipping-firstname">First Name</label>
+                  <input type="text" id="shipping-firstname" name="shipping-firstname" required placeholder="John" />
+                </div>
+                <div class="form-group half-width">
+                  <label for="shipping-lastname">Last Name</label>
+                  <input type="text" id="shipping-lastname" name="shipping-lastname" required placeholder="Doe" />
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="shipping-email">Email Address</label>
+                <input type="email" id="shipping-email" name="shipping-email" required placeholder="john.doe@example.com" />
+              </div>
+
+              <div class="form-group">
+                <label for="shipping-address">Street Address</label>
+                <input type="text" id="shipping-address" name="shipping-address" required placeholder="123 Aldi Way" />
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label for="shipping-city">City</label>
+                  <input type="text" id="shipping-city" name="shipping-city" required placeholder="Metropolis" />
+                </div>
+                <div class="form-group half-width">
+                  <label for="shipping-zip">ZIP / Postal Code</label>
+                  <input type="text" id="shipping-zip" name="shipping-zip" required placeholder="12345" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="form-section">
+              <h3>2. Payment Information</h3>
+              <div class="payment-methods">
+                <label class="radio-label">
+                  <input type="radio" name="payment-method" value="card" checked />
+                  <span>Credit / Debit Card</span>
+                </label>
+              </div>
+
+              <div class="form-group">
+                <label for="payment-card">Card Number</label>
+                <input type="text" id="payment-card" name="payment-card" required pattern="[0-9]{16}" placeholder="0000 0000 0000 0000" maxlength="16" />
+              </div>
+              
+              <div class="form-row">
+                <div class="form-group half-width">
+                  <label for="payment-expiry">Expiry Date (MM/YY)</label>
+                  <input type="text" id="payment-expiry" name="payment-expiry" required pattern="(0[1-9]|1[0-2])\/[0-9]{2}" placeholder="MM/YY" maxlength="5" />
+                </div>
+                <div class="form-group half-width">
+                  <label for="payment-cvv">CVV</label>
+                  <input type="text" id="payment-cvv" name="payment-cvv" required pattern="[0-9]{3,4}" placeholder="123" maxlength="4" />
+                </div>
+              </div>
+            </div>
+
+            <div id="checkout-error" class="error-message"></div>
+            
+            <button type="submit" class="btn-primary btn-submit-order" id="submit-order-btn">Complete Order</button>
+          </form>
+        </div>
+
+        <!-- Right Column: Order Summary -->
+        <div class="checkout-summary-section">
+          <div class="summary-card">
+            <h3>Order Summary</h3>
+            <div id="checkout-items-container" class="checkout-items">
+              <!-- JS Injected Items -->
+            </div>
+            
+            <div class="summary-totals">
+              <div class="total-row">
+                <span>Subtotal</span>
+                <span id="checkout-subtotal">€0.00</span>
+              </div>
+              <div class="total-row">
+                <span>Shipping</span>
+                <span>FREE</span>
+              </div>
+              <div class="total-row grand-total">
+                <span>Total</span>
+                <span id="checkout-total">€0.00</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

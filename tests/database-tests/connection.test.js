@@ -5,8 +5,17 @@ const path = require('path');
 async function testConnection() {
   console.log('[Test] Starting connection test...');
   try {
-    const keyPath = path.join(__dirname, '../../aldi-ecommerce-managemen-b40e8-firebase-adminsdk-fbsvc-b76cea1fbf.json');
-    const serviceAccount = require(keyPath);
+    let serviceAccount;
+    if (process.env.ALDI_SQL_CONNECT_API_KEY) {
+      serviceAccount = JSON.parse(process.env.ALDI_SQL_CONNECT_API_KEY);
+    } else {
+      try {
+        const keyPath = path.join(__dirname, '../../aldi-ecommerce-managemen-b40e8-firebase-adminsdk-fbsvc-b76cea1fbf.json');
+        serviceAccount = require(keyPath);
+      } catch (err) {
+        throw new Error('Firebase credentials not found. Please set the ALDI_SQL_CONNECT_API_KEY environment variable or verify the credential JSON file exists at the root.');
+      }
+    }
 
     const app = initializeApp({
       credential: cert(serviceAccount)

@@ -9,11 +9,13 @@
     "test": "node tests/database-tests/run-tests.js"
   },
   "dependencies": {
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "express": "^4.19.2",
     "firebase": "^12.15.0",
     "firebase-admin": "^14.0.0",
     "jsonwebtoken": "^9.0.2",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "ws": "^8.18.0"
   }
 }

@@ -23,7 +23,19 @@ const authenticateJWT = (req, res, next) => {
   const headerToken = authHeader && authHeader.split(' ')[1];
   const queryToken = req.query.token;
   const xToken = req.headers['x-auth-token'];
-  const token = headerToken || queryToken || xToken;
+
+  // Parse cookies from headers to support secure HttpOnly session cookies
+  let cookieToken = null;
+  if (req.headers.cookie) {
+    const cookies = req.headers.cookie.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.split('=').map(c => c.trim());
+      if (key) acc[key] = value;
+      return acc;
+    }, {});
+    cookieToken = cookies['token'] || cookies['jwt'];
+  }
+
+  const token = headerToken || queryToken || xToken || cookieToken;
 
   if (token) {
     jwt.verify(token, JWT_SECRET, (err, user) => {
@@ -124,7 +136,6 @@ app.get('/api/products/:id', async (req, res) => {
 });
 
 // API: Register User
-const crypto = require('crypto');
 app.post('/api/register', async (req, res) => {
   const { email, password, confirm_password } = req.body;
   if (!email || !password) return res.status(400).json({ detail: 'Email and password required' });
@@ -230,7 +241,15 @@ app.post('/api/login', async (req, res) => {
       }
     });
 
-    res.json({ email: user.email, token, first_name: user.displayName });
+    // Set secure HttpOnly JWT cookie for session persistence
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      path: '/'
+    });
+
+    res.status(200).json({ email: user.email, token, first_name: user.displayName });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });

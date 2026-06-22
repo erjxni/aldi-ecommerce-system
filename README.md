@@ -1,5 +1,6 @@
 # Aldi E-Commerce System
 
+// changes
 Integrated ALDI E-Commerce System featuring registration and login capabilities.
 
 ## Project Structure

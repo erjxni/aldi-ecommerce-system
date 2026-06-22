@@ -5,11 +5,15 @@
   "main": "backend/server.js",
   "scripts": {
     "start": "node backend/server.js",
-    "dev": "node backend/server.js"
+    "dev": "node backend/server.js",
+    "test": "node tests/database-tests/run-tests.js"
   },
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "firebase": "^12.15.0",
+    "firebase-admin": "^14.0.0",
+    "jsonwebtoken": "^9.0.2",
     "sqlite3": "^6.0.1"
   }
 }

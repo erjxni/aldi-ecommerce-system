@@ -44,6 +44,9 @@ app.use(express.static(path.join(__dirname, '../static')));
 // Helper function to read database/products.json
 const getProductsData = () => {
   const filePath = path.join(__dirname, '../database/products.json');
+  if (!fs.existsSync(filePath)) {
+    return [];
+  }
   try {
     const data = fs.readFileSync(filePath, 'utf8');
     return JSON.parse(data);

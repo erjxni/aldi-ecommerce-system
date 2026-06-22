@@ -41,23 +41,8 @@ const authenticateJWT = (req, res, next) => {
 // Serve static files from the frontend folder
 app.use(express.static(path.join(__dirname, '../static')));
 
-// Helper function to read database/products.json
-const getProductsData = () => {
-  const filePath = path.join(__dirname, '../database/products.json');
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error('Error reading products database:', error);
-    return [];
-  }
-};
-
-// Helper function to get products from Firebase database and decorate with local features/specs
-const getProductsDataDecorated = async () => {
+// API: Get all products
+app.get('/api/products', async (req, res) => {
   try {
     const query = `
       query ListProducts {
@@ -75,48 +60,66 @@ const getProductsDataDecorated = async () => {
     const result = await sqlConnect.executeGraphqlRead(query);
     const dbProducts = result.data && result.data.products ? result.data.products : [];
     
-    // Read local products.json to decorate with features and specifications
-    const localProducts = getProductsData();
-    
-    return dbProducts.map(dbp => {
-      const local = localProducts.find(lp => lp.name === dbp.name) || {};
-      return {
-        id: dbp.id,
-        name: dbp.name,
-        category: dbp.category,
-        price: dbp.price,
-        stockQuantity: dbp.stockQuantity,
-        description: dbp.description,
-        image: dbp.imageUrl,
-        imageUrl: dbp.imageUrl,
-        features: local.features || [],
-        specifications: local.specifications || {}
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching products from database, falling back to JSON file:', error);
-    return getProductsData().map(p => ({
-      ...p,
-      imageUrl: p.image
+    const mappedProducts = dbProducts.map(dbp => ({
+      id: dbp.id,
+      name: dbp.name,
+      category: dbp.category,
+      price: dbp.price,
+      stockQuantity: dbp.stockQuantity,
+      description: dbp.description,
+      image: dbp.imageUrl,
+      imageUrl: dbp.imageUrl,
+      features: [],
+      specifications: {}
     }));
+    
+    res.json(mappedProducts);
+  } catch (error) {
+    console.error('Error fetching products from database:', error);
+    res.status(500).json({ error: 'Database error' });
   }
-};
-
-// API: Get all products
-app.get('/api/products', async (req, res) => {
-  const products = await getProductsDataDecorated();
-  res.json(products);
 });
 
 // API: Get a single product by ID
 app.get('/api/products/:id', async (req, res) => {
-  const products = await getProductsDataDecorated();
-  const product = products.find(p => p.id === req.params.id);
-  
-  if (product) {
-    res.json(product);
-  } else {
-    res.status(404).json({ error: 'Product not found' });
+  try {
+    const query = `
+      query GetProduct($id: UUID!) {
+        product(id: $id) {
+          id
+          name
+          category
+          price
+          stockQuantity
+          description
+          imageUrl
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: { id: req.params.id }
+    });
+    
+    if (result.data && result.data.product) {
+      const p = result.data.product;
+      res.json({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        price: p.price,
+        stockQuantity: p.stockQuantity,
+        description: p.description,
+        image: p.imageUrl,
+        imageUrl: p.imageUrl,
+        features: [],
+        specifications: {}
+      });
+    } else {
+      res.status(404).json({ error: 'Product not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching product by ID:', error);
+    res.status(500).json({ error: 'Database error' });
   }
 });
 

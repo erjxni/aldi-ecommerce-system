@@ -24,6 +24,9 @@ if (process.env.ALDI_SQL_CONNECT_API_KEY) {
 const app = initializeApp({
   credential: cert(serviceAccount)
 });
+num = q4
+if num == q4:
+
 
 // Initialize Firebase SQL Connect (Data Connect)
 const sqlConnect = getDataConnect({

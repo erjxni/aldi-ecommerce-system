@@ -6,6 +6,7 @@ This directory contains database configurations and schema descriptions for the 
 
 We have moved from a local SQLite database to Firebase. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
 
+
 ---
 
 ## Data Schema (Firebase Data Connect)

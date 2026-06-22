@@ -1,7 +1,7 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getDataConnect } = require('firebase-admin/data-connect');
 const path = require('path');
-
+///hi
 async function testConnection() {
   console.log('[Test] Starting connection test...');
   try {

@@ -174,9 +174,9 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
         `;
 
-        itemRow.querySelector('.btn-qty-dec').addEventListener('click', () => decrementCartItem(item.id));
-        itemRow.querySelector('.btn-qty-inc').addEventListener('click', () => incrementCartItem(item.id));
-        itemRow.querySelector('.btn-remove-item').addEventListener('click', () => removeCartItem(item.id));
+        itemRow.querySelector('.btn-qty-dec').addEventListener('click', (e) => { e.stopPropagation(); decrementCartItem(item.id); });
+        itemRow.querySelector('.btn-qty-inc').addEventListener('click', (e) => { e.stopPropagation(); incrementCartItem(item.id); });
+        itemRow.querySelector('.btn-remove-item').addEventListener('click', (e) => { e.stopPropagation(); removeCartItem(item.id); });
 
         cartItemsContainer.appendChild(itemRow);
       });
@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Totals
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     if (cartSubtotalPrice) cartSubtotalPrice.textContent = `€${subtotal.toFixed(2)}`;
-    
+
     const totalDisplay = document.querySelector('.total-amount');
     if (totalDisplay) totalDisplay.textContent = `€${subtotal.toFixed(2)}`;
   }
@@ -261,9 +261,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (checkoutBtn) {
-    checkoutBtn.addEventListener('click', () => {
+    checkoutBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (!userToken) {
-        window.location.href = '/login.html';
+        let errorMsg = document.getElementById('checkout-login-error');
+        if (!errorMsg) {
+          errorMsg = document.createElement('div');
+          errorMsg.id = 'checkout-login-error';
+          errorMsg.style.color = '#d32f2f';
+          errorMsg.style.backgroundColor = '#fde0e0';
+          errorMsg.style.padding = '12px';
+          errorMsg.style.borderRadius = '8px';
+          errorMsg.style.marginTop = '15px';
+          errorMsg.style.textAlign = 'center';
+          errorMsg.style.fontWeight = '600';
+          errorMsg.style.fontSize = '14px';
+          errorMsg.style.border = '1px solid #f9c2c2';
+          errorMsg.style.transition = 'opacity 0.3s ease';
+          errorMsg.textContent = "You need to login to checkout";
+          checkoutBtn.parentNode.insertBefore(errorMsg, checkoutBtn.nextSibling);
+        }
+        errorMsg.style.opacity = '1';
+        errorMsg.style.display = 'block';
+        setTimeout(() => {
+          if (errorMsg) {
+            errorMsg.style.opacity = '0';
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 300);
+          }
+        }, 3000);
       } else {
         window.location.href = '/checkout.html';
       }
@@ -277,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('search-input');
     const categoryTabs = document.querySelectorAll('.category-item');
     const pageTitle = document.getElementById('page-category-title');
-    
+
     let allProducts = [];
     let activeCategory = 'all';
     let searchQuery = '';
@@ -288,8 +313,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const filtered = allProducts.filter(p => {
         const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                              p.description.toLowerCase().includes(searchQuery.toLowerCase());
+        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.description.toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
       });
 
@@ -305,7 +330,7 @@ document.addEventListener('DOMContentLoaded', () => {
       filtered.forEach(p => {
         const card = document.createElement('div');
         card.className = 'product-card';
-        
+
         card.innerHTML = `
           <div class="product-visual clickable-visual" data-id="${p.id}">
             <img src="${p.image}" alt="${p.name}" class="product-image" />
@@ -383,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         })
         .then(product => {
           const breadcrumbCurrent = document.getElementById('breadcrumb-current');
-          if(breadcrumbCurrent) breadcrumbCurrent.textContent = product.name;
+          if (breadcrumbCurrent) breadcrumbCurrent.textContent = product.name;
 
           let featuresHtml = '';
           if (product.features && product.features.length > 0) {
@@ -508,12 +533,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lossTrendChart) {
           lossTrendChart.innerHTML = '';
           const maxLoss = Math.max(...data.daily_trend.map(t => t.loss));
-          
+
           data.daily_trend.forEach(trend => {
             const col = document.createElement('div');
             col.className = 'trend-bar-column';
             const pctHeight = maxLoss > 0 ? (trend.loss / maxLoss) * 100 : 0;
-            
+
             col.innerHTML = `
               <div class="trend-bar-wrapper">
                 <div class="trend-bar-inner" style="height: ${pctHeight}%" title="€${trend.loss.toFixed(2)} lost"></div>
@@ -552,14 +577,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
           users.forEach(user => {
             const tr = document.createElement('tr');
-            
+
             // Format created_at date
             let displayDate = 'Legacy Ingested';
             if (user.created_at) {
               const dt = new Date(user.created_at);
               displayDate = dt.toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
             }
-            
+
             const isSystemAdmin = user.email === 'saidgalimjanov24@gmail.com';
             const phone = user.phone ? user.phone : 'Unknown';
             const name = user.name ? user.name : 'Legacy User';

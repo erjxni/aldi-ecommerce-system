@@ -581,18 +581,21 @@ body {
 }
 
 /* --- CART DRAWER --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
 .Drawer {
+  font-family: 'Poppins', sans-serif;
   position: fixed;
   inset: auto;
   top: 75px;
   right: max(20px, calc(50vw - 600px + 20px));
   margin: 0;
-  width: 360px;
+  width: 400px;
   max-width: 100%;
   max-height: calc(100vh - 100px);
-  background: white;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.15);
+  border-radius: 16px;
   border: 1px solid #eaeaea;
   z-index: 1000;
   display: none;
@@ -614,14 +617,16 @@ body {
   display: flex;
 }
 .cart-header {
-  padding: 20px;
+  padding: 20px 24px;
   border-bottom: 1px solid #eaeaea;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: #fcfcfc;
   color: var(--aldi-blue);
-  border-radius: 8px 8px 0 0;
+  border-radius: 16px 16px 0 0;
+  font-weight: 600;
+  font-size: 1.15rem;
 }
 .close-btn {
   background: none;
@@ -824,7 +829,6 @@ body {
   text-decoration: none;
 }
 
-/* --- ADMIN DASHBOARD --- */
 .admin-container {
   max-width: 1200px;
   margin: 40px auto;
@@ -945,10 +949,12 @@ body {
 .detail-qty-input::-webkit-outer-spin-button,
 .detail-qty-input::-webkit-inner-spin-button {
   -webkit-appearance: none;
+  appearance: none;
   margin: 0;
 }
 .detail-qty-input[type=number] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 /* Specifications block */

@@ -10,15 +10,36 @@ We have moved from a local SQLite database to Firebase. The database schema is d
 
 ## Data Schema (Firebase Data Connect)
 
-Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, and `OrderItem`.
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, and `FinancialRecord`.
 
 ```graphql
+enum UserRole {
+  customer
+  admin
+  employee
+  financial_officer
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum TransactionType {
+  ecommerce_sale
+  membership_due
+  operational_cost
+}
+
 type User @table {
   email: String! @unique
   passwordHash: String!
-  role: String! @default(value: "customer")
+  role: UserRole! @default(value: "customer") 
   createdAt: Timestamp! @default(expr: "request.time")
-  updatedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
   lastLogin: Timestamp
   displayName: String!
   phoneNumber: String
@@ -27,17 +48,17 @@ type User @table {
 
 type Product @table {
   name: String!
-  category: String!
+  category: String! 
   price: Float!
   stockQuantity: Int!
   description: String
   imageUrl: String
-  updatedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
 }
 
 type Cart @table {
   user: User!
-  updatedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
 }
 
 type CartItem @table {
@@ -49,9 +70,9 @@ type CartItem @table {
 type Order @table {
   user: User!
   totalAmount: Float!
-  status: String! @default(value: "pending")
+  status: OrderStatus! @default(value: "pending") 
   createdAt: Timestamp! @default(expr: "request.time")
-  updatedAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
 }
 
 type OrderItem @table {
@@ -59,6 +80,16 @@ type OrderItem @table {
   product: Product!
   priceAtPurchase: Float!
   quantity: Int!
+}
+
+type FinancialRecord @table {
+  transactionId: String! @unique
+  amount: Float!
+  transactionType: TransactionType! @default(value: "ecommerce_sale")
+  relatedOrder: Order # Links directly to the checkout flow
+  processedBy: User # Links to the Financial Officer managing the record
+  description: String
+  createdAt: Timestamp! @default(expr: "request.time")
 }
 ```
 
@@ -74,7 +105,7 @@ Stores user account profiles, authentication hashes, and roles.
 | `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for each user |
 | `email` | `String!` | `@unique` | Indexed user email address (must be unique) |
 | `passwordHash` | `String!` | | Securely hashed user password |
-| `role` | `String!` | `@default(value: "customer")` | Access level/role (e.g., `"customer"`, `"admin"`) |
+| `role` | `UserRole!` | `@default(value: "customer")` | Access level/role (`customer`, `admin`, `employee`, `financial_officer`) |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Record creation timestamp |
 | `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Record last updated timestamp |
 | `lastLogin` | `Timestamp` | | Timestamp of the user's most recent login |
@@ -122,7 +153,7 @@ Tracks checkout transactions.
 | `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique order tracking identifier |
 | `user` | `User!` | Relation Reference | The user who placed the order |
 | `totalAmount` | `Float!` | | Total order cost in Euros (€) |
-| `status` | `String!` | `@default(value: "pending")` | Status state (`"pending"`, `"completed"`, `"cancelled"`) |
+| `status` | `OrderStatus!` | `@default(value: "pending")` | Status state (`pending`, `processing`, `shipped`, `delivered`, `cancelled`) |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Order placement timestamp |
 | `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Order details updated timestamp |
 
@@ -135,3 +166,30 @@ Line items matching products to specific checkout transactions.
 | `product` | `Product!` | Relation Reference | Associated product purchased |
 | `priceAtPurchase` | `Float!` | | Unit price locked at the time of purchase |
 | `quantity` | `Int!` | | Quantity of item purchased |
+
+### 7. FinancialRecord Table
+Tracks monetary transactions for financial audits.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `transactionId` | `String!` | `@unique` | Unique transaction reference |
+| `amount` | `Float!` | | Transaction value |
+| `transactionType` | `TransactionType!` | `@default(value: "ecommerce_sale")` | Type of transaction (`ecommerce_sale`, `membership_due`, `operational_cost`) |
+| `relatedOrder` | `Order` | Relation Reference | Associated checkout order (optional) |
+| `processedBy` | `User` | Relation Reference | Financial Officer who processed the record (optional) |
+| `description` | `String` | | Description of the financial entry |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
+
+---
+
+## Seeding & Mock Users
+
+To populate the database with mock users for testing, run:
+```bash
+node database/seed.js
+```
+This script will seed exactly 10 mock users across the standardized roles:
+* **Admin**: `admin@aldi-mock.com`
+* **Financial Officer**: `financial@aldi-mock.com`
+* **Employee**: `employee@aldi-mock.com`
+* **Customers**: `user_1@aldi-mock.com` through `user_7@aldi-mock.com`

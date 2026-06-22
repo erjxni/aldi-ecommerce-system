@@ -1,32 +1,195 @@
 # Database Directory
 
-This directory contains files used for local database management and mock data generation for the ALDI E-Commerce System.
+This directory contains database configurations and schema descriptions for the ALDI E-Commerce System. The system has migrated to **Firebase Data Connect** for a unified, modern, and robust database architecture.
 
-## Files
+## Unified Database Migration
 
-- `products.json`: A JSON file containing the default product catalog, used for initial product database seeding and fetching.
-- `seed.js`: A Node.js script used to generate mock users and seed the `ecommerce.db` SQLite database with random passwords and realistic user data.
+We have moved from a local SQLite database to Firebase. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
 
-## Usage
+---
 
-To generate mock users for local testing:
+## Data Schema (Firebase Data Connect)
 
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, and `FinancialRecord`.
+
+```graphql
+enum UserRole {
+  customer
+  admin
+  employee
+  financial_officer
+}
+
+enum OrderStatus {
+  pending
+  processing
+  shipped
+  delivered
+  cancelled
+}
+
+enum TransactionType {
+  ecommerce_sale
+  membership_due
+  operational_cost
+}
+
+type User @table {
+  email: String! @unique
+  passwordHash: String!
+  role: UserRole! @default(value: "customer") 
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
+  lastLogin: Timestamp
+  displayName: String!
+  phoneNumber: String
+  address: String
+}
+
+type Product @table {
+  name: String!
+  category: String! 
+  price: Float!
+  stockQuantity: Int!
+  description: String
+  imageUrl: String
+  updatedAt: Timestamp! @default(expr: "request.time") 
+}
+
+type Cart @table {
+  user: User!
+  updatedAt: Timestamp! @default(expr: "request.time") 
+}
+
+type CartItem @table {
+  cart: Cart!
+  product: Product!
+  quantity: Int!
+}
+
+type Order @table {
+  user: User!
+  totalAmount: Float!
+  status: OrderStatus! @default(value: "pending") 
+  createdAt: Timestamp! @default(expr: "request.time")
+  updatedAt: Timestamp! @default(expr: "request.time") 
+}
+
+type OrderItem @table {
+  order: Order!
+  product: Product!
+  priceAtPurchase: Float!
+  quantity: Int!
+}
+
+type FinancialRecord @table {
+  transactionId: String! @unique
+  amount: Float!
+  transactionType: TransactionType! @default(value: "ecommerce_sale")
+  relatedOrder: Order # Links directly to the checkout flow
+  processedBy: User # Links to the Financial Officer managing the record
+  description: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+```
+
+---
+
+## Entity Details
+
+### 1. User Table
+Stores user account profiles, authentication hashes, and roles.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for each user |
+| `email` | `String!` | `@unique` | Indexed user email address (must be unique) |
+| `passwordHash` | `String!` | | Securely hashed user password |
+| `role` | `UserRole!` | `@default(value: "customer")` | Access level/role (`customer`, `admin`, `employee`, `financial_officer`) |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Record creation timestamp |
+| `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Record last updated timestamp |
+| `lastLogin` | `Timestamp` | | Timestamp of the user's most recent login |
+| `displayName` | `String!` | | User's full name/display name |
+| `phoneNumber` | `String` | | Contact phone number |
+| `address` | `String` | | Shipping and billing address details |
+
+### 2. Product Table
+Catalog items available in the ALDI E-Commerce System.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for each product |
+| `name` | `String!` | | Name of the product |
+| `category` | `String!` | | Category/department (e.g., `"Snacks & Candy"`) |
+| `price` | `Float!` | | Unit price in Euros (€) |
+| `stockQuantity` | `Int!` | | Current stock count available |
+| `description` | `String` | | Description of the product features, ingredients, etc. |
+| `imageUrl` | `String` | | Path or URL to the product image asset |
+| `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Last updated timestamp |
+
+### 3. Cart Table
+Maintains active shopping cart references for users.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the cart |
+| `user` | `User!` | Foreign Key Reference | The user owning this shopping cart |
+| `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Timestamp of last cart update |
+
+### 4. CartItem Table
+Represents individual items added to a specific user's shopping cart.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `cart` | `Cart!` | Relation Reference | Associated cart reference |
+| `product` | `Product!` | Relation Reference | Associated product reference |
+| `quantity` | `Int!` | | Amount of this product in the cart |
+
+### 5. Order Table
+Tracks checkout transactions.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique order tracking identifier |
+| `user` | `User!` | Relation Reference | The user who placed the order |
+| `totalAmount` | `Float!` | | Total order cost in Euros (€) |
+| `status` | `OrderStatus!` | `@default(value: "pending")` | Status state (`pending`, `processing`, `shipped`, `delivered`, `cancelled`) |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Order placement timestamp |
+| `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Order details updated timestamp |
+
+### 6. OrderItem Table
+Line items matching products to specific checkout transactions.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `order` | `Order!` | Relation Reference | Associated checkout order |
+| `product` | `Product!` | Relation Reference | Associated product purchased |
+| `priceAtPurchase` | `Float!` | | Unit price locked at the time of purchase |
+| `quantity` | `Int!` | | Quantity of item purchased |
+
+### 7. FinancialRecord Table
+Tracks monetary transactions for financial audits.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `transactionId` | `String!` | `@unique` | Unique transaction reference |
+| `amount` | `Float!` | | Transaction value |
+| `transactionType` | `TransactionType!` | `@default(value: "ecommerce_sale")` | Type of transaction (`ecommerce_sale`, `membership_due`, `operational_cost`) |
+| `relatedOrder` | `Order` | Relation Reference | Associated checkout order (optional) |
+| `processedBy` | `User` | Relation Reference | Financial Officer who processed the record (optional) |
+| `description` | `String` | | Description of the financial entry |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
+
+---
+
+## Seeding & Mock Users
+
+To populate the database with mock users for testing, run:
 ```bash
 node database/seed.js
 ```
-
-This will clear the current users table and generate 50 mock users. The script will output 3 sample users (email and password) to the terminal that you can use to test the login flow.
-
-Here are some sample users you can log in with:
-Name: Patricia Martinez
-Email: user_1@aldi-mock.com
-Password: e2deb4ce
--------------------------
-Name: Jessica Thomas
-Email: user_2@aldi-mock.com
-Password: 383b2456
--------------------------
-Name: Mary Jones
-Email: user_3@aldi-mock.com
-Password: a6aa18bb
--------------------------
+This script will seed exactly 10 mock users across the standardized roles:
+* **Admin**: `admin@aldi-mock.com`
+* **Financial Officer**: `financial@aldi-mock.com`
+* **Employee**: `employee@aldi-mock.com`
+* **Customers**: `user_1@aldi-mock.com` through `user_7@aldi-mock.com`

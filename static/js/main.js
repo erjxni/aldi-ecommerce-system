@@ -3,7 +3,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   const userEmail = localStorage.getItem('userEmail');
   const userToken = localStorage.getItem('userToken');
+  const userRole = localStorage.getItem('userRole') || 'customer';
   const pathname = window.location.pathname;
+  const staffRoles = ['admin', 'financial_officer', 'employee'];
 
   // --- 1. Dynamic Navigation & Auth Header Sync ---
   const navAuthSection = document.getElementById('nav-auth-section');
@@ -27,12 +29,16 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', () => {
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userToken');
-          window.location.href = '/index.html';
+          localStorage.removeItem('userRole');
+          // Clear HttpOnly cookie via server
+          fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
+            window.location.href = '/index.html';
+          });
         });
       }
 
-      // If logged in as the administrator, dynamically inject the "Admin Dashboard" nav link
-      if (userEmail === 'saidgalimjanov24@gmail.com') {
+      // If logged in as staff, dynamically inject the "Admin Dashboard" nav link
+      if (staffRoles.includes(userRole)) {
         const navLinks = document.querySelector('.nav-left .nav-links');
         if (navLinks) {
           // Avoid duplicates
@@ -49,8 +55,8 @@ document.addEventListener('DOMContentLoaded', () => {
       // If we are on the homepage, update the hero CTA "Sign In" button to be a welcome/browse action
       const heroLoginBtn = document.getElementById('hero-login-btn');
       if (heroLoginBtn) {
-        heroLoginBtn.textContent = userEmail === 'saidgalimjanov24@gmail.com' ? "Admin Dashboard" : "Browse Products";
-        heroLoginBtn.href = userEmail === 'saidgalimjanov24@gmail.com' ? "/admin.html" : "/products.html";
+        heroLoginBtn.textContent = staffRoles.includes(userRole) ? "Admin Dashboard" : "Browse Products";
+        heroLoginBtn.href = staffRoles.includes(userRole) ? "/admin.html" : "/products.html";
         heroLoginBtn.classList.remove("btn-login-nav");
         heroLoginBtn.classList.add("btn-shop-now");
       }
@@ -585,7 +591,7 @@ document.addEventListener('DOMContentLoaded', () => {
               displayDate = dt.toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' });
             }
 
-            const isSystemAdmin = user.email === 'saidgalimjanov24@gmail.com';
+            const isStaff = ['admin', 'financial_officer', 'employee'].includes(user.role);
             const phone = user.phone ? user.phone : 'Unknown';
             const name = user.name ? user.name : 'Legacy User';
 
@@ -596,8 +602,8 @@ document.addEventListener('DOMContentLoaded', () => {
               <td class="col-phone">${phone}</td>
               <td class="col-date">${displayDate}</td>
               <td class="col-status">
-                <span class="status-pill ${isSystemAdmin ? 'admin-pill' : 'customer-pill'}">
-                  ${isSystemAdmin ? 'Administrator' : 'Customer'}
+                <span class="status-pill ${isStaff ? 'admin-pill' : 'customer-pill'}">
+                  ${user.role ? user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Customer'}
                 </span>
               </td>
             `;
@@ -671,10 +677,73 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Form Submission
     if (checkoutForm) {
-      checkoutForm.addEventListener('submit', (e) => {
+      checkoutForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        // Assume valid if we reach here due to required fields HTML validation
-        window.location.href = '/order-confirmation.html';
+        const checkoutError = document.getElementById('checkout-error');
+        const submitBtn = document.getElementById('submit-order-btn');
+        if (checkoutError) checkoutError.textContent = '';
+
+        if (cart.length === 0) {
+          if (checkoutError) checkoutError.textContent = 'Your cart is empty.';
+          return;
+        }
+
+        // Build checkout payload
+        const payload = {
+          items: cart.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+            price: item.price
+          })),
+          shippingInfo: {
+            firstName: document.getElementById('shipping-firstname')?.value || '',
+            lastName: document.getElementById('shipping-lastname')?.value || '',
+            email: document.getElementById('shipping-email')?.value || '',
+            address: document.getElementById('shipping-address')?.value || '',
+            city: document.getElementById('shipping-city')?.value || '',
+            zip: document.getElementById('shipping-zip')?.value || ''
+          }
+        };
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Processing...';
+        }
+
+        try {
+          const response = await fetch('/api/checkout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${userToken}`
+            },
+            credentials: 'include',
+            body: JSON.stringify(payload)
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.detail || 'Checkout failed');
+          }
+
+          const result = await response.json();
+
+          // Clear cart on success
+          cart = [];
+          localStorage.setItem(cartKey, JSON.stringify(cart));
+
+          // Store order info for confirmation page
+          localStorage.setItem('lastOrderId', result.orderId);
+          localStorage.setItem('lastTransactionId', result.transactionId);
+
+          window.location.href = '/order-confirmation.html';
+        } catch (error) {
+          if (checkoutError) checkoutError.textContent = error.message;
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Complete Order';
+          }
+        }
       });
     }
   }

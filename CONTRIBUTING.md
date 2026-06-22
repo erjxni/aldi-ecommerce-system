@@ -77,7 +77,11 @@ If someone edited the same lines of code as you, Git will pause and ask you to r
 #### 1. How to Read Conflicts
 Git marks conflicts in the files like this:
 ```text
+<<<<<<< HEAD
+(New changes pulled from develop/main)
+=======
 (Your local changes that you're rebasing on top)
+>>>>>>> your-commit-message
 ```
 
 #### 2. The Conflict Mindset (How to think about what to merge)

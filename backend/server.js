@@ -53,15 +53,61 @@ const getProductsData = () => {
   }
 };
 
+// Helper function to get products from Firebase database and decorate with local features/specs
+const getProductsDataDecorated = async () => {
+  try {
+    const query = `
+      query ListProducts {
+        products {
+          id
+          name
+          category
+          price
+          stockQuantity
+          description
+          imageUrl
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const dbProducts = result.data && result.data.products ? result.data.products : [];
+    
+    // Read local products.json to decorate with features and specifications
+    const localProducts = getProductsData();
+    
+    return dbProducts.map(dbp => {
+      const local = localProducts.find(lp => lp.name === dbp.name) || {};
+      return {
+        id: dbp.id,
+        name: dbp.name,
+        category: dbp.category,
+        price: dbp.price,
+        stockQuantity: dbp.stockQuantity,
+        description: dbp.description,
+        image: dbp.imageUrl,
+        imageUrl: dbp.imageUrl,
+        features: local.features || [],
+        specifications: local.specifications || {}
+      };
+    });
+  } catch (error) {
+    console.error('Error fetching products from database, falling back to JSON file:', error);
+    return getProductsData().map(p => ({
+      ...p,
+      imageUrl: p.image
+    }));
+  }
+};
+
 // API: Get all products
-app.get('/api/products', (req, res) => {
-  const products = getProductsData();
+app.get('/api/products', async (req, res) => {
+  const products = await getProductsDataDecorated();
   res.json(products);
 });
 
 // API: Get a single product by ID
-app.get('/api/products/:id', (req, res) => {
-  const products = getProductsData();
+app.get('/api/products/:id', async (req, res) => {
+  const products = await getProductsDataDecorated();
   const product = products.find(p => p.id === req.params.id);
   
   if (product) {

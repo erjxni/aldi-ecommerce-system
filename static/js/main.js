@@ -409,6 +409,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       fetch(`/api/products/${productId}`)
         .then(res => {
+          if (res.status === 404) {
+            window.location.href = '/404.html';
+            return;
+          }
           if (!res.ok) throw new Error("Product not found");
           return res.json();
         })

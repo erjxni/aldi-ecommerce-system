@@ -1,38 +1,44 @@
-# Aldi E-Commerce System
+# ALDI E-Commerce System
 
-// changes
-Integrated ALDI E-Commerce System featuring registration and login capabilities.
-
-## Project Structure
-
-This project is organized into several distinct directories. For a detailed breakdown of the specific files within each, please refer to their respective `README.md` files:
-
-- **[`backend/`](backend/README.md)**: Contains the main FastAPI application, SQLAlchemy database models, validation schemas, and API endpoints.
-- **[`database/`](database/README.md)**: Contains ETL migration scripts, mock data generators, and raw SQL schemas.
-- **[`docs/`](docs/README.md)**: Contains project architecture documentation and system flow diagrams.
-- **[`frontend/`](frontend/README.md)**: Contains the Vite-powered Vanilla JS, HTML, and CSS application.
-- **[`legacy/`](legacy/README.md)**: Serves as an archive for old prototypes (e.g., Flask login story, Express servers) and configurations.
-- **[`scratch/`](scratch/README.md)**: A temporary workspace for experimental code, drafts, and UI component documentation.
-- **[`tests/`](tests/README.md)**: Reserved for automated unit, integration, and end-to-end testing suites.
-
-## Prerequisites
-
-- **Python 3.10+**
-- **Node.js & npm**
+An integrated, premium E-Commerce System styled with modern dark glassmorphism layout, featuring user registration, role-based login capabilities, custom cart administration, real-time WebSocket checkouts, and transactional database integrity.
 
 ---
 
-## Setup
+## Project Structure
 
-1. Navigate to the root
-2. Install dependencies:
+This project is organized into several distinct directories. For a detailed breakdown of the files and systems within each, refer to their respective `README.md` files:
+
+* **[`backend/`](backend/README.md)**: Contains the Express backend application, JWT token-based authentication middlewares, API routing, and WebSocket telemetry server.
+* **[`database/`](database/README.md)**: Contains Firebase Data Connect GraphQL schema descriptions, configuration records, and database scripting tools (seeding, introspecting schemas, and listing users).
+* **[`static/`](static/README.md)**: Holds the client-side frontend files (HTML views, vanilla CSS stylesheet, and core JS modules) served by Express.
+* **[`docs/`](docs/README.md)**: Houses comprehensive system architecture blueprints and registration/checkout workflow sequence diagrams.
+* **[`tests/`](tests/README.md)**: Contains the integration test suite validating database connection status, operational permissions, and transaction rollbacks.
+
+---
+
+## Prerequisites
+
+* **Node.js (v18.0.0+)**
+* **npm**
+
+---
+
+## Setup & Running
+
+1. **Install dependencies**:
    ```bash
    npm install
    ```
 
-3. Start the development server:
+2. **Start the development server**:
    ```bash
    npm run dev
+   ```
+   The backend server will launch on port `3000`, serving the static pages at `http://localhost:3000`.
+
+3. **Run database integration tests**:
+   ```bash
+   npm test
    ```
 
 ---
@@ -42,5 +48,4 @@ This project is organized into several distinct directories. For a detailed brea
 To get the best development experience and proper diagram rendering:
 
 1. **Recommended Extensions**:
-   - **Python** (Microsoft): For full Python language support, testing, and IntelliSense.
-   - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the flow and architecture diagrams located in [docs/architecture.md](file:///e:/projects/antigravity/aldi-ecommerce-system/docs/architecture.md).
+   - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the system flows and sequence diagrams in [docs/architecture.md](docs/architecture.md).

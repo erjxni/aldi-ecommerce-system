@@ -109,7 +109,7 @@ git rebase --continue
 Git only detects line-by-line conflicts. It does **not** understand code logic.
 *   **Example**: If your colleague renamed `getUser()` to `fetchUser()` in `main`, and you added a new call to `getUser()` in your branch, Git will merge them with **zero conflicts**, but the application will crash.
 *   **Action**: Always perform these checks after pulling/rebasing:
-    1.  Re-run the build: `npm run dev` or equivalent.
+    1.  Re-run the server: `npm run dev` or equivalent.
     2.  Check for linting errors/warnings.
-    3.  Run the tests to ensure everything still passes.
+    3.  Run the tests to ensure everything still passes: `npm test`.
 

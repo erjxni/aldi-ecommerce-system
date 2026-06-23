@@ -1,0 +1,90 @@
+[
+  {
+    "name": "Beef Salami",
+    "category": "Meat",
+    "price": 3.99,
+    "stockQuantity": 100,
+    "description": "Premium sliced beef salami, perfect for sandwiches and charcuterie boards.",
+    "image": "/assets/images/beef_salami.png"
+  },
+  {
+    "name": "Cashew Nuts",
+    "category": "Pantry",
+    "price": 4.49,
+    "stockQuantity": 150,
+    "description": "Roasted and lightly salted cashew nuts, a great healthy snack.",
+    "image": "/assets/images/cashew_nuts.png"
+  },
+  {
+    "name": "Dark Chocolate",
+    "category": "Pantry",
+    "price": 2.99,
+    "stockQuantity": 200,
+    "description": "Rich 70% dark chocolate bar, smooth and indulgent.",
+    "image": "/assets/images/dark_chocolate.png"
+  },
+  {
+    "name": "Flips",
+    "category": "Pantry",
+    "price": 1.99,
+    "stockQuantity": 180,
+    "description": "Crunchy peanut flavoured corn snacks, great for snacking.",
+    "image": "/assets/images/flips.png"
+  },
+  {
+    "name": "Olive Oil",
+    "category": "Pantry",
+    "price": 6.99,
+    "stockQuantity": 80,
+    "description": "Extra virgin olive oil, cold pressed from the finest olives.",
+    "image": "/assets/images/olive_oil.png"
+  },
+  {
+    "name": "Orange Juice",
+    "category": "Beverages",
+    "price": 2.49,
+    "stockQuantity": 120,
+    "description": "Freshly squeezed orange juice, no added sugar.",
+    "image": "/assets/images/orange_juice.png"
+  },
+  {
+    "name": "Organic Coffee",
+    "category": "Beverages",
+    "price": 7.99,
+    "stockQuantity": 90,
+    "description": "100% organic Arabica coffee beans, medium roast with a rich aroma.",
+    "image": "/assets/images/organic_coffee.png"
+  },
+  {
+    "name": "Organic Strawberries",
+    "category": "Produce",
+    "price": 3.49,
+    "stockQuantity": 60,
+    "description": "Fresh organic strawberries, sweet and juicy.",
+    "image": "/assets/images/organic_strawberries.png"
+  },
+  {
+    "name": "Ribeye Steak",
+    "category": "Meat",
+    "price": 14.99,
+    "stockQuantity": 40,
+    "description": "Premium grass-fed ribeye steak, perfectly marbled for exceptional flavour.",
+    "image": "/assets/images/ribeye_steak.png"
+  },
+  {
+    "name": "Sour Cream",
+    "category": "Dairy",
+    "price": 1.79,
+    "stockQuantity": 110,
+    "description": "Full fat sour cream, perfect as a dip or topping.",
+    "image": "/assets/images/sour_cream.png"
+  },
+  {
+    "name": "Sourdough Bread",
+    "category": "Bakery",
+    "price": 3.29,
+    "stockQuantity": 70,
+    "description": "Freshly baked sourdough bread with a crispy crust and soft interior.",
+    "image": "/assets/images/sourdough_bread.png"
+  }
+]

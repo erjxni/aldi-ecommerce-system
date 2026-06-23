@@ -640,6 +640,15 @@ body {
   overflow-y: auto;
   padding: 20px;
 }
+.cart-error {
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  border: 1px solid #f3b8b8;
+  border-radius: 4px;
+  background: #fff1f1;
+  color: #a61b1b;
+  font-size: 0.9rem;
+}
 .cart-item-row {
   display: flex;
   align-items: center;

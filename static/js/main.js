@@ -70,7 +70,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- 2. Cart Drawer State & Operations (Shared) ---
   const cartKey = userEmail ? `cart_${userEmail}` : 'cart_guest';
-  let cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+  let cart = [];
+  try {
+    cart = JSON.parse(localStorage.getItem(cartKey)) || [];
+  } catch (_) {
+    localStorage.removeItem(cartKey);
+  }
 
   const cartToggleBtn = document.getElementById('cart-toggle-btn');
   const cartDrawer = document.getElementById('cart-drawer');
@@ -95,10 +100,72 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
   }
 
-  function addToCart(product, quantity = 1) {
+  function showCartError(message = '') {
+    let errorBox = document.getElementById('cart-error');
+    if (!errorBox && cartItemsContainer) {
+      errorBox = document.createElement('div');
+      errorBox.id = 'cart-error';
+      errorBox.className = 'cart-error';
+      cartItemsContainer.parentElement.insertBefore(errorBox, cartItemsContainer);
+    }
+    if (errorBox) {
+      errorBox.textContent = message;
+      errorBox.hidden = !message;
+    }
+  }
+
+  async function requestCart(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: 'include',
+      ...options,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.detail || 'Cart request failed');
+    cart = data.items || [];
+    localStorage.setItem(cartKey, JSON.stringify(cart));
+    showCartError('');
+    updateCartUI();
+    return data;
+  }
+
+  async function loadPersistedCart() {
+    if (!userToken) {
+      updateCartUI();
+      return;
+    }
+    try {
+      await requestCart('/api/cart');
+    } catch (error) {
+      showCartError(error.message);
+      updateCartUI();
+    }
+  }
+
+  async function addToCart(product, quantity = 1) {
+    if (userToken) {
+      try {
+        await requestCart('/api/cart/add', {
+          method: 'POST',
+          body: JSON.stringify({ productId: product.id, quantity })
+        });
+        openCart();
+      } catch (error) {
+        showCartError(error.message);
+        openCart();
+      }
+      return;
+    }
+
     const existing = cart.find(item => item.id === product.id);
+    const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
+    if (product.stockQuantity != null && requestedQuantity > product.stockQuantity) {
+      showCartError(`Only ${product.stockQuantity} item(s) are available in stock`);
+      openCart();
+      return;
+    }
     if (existing) {
-      existing.quantity += quantity;
+      existing.quantity = requestedQuantity;
     } else {
       cart.push({ ...product, quantity: quantity, emoji: product.emoji || '🛒' });
     }
@@ -106,16 +173,42 @@ document.addEventListener('DOMContentLoaded', () => {
     openCart();
   }
 
-  function incrementCartItem(productId) {
+  async function incrementCartItem(productId) {
     const item = cart.find(item => item.id === productId);
+    if (userToken && item) {
+      try {
+        await requestCart('/api/cart/update', {
+          method: 'PUT',
+          body: JSON.stringify({ productId, quantity: item.quantity + 1 })
+        });
+      } catch (error) {
+        showCartError(error.message);
+      }
+      return;
+    }
     if (item) {
+      if (item.stockQuantity != null && item.quantity + 1 > item.stockQuantity) {
+        showCartError(`Only ${item.stockQuantity} item(s) are available in stock`);
+        return;
+      }
       item.quantity += 1;
       saveCart();
     }
   }
 
-  function decrementCartItem(productId) {
+  async function decrementCartItem(productId) {
     const item = cart.find(item => item.id === productId);
+    if (userToken && item) {
+      try {
+        await requestCart('/api/cart/update', {
+          method: 'PUT',
+          body: JSON.stringify({ productId, quantity: item.quantity - 1 })
+        });
+      } catch (error) {
+        showCartError(error.message);
+      }
+      return;
+    }
     if (item) {
       item.quantity -= 1;
       if (item.quantity <= 0) {
@@ -126,7 +219,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Clear errors on input
-  function removeCartItem(productId) {
+  async function removeCartItem(productId) {
+    if (userToken) {
+      try {
+        await requestCart('/api/cart/remove', {
+          method: 'DELETE',
+          body: JSON.stringify({ productId })
+        });
+      } catch (error) {
+        showCartError(error.message);
+      }
+      return;
+    }
     cart = cart.filter(item => item.id !== productId);
     saveCart();
   }
@@ -762,6 +866,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCartUI();
   }
 
-  // Initialize UI values
-  updateCartUI();
+  // Initialize from Firebase for signed-in users, or local storage for guests.
+  loadPersistedCart();
 });

@@ -5,15 +5,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ALDI E-Commerce - Admin Dashboard</title>
-  
-  <!-- Administrator Security Guard (checks session immediately to prevent content flashes) -->
-  <script>
-    const userEmail = localStorage.getItem('userEmail');
-    const userToken = localStorage.getItem('userToken');
-    if (!userEmail || !userToken || userEmail !== 'saidgalimjanov24@gmail.com') {
-      window.location.href = '/index.html';
-    }
-  </script>
 
   <!-- Use Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -22,6 +13,87 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/public/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/public/favicon-16x16.png">
   <link rel="manifest" href="/assets/public/site.webmanifest">
+
+  <style>
+    /* Admin-specific inline styles for new widgets */
+    .revenue-widget {
+      background: linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #43a047 100%);
+      border: 1px solid rgba(76, 175, 80, 0.3);
+    }
+    .revenue-widget .card-icon { color: #a5d6a7; }
+    .revenue-widget .revenue-amount { 
+      font-size: 2rem; font-weight: 700; color: #e8f5e9;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .revenue-widget .revenue-timeframe { color: #a5d6a7; font-size: 0.85rem; }
+
+    .ws-status-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem;
+      font-weight: 600; margin-left: 12px;
+    }
+    .ws-status-badge.connected { background: rgba(76,175,80,0.15); color: #66bb6a; }
+    .ws-status-badge.disconnected { background: rgba(244,67,54,0.15); color: #ef5350; }
+    .ws-status-badge .ws-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      animation: pulse-dot 2s infinite;
+    }
+    .ws-status-badge.connected .ws-dot { background: #66bb6a; }
+    .ws-status-badge.disconnected .ws-dot { background: #ef5350; animation: none; }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.8); }
+    }
+
+    .financial-update-toast {
+      position: fixed; top: 24px; right: 24px; z-index: 9999;
+      background: linear-gradient(135deg, #1b5e20, #2e7d32);
+      color: #fff; padding: 16px 24px; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      font-family: 'Outfit', sans-serif; font-size: 0.9rem;
+      transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      max-width: 360px;
+    }
+    .financial-update-toast.show { transform: translateX(0); }
+    .toast-title { font-weight: 700; margin-bottom: 4px; }
+    .toast-amount { font-size: 1.1rem; font-weight: 600; color: #a5d6a7; }
+
+    .section-hidden { display: none !important; }
+
+    .admin-section-card {
+      margin-top: 32px;
+    }
+    .admin-section-card h2 {
+      margin-bottom: 16px;
+    }
+    .settings-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px;
+    }
+    .setting-item {
+      padding: 20px; border-radius: 12px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .setting-item h4 { margin: 0 0 8px 0; color: #e0e0e0; }
+    .setting-item p { margin: 0; color: #888; font-size: 0.85rem; }
+    .setting-item .btn-setting {
+      margin-top: 12px; padding: 8px 16px; border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 8px; background: rgba(255,255,255,0.05); color: #bbb;
+      cursor: pointer; font-size: 0.8rem; transition: all 0.2s;
+    }
+    .setting-item .btn-setting:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    .ledger-table {
+      width: 100%; border-collapse: collapse;
+    }
+    .ledger-table th, .ledger-table td {
+      padding: 12px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .ledger-table th { 
+      color: #888; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .ledger-table td { color: #ccc; font-size: 0.9rem; }
+    .ledger-empty { padding: 24px; text-align: center; color: #666; }
+  </style>
 </head>
 
 <body>
@@ -45,8 +117,12 @@
           <div id="nav-auth-section" class="nav-auth-container">
             <div class="user-profile">
               <span class="user-avatar">&#x1F464;</span>
-              <span class="user-email" id="user-email-display">saidgalimjanov24@gmail.com</span>
+              <span class="user-email" id="user-email-display"></span>
             </div>
+            <span id="ws-status" class="ws-status-badge disconnected">
+              <span class="ws-dot"></span>
+              <span class="ws-status-text">Offline</span>
+            </span>
             <button id="logout-btn" class="btn-logout" title="Log Out">
               <span class="logout-icon">&#x21AA;</span>
               <span class="logout-text">Logout</span>
@@ -63,8 +139,18 @@
         <p class="admin-subtitle">Monitoring sales losses and migrated customer database records.</p>
       </div>
 
-      <!-- Sales Losses Section -->
+      <!-- Sales & Revenue Analytics Section -->
       <section class="admin-analytics-grid">
+        <!-- Total Revenue Card (Real-time via WebSocket) -->
+        <div class="analytics-card glassmorphism revenue-widget" id="revenue-card">
+          <div class="card-icon">&#x1F4B0;</div>
+          <div class="card-info">
+            <h2>Total Revenue</h2>
+            <p class="revenue-amount" id="total-revenue-amount">€0.00</p>
+            <p class="revenue-timeframe">Real-time via WebSocket</p>
+          </div>
+        </div>
+
         <!-- Sales Loss Card -->
         <div class="analytics-card glassmorphism loss-summary-card">
           <div class="card-icon">&#x26A0;</div>
@@ -89,6 +175,31 @@
           <div id="loss-trend-chart" class="loss-trend-chart-container">
             <div class="loading-state-admin">Loading trend chart...</div>
           </div>
+        </div>
+      </section>
+
+      <!-- Financial Ledger Section (hidden for employees) -->
+      <section id="financial-ledger-section" class="admin-database-section glassmorphism admin-section-card">
+        <div class="db-header-row">
+          <h2>&#x1F4CA; Financial Ledger</h2>
+        </div>
+        <div class="table-responsive">
+          <table class="ledger-table" id="financial-ledger-table">
+            <thead>
+              <tr>
+                <th>Transaction ID</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Related Order</th>
+                <th>Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="financial-ledger-body">
+              <tr>
+                <td colspan="5" class="ledger-empty">Awaiting real-time financial records via WebSocket...</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
@@ -126,10 +237,208 @@
         </div>
       </section>
 
+      <!-- System Settings Section (hidden for employees) -->
+      <section id="system-settings-section" class="admin-database-section glassmorphism admin-section-card">
+        <div class="db-header-row">
+          <h2>&#x2699; System Settings</h2>
+        </div>
+        <div class="settings-grid">
+          <div class="setting-item">
+            <h4>JWT Token Expiry</h4>
+            <p>Currently set to 24 hours for all authenticated sessions.</p>
+            <button class="btn-setting" disabled>Modify</button>
+          </div>
+          <div class="setting-item">
+            <h4>WebSocket Broadcast</h4>
+            <p>Financial events are broadcast to all connected admin clients in real-time.</p>
+            <button class="btn-setting" disabled>Configure</button>
+          </div>
+          <div class="setting-item">
+            <h4>Database Sync</h4>
+            <p>Firebase Data Connect syncs automatically. Manual trigger available for admins.</p>
+            <button class="btn-setting" disabled>Sync Now</button>
+          </div>
+          <div class="setting-item">
+            <h4>Access Control</h4>
+            <p>Role-based access: Admin, Financial Officer, Employee, Customer.</p>
+            <button class="btn-setting" disabled>Manage Roles</button>
+          </div>
+        </div>
+      </section>
+
     </main>
   </div>
 
   <script type="module" src="/js/main.js"></script>
+
+  <!-- WebSocket Connection & Role-Based UI Script -->
+  <script>
+    (function() {
+      const userToken = localStorage.getItem('userToken');
+      const userRole = localStorage.getItem('userRole') || 'customer';
+      const userEmail = localStorage.getItem('userEmail') || '';
+
+      // Display user email in nav
+      const emailDisplay = document.getElementById('user-email-display');
+      if (emailDisplay) emailDisplay.textContent = userEmail;
+
+      // --- Role-Based UI Hiding for Employees ---
+      if (userRole === 'employee') {
+        const financialSection = document.getElementById('financial-ledger-section');
+        const settingsSection = document.getElementById('system-settings-section');
+        if (financialSection) financialSection.classList.add('section-hidden');
+        if (settingsSection) settingsSection.classList.add('section-hidden');
+      }
+
+      // --- Logout Button ---
+      const logoutBtn = document.getElementById('logout-btn');
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('userEmail');
+          localStorage.removeItem('userToken');
+          localStorage.removeItem('userRole');
+          fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
+            window.location.href = '/index.html';
+          });
+        });
+      }
+
+      // --- Track cumulative revenue from WebSocket events ---
+      let cumulativeRevenue = 0;
+      const revenueDisplay = document.getElementById('total-revenue-amount');
+
+      function updateRevenueDisplay() {
+        if (revenueDisplay) {
+          revenueDisplay.textContent = `€${cumulativeRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          // Animate the revenue change
+          revenueDisplay.style.transform = 'scale(1.15)';
+          revenueDisplay.style.color = '#69f0ae';
+          setTimeout(() => {
+            revenueDisplay.style.transform = 'scale(1)';
+            revenueDisplay.style.color = '#e8f5e9';
+          }, 600);
+        }
+      }
+
+      // --- Financial Ledger: add rows in real-time ---
+      const ledgerBody = document.getElementById('financial-ledger-body');
+      function addLedgerRow(data) {
+        if (!ledgerBody) return;
+        // Clear the placeholder on first real entry
+        if (ledgerBody.querySelector('.ledger-empty')) {
+          ledgerBody.innerHTML = '';
+        }
+        const tr = document.createElement('tr');
+        const timestamp = new Date(data.timestamp).toLocaleString('en-AU', {
+          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        });
+        tr.innerHTML = `
+          <td style="font-family:monospace;font-size:0.8rem;">${data.transactionId || 'N/A'}</td>
+          <td><span class="status-pill admin-pill" style="font-size:0.75rem;">E-Commerce Sale</span></td>
+          <td style="color:#66bb6a;font-weight:600;">€${data.amount.toFixed(2)}</td>
+          <td style="font-family:monospace;font-size:0.8rem;">${data.orderId ? data.orderId.substring(0, 8) + '...' : 'N/A'}</td>
+          <td>${timestamp}</td>
+        `;
+        // Insert at the top
+        ledgerBody.insertBefore(tr, ledgerBody.firstChild);
+      }
+
+      // --- Toast Notification ---
+      function showFinancialToast(amount) {
+        const existing = document.querySelector('.financial-update-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = 'financial-update-toast';
+        toast.innerHTML = `
+          <div class="toast-title">&#x1F4B0; New Revenue Recorded</div>
+          <div class="toast-amount">+€${amount.toFixed(2)}</div>
+          <div style="font-size:0.8rem;color:#a5d6a7;margin-top:4px;">Financial record synced automatically</div>
+        `;
+        document.body.appendChild(toast);
+        requestAnimationFrame(() => toast.classList.add('show'));
+        setTimeout(() => {
+          toast.classList.remove('show');
+          setTimeout(() => toast.remove(), 500);
+        }, 5000);
+      }
+
+      // --- WebSocket Connection ---
+      const wsStatus = document.getElementById('ws-status');
+      const wsStatusText = wsStatus ? wsStatus.querySelector('.ws-status-text') : null;
+
+      if (!userToken) return;
+
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}?token=${encodeURIComponent(userToken)}`;
+      
+      let ws;
+      let reconnectAttempts = 0;
+      const maxReconnectAttempts = 10;
+
+      function connectWebSocket() {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          console.log('[WebSocket] Connected to admin channel');
+          reconnectAttempts = 0;
+          if (wsStatus) {
+            wsStatus.classList.remove('disconnected');
+            wsStatus.classList.add('connected');
+          }
+          if (wsStatusText) wsStatusText.textContent = 'Live';
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const message = JSON.parse(event.data);
+            console.log('[WebSocket] Received:', message);
+
+            if (message.type === 'financial_update') {
+              const data = message.data;
+              // Update cumulative revenue
+              cumulativeRevenue += data.amount;
+              updateRevenueDisplay();
+              // Add to ledger
+              addLedgerRow(data);
+              // Show toast notification
+              showFinancialToast(data.amount);
+            }
+
+            if (message.type === 'connection_established') {
+              console.log('[WebSocket] Server confirmed connection:', message.data.message);
+            }
+          } catch (err) {
+            console.error('[WebSocket] Failed to parse message:', err);
+          }
+        };
+
+        ws.onclose = (event) => {
+          console.log('[WebSocket] Disconnected:', event.code, event.reason);
+          if (wsStatus) {
+            wsStatus.classList.remove('connected');
+            wsStatus.classList.add('disconnected');
+          }
+          if (wsStatusText) wsStatusText.textContent = 'Offline';
+
+          // Auto-reconnect with exponential backoff
+          if (reconnectAttempts < maxReconnectAttempts) {
+            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
+            reconnectAttempts++;
+            console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttempts})...`);
+            setTimeout(connectWebSocket, delay);
+          }
+        };
+
+        ws.onerror = (error) => {
+          console.error('[WebSocket] Error:', error);
+        };
+      }
+
+      connectWebSocket();
+    })();
+  </script>
+
   <!-- Footer Section -->
   <footer class="aldi-footer">
     <div class="footer-container">

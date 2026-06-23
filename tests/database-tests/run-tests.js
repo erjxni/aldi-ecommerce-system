@@ -1,5 +1,6 @@
 const testConnection = require('./connection.test');
 const testOperations = require('./operations.test');
+const testCheckoutFinancial = require('./checkout-financial.test');
 
 async function runAll() {
   console.log('==================================================');
@@ -20,16 +21,22 @@ async function runAll() {
   const operationsSuccess = await testOperations();
   console.log('');
 
+  const checkoutSuccess = await testCheckoutFinancial();
+  console.log('');
+
   console.log('==================================================');
-  if (operationsSuccess) {
+  if (operationsSuccess && checkoutSuccess) {
     console.log('ALL TESTS PASSED SUCCESSFULLY');
     console.log('==================================================');
     process.exit(0);
   } else {
     console.error('SOME TESTS FAILED');
+    if (!operationsSuccess) console.error('  - Operations tests: FAILED');
+    if (!checkoutSuccess) console.error('  - Checkout-Financial tests: FAILED');
     console.log('==================================================');
     process.exit(1);
   }
 }
 
 runAll();
+

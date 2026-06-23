@@ -87,7 +87,7 @@ const mockUsers = [
 async function seed() {
   try {
     console.log('Connecting to Firebase SQL Connect...');
-    
+
     // Wipe existing users in the collection
     console.log('Wiping existing users...');
     const deleteMutation = `
@@ -129,7 +129,7 @@ async function seed() {
 
     console.log('\n--- Seeding Complete ---');
     console.log('SQL Connect database populated successfully.\n');
-    
+
     console.log('Here are the credentials you can log in with:');
     console.log('--------------------------------------------------');
     mockUsers.forEach(u => {

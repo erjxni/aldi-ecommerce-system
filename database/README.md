@@ -14,31 +14,10 @@ We have moved from a local SQLite database to Firebase. The database schema is d
 Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, and `FinancialRecord`.
 
 ```graphql
-enum UserRole {
-  customer
-  admin
-  employee
-  financial_officer
-}
-
-enum OrderStatus {
-  pending
-  processing
-  shipped
-  delivered
-  cancelled
-}
-
-enum TransactionType {
-  ecommerce_sale
-  membership_due
-  operational_cost
-}
-
 type User @table {
   email: String! @unique
   passwordHash: String!
-  role: UserRole! @default(value: "customer") 
+  role: String! @default(value: "customer") 
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time") 
   lastLogin: Timestamp
@@ -71,7 +50,7 @@ type CartItem @table {
 type Order @table {
   user: User!
   totalAmount: Float!
-  status: OrderStatus! @default(value: "pending") 
+  status: String! @default(value: "pending") 
   createdAt: Timestamp! @default(expr: "request.time")
   updatedAt: Timestamp! @default(expr: "request.time") 
 }
@@ -86,7 +65,7 @@ type OrderItem @table {
 type FinancialRecord @table {
   transactionId: String! @unique
   amount: Float!
-  transactionType: TransactionType! @default(value: "ecommerce_sale")
+  transactionType: String! @default(value: "ecommerce_sale")
   relatedOrder: Order # Links directly to the checkout flow
   processedBy: User # Links to the Financial Officer managing the record
   description: String
@@ -106,7 +85,7 @@ Stores user account profiles, authentication hashes, and roles.
 | `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for each user |
 | `email` | `String!` | `@unique` | Indexed user email address (must be unique) |
 | `passwordHash` | `String!` | | Securely hashed user password |
-| `role` | `UserRole!` | `@default(value: "customer")` | Access level/role (`customer`, `admin`, `employee`, `financial_officer`) |
+| `role` | `String!` | `@default(value: "customer")` | Predefined text access level/role (`customer`, `admin`, `employee`, `financial_officer`) |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Record creation timestamp |
 | `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Record last updated timestamp |
 | `lastLogin` | `Timestamp` | | Timestamp of the user's most recent login |
@@ -154,7 +133,7 @@ Tracks checkout transactions.
 | `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique order tracking identifier |
 | `user` | `User!` | Relation Reference | The user who placed the order |
 | `totalAmount` | `Float!` | | Total order cost in Euros (€) |
-| `status` | `OrderStatus!` | `@default(value: "pending")` | Status state (`pending`, `processing`, `shipped`, `delivered`, `cancelled`) |
+| `status` | `String!` | `@default(value: "pending")` | Predefined text status state (`pending`, `processing`, `shipped`, `delivered`, `cancelled`) |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Order placement timestamp |
 | `updatedAt` | `Timestamp!` | `@default(expr: "request.time")` | Order details updated timestamp |
 
@@ -175,7 +154,7 @@ Tracks monetary transactions for financial audits.
 | :--- | :--- | :--- | :--- |
 | `transactionId` | `String!` | `@unique` | Unique transaction reference |
 | `amount` | `Float!` | | Transaction value |
-| `transactionType` | `TransactionType!` | `@default(value: "ecommerce_sale")` | Type of transaction (`ecommerce_sale`, `membership_due`, `operational_cost`) |
+| `transactionType` | `String!` | `@default(value: "ecommerce_sale")` | Predefined text type of transaction (`"ecommerce_sale"`, `"membership_due"`, `"operational_cost"`) |
 | `relatedOrder` | `Order` | Relation Reference | Associated checkout order (optional) |
 | `processedBy` | `User` | Relation Reference | Financial Officer who processed the record (optional) |
 | `description` | `String` | | Description of the financial entry |

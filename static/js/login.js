@@ -86,9 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
       // Store session data in localStorage
       localStorage.setItem('userEmail', data.email);
       localStorage.setItem('userToken', data.token);
+      localStorage.setItem('userRole', data.role || 'customer');
 
-      // Redirect to storefront dashboard
-      window.location.href = '/index.html';
+      // Role-based redirection: staff → admin, customers → storefront
+      const staffRoles = ['admin', 'financial_officer', 'employee'];
+      if (staffRoles.includes(data.role)) {
+        window.location.href = '/admin.html';
+      } else {
+        window.location.href = '/index.html';
+      }
     })
     .catch((error) => {
       loginError.textContent = error.message;

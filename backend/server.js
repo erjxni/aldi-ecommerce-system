@@ -22,6 +22,10 @@ app.use(cookieParser());
 // Import database and JWT
 const { sqlConnect } = require('./db');
 const jwt = require('jsonwebtoken');
+const {
+    initializeCheckoutDatabase,
+    processCheckout
+} = require("./checkout-db");
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 
 // ---------------------------------------------------------
@@ -577,6 +581,21 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
 // ---------------------------------------------------------
 // Fallback routing: send index.html for undefined frontend routes
 // ---------------------------------------------------------
+initializeCheckoutDatabase()
+    .then(() => {
+        console.log("Checkout database initialized.");
+    })
+    .catch((error) => {
+        console.error("Failed to initialize checkout database:", error);
+    });
+
+app.post("/api/checkout", authenticateJWT, async (req, res) => {
+    const userEmail = req.user && req.user.email ? req.user.email : "demo@aldi.com";
+
+    const result = await processCheckout(userEmail, req.body);
+
+    return res.status(result.statusCode).json(result.body);
+});
 app.get('*', (req, res, next) => {
   // Only fallback for non-API routes
   if (req.url.startsWith('/api')) {

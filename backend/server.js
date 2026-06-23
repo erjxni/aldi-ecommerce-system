@@ -121,8 +121,8 @@ app.get('/admin.html', adminProtect, (req, res) => {
 
 app.use('/api/admin', adminProtect);
 
-// Serve static files from the frontend folder
-app.use(express.static(path.join(__dirname, '../static')));
+// Serve static files from the frontend folder (supporting html extension-less routing)
+app.use(express.static(path.join(__dirname, '../static'), { extensions: ['html'] }));
 
 // ---------------------------------------------------------
 // API: Get all products
@@ -584,7 +584,7 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
 });
 
 // ---------------------------------------------------------
-// Fallback routing: send index.html for undefined frontend routes
+// Fallback routing: handle undefined routes
 // ---------------------------------------------------------
 initializeCheckoutDatabase()
     .then(() => {
@@ -601,12 +601,15 @@ app.post("/api/checkout", authenticateJWT, async (req, res) => {
 
     return res.status(result.statusCode).json(result.body);
 });
-app.get('*', (req, res, next) => {
-  // Only fallback for non-API routes
-  if (req.url.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, '../static/index.html'));
+
+// API fallback: return JSON 404
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// HTML fallback: send 404.html with 404 status
+app.get('*', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '../static/404.html'));
 });
 
 // ---------------------------------------------------------

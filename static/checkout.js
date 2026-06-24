@@ -9,14 +9,11 @@ function formatCurrency(amount) {
 }
 
 function getStoredCartItems() {
-    const possibleCartKeys = [
-        "cart",
-        "aldiCart",
-        "cartItems",
-        "shoppingCart"
-    ];
+    const userEmail = localStorage.getItem('userEmail');
+    const dynamicCartKey = userEmail ? `cart_${userEmail}` : 'cart_guest';
+    const keys = [dynamicCartKey, "aldiCart", "cart", "cartItems", "shoppingCart"];
 
-    for (const key of possibleCartKeys) {
+    for (const key of keys) {
         const rawValue = localStorage.getItem(key);
 
         if (!rawValue) {
@@ -38,20 +35,7 @@ function getStoredCartItems() {
         }
     }
 
-    return [
-        {
-            productId: "p-1001",
-            name: "ALDI Organic Apple Juice",
-            price: 2.49,
-            quantity: 2
-        },
-        {
-            productId: "p-1002",
-            name: "ALDI Fresh Bread",
-            price: 1.79,
-            quantity: 1
-        }
-    ];
+    return [];
 }
 
 function renderCartSummary() {
@@ -154,6 +138,11 @@ checkoutForm.addEventListener("submit", async (event) => {
             return;
         }
 
+        const userEmail = localStorage.getItem('userEmail');
+        if (userEmail) {
+            localStorage.removeItem(`cart_${userEmail}`);
+        }
+        localStorage.removeItem("cart_guest");
         localStorage.removeItem("cart");
         localStorage.removeItem("aldiCart");
         localStorage.removeItem("cartItems");

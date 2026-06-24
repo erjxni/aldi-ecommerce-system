@@ -1461,3 +1461,22 @@ body {
     max-width: 100%;
   }
 }
+
+/* Out of Stock Badge */
+.out-of-stock-badge {
+  display: inline-block;
+  background-color: #e53935;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+.btn-view:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+}

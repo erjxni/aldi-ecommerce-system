@@ -154,7 +154,12 @@ app.get('/api/products', async (req, res) => {
       specifications: {}
     }));
     
-    res.json(mappedProducts);
+    const { category } = req.query;
+    const filteredProducts = category
+      ? mappedProducts.filter(p => p.category && p.category.toLowerCase() === category.toLowerCase())
+      : mappedProducts;
+
+    res.json(filteredProducts);
   } catch (error) {
     console.error('Error fetching products from database:', error);
     res.status(500).json({ error: 'Database error' });

@@ -8,7 +8,7 @@ const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Enable Cross-Origin Resource Sharing
 app.use(cors({ credentials: true, origin: true }));

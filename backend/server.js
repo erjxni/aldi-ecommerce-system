@@ -472,6 +472,27 @@ app.get('/api/admin/database/:table', async (req, res) => {
 });
 
 // ---------------------------------------------------------
+// API: Database Direct Query (Admin/Employee only)
+// ---------------------------------------------------------
+app.post('/api/admin/query', async (req, res) => {
+  const { query, variables } = req.body;
+  if (!query) return res.status(400).json({ error: 'Query is required' });
+  
+  try {
+    let result;
+    if (query.trim().startsWith('mutation')) {
+      result = await sqlConnect.executeGraphql(query, { variables: variables || {} });
+    } else {
+      result = await sqlConnect.executeGraphqlRead(query, { variables: variables || {} });
+    }
+    res.json(result);
+  } catch (error) {
+    console.error('Failed to execute direct query:', error);
+    res.status(500).json({ error: 'Query failed', details: error.message });
+  }
+});
+
+// ---------------------------------------------------------
 // API: Checkout — Atomic Order + FinancialRecord creation
 // ---------------------------------------------------------
 // Persistent cart routes. The user identity always comes from the signed cookie.

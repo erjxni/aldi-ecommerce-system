@@ -38,8 +38,54 @@
       </div>
     </nav>
 
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
+    <div class="admin-layout-container">
+      <!-- Sidebar -->
+      <aside class="admin-sidebar">
+        <div style="flex-grow: 0; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
+          <!-- Search Icon -->
+          <a href="#" class="sidebar-icon" title="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </a>
+          <!-- Home Icon (Active) -->
+          <a href="#" id="btn-home-dashboard" class="sidebar-icon active" title="Home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </a>
+          <!-- Settings Icon -->
+          <a href="#" class="sidebar-icon" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </a>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <div style="flex-grow: 1; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
+          <!-- Folder Icon -->
+          <a href="#" class="sidebar-icon" title="Projects">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </a>
+          <!-- Activity Icon -->
+          <a href="#" class="sidebar-icon" title="Activity">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </a>
+          <!-- Database Icon -->
+          <a href="#" id="btn-db-viewer" class="sidebar-icon" title="Database">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          </a>
+          <!-- Users Icon -->
+          <a href="#" class="sidebar-icon" title="Users">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </a>
+          <!-- Shield Icon -->
+          <a href="#" class="sidebar-icon" title="Security">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </a>
+        </div>
+      </aside>
+      
+      <div class="admin-content-wrapper">
+        <div id="dashboard-view">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
       <h1 class="dashboard-title">
         Overview 
         <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
@@ -226,6 +272,38 @@
       </div>
 
     </main>
+        </div> <!-- /#dashboard-view -->
+
+        <!-- Database Viewer (Hidden by default) -->
+        <div id="database-viewer" style="display: none; height: 100%; display: flex; flex-direction: column;">
+          <div class="db-viewer-header">
+            <h1 class="dashboard-title">Database Viewer</h1>
+            <div class="db-tabs">
+              <button class="db-tab active" data-table="User">User</button>
+              <button class="db-tab" data-table="Product">Product</button>
+              <button class="db-tab" data-table="Cart">Cart</button>
+              <button class="db-tab" data-table="CartItem">CartItem</button>
+              <button class="db-tab" data-table="Order">Order</button>
+              <button class="db-tab" data-table="OrderItem">OrderItem</button>
+              <button class="db-tab" data-table="FinancialRecord">FinancialRecord</button>
+            </div>
+          </div>
+          <div class="db-viewer-content">
+            <div class="db-viewer-inner table-widget" style="flex-grow: 1; border-radius: 8px 8px 0 0; overflow-y: auto; height: 100%;">
+              <table class="modern-table" id="db-table">
+                <thead id="db-table-head">
+                  <!-- Dynamically populated -->
+                </thead>
+                <tbody id="db-table-body">
+                  <tr><td style="padding: 24px; text-align: center; color: #697386;">Select a table to view data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div> <!-- /.admin-content-wrapper -->
+    </div> <!-- /.admin-layout-container -->
   </div>
 
   <script type="module" src="/js/main.js"></script>
@@ -389,6 +467,192 @@
       }
 
       connectWebSocket();
+    })();
+  </script>
+  <!-- Database Viewer Logic -->
+  <script>
+    (function() {
+      // --- View Toggling ---
+      const dbBtn = document.getElementById('btn-db-viewer');
+      const homeBtn = document.getElementById('btn-home-dashboard');
+      const dashboardView = document.getElementById('dashboard-view');
+      const dbViewer = document.getElementById('database-viewer');
+
+      if (dbBtn && homeBtn && dashboardView && dbViewer) {
+        dbBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dashboardView.style.display = 'none';
+          dbViewer.style.display = 'flex';
+          
+          document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+          dbBtn.classList.add('active');
+
+          // Load default tab
+          const activeTab = document.querySelector('.db-tab.active');
+          if (activeTab) loadTableData(activeTab.dataset.table);
+        });
+
+        homeBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dashboardView.style.display = 'block';
+          dbViewer.style.display = 'none';
+
+          document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+          homeBtn.classList.add('active');
+        });
+      }
+
+      // --- Tab and Data Fetching Logic ---
+      const tabs = document.querySelectorAll('.db-tab');
+      const tableHead = document.getElementById('db-table-head');
+      const tableBody = document.getElementById('db-table-body');
+      
+      tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+          tabs.forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          loadTableData(tab.dataset.table);
+        });
+      });
+
+      // Navigate to record when foreign key is clicked
+      document.addEventListener('click', (e) => {
+        const fkLink = e.target.closest('.fk-link');
+        if (fkLink) {
+          const targetTable = fkLink.dataset.targetTable;
+          const targetId = fkLink.dataset.targetId;
+          const tab = document.querySelector(`.db-tab[data-table="${targetTable}"]`);
+          if (tab) {
+            window.highlightTargetId = targetId;
+            tab.click();
+          } else {
+            alert(`Could not find table tab for ${targetTable}`);
+          }
+        }
+      });
+
+      function highlightRow(id) {
+        setTimeout(() => {
+          const rows = document.querySelectorAll('#db-table-body tr');
+          for (let row of rows) {
+            // Check if any cell matches the id
+            if (row.innerHTML.includes(id)) {
+              row.style.background = '#eef2ff';
+              row.style.transition = 'background 0.5s';
+              row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              setTimeout(() => {
+                row.style.background = 'transparent';
+              }, 3000);
+              break;
+            }
+          }
+        }, 100);
+      }
+
+      async function loadTableData(tableName) {
+        if (!tableBody || !tableHead) return;
+        
+        tableBody.innerHTML = '<tr><td colspan="10" style="padding: 24px; text-align: center; color: #697386;">Loading data...</td></tr>';
+        
+        let targetData = null;
+
+        // Check session storage cache
+        const cacheKey = 'db_cache_' + tableName;
+        const cachedStr = sessionStorage.getItem(cacheKey);
+        if (cachedStr) {
+          const cached = JSON.parse(cachedStr);
+          if (Date.now() - cached.timestamp < 5 * 60 * 1000) {
+            targetData = cached.data;
+          }
+        }
+
+        if (!targetData) {
+          try {
+            const res = await fetch(`/api/admin/database/${tableName}`, {
+              headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+            });
+            if (!res.ok) throw new Error('Failed to fetch');
+            targetData = await res.json();
+            
+            sessionStorage.setItem(cacheKey, JSON.stringify({
+              timestamp: Date.now(),
+              data: targetData
+            }));
+          } catch (error) {
+            console.error(error);
+            tableBody.innerHTML = '<tr><td colspan="10" style="padding: 24px; text-align: center; color: #991b1b;">Error loading data.</td></tr>';
+            return;
+          }
+        }
+
+        renderTable(targetData);
+
+        if (window.highlightTargetId) {
+          highlightRow(window.highlightTargetId);
+          window.highlightTargetId = null;
+        }
+      }
+
+      function getTableNameFromCol(col) {
+        const map = {
+          'product': 'Product',
+          'relatedorder': 'Order',
+          'user': 'User',
+          'cart': 'Cart',
+          'cartitem': 'CartItem',
+          'processedby': 'User',
+          'customer': 'User'
+        };
+        return map[col.toLowerCase()] || col;
+      }
+
+      function renderTable(data) {
+        if (!data || data.length === 0) {
+          tableHead.innerHTML = '';
+          tableBody.innerHTML = '<tr><td colspan="10" style="padding: 24px; text-align: center; color: #697386;">No records found.</td></tr>';
+          return;
+        }
+
+        const truncateStr = (str) => {
+          if (typeof str !== 'string' || str.length <= 12) return str;
+          return str.substring(0, 4) + '...' + str.substring(str.length - 3);
+        };
+
+        const columns = Object.keys(data[0]);
+        
+        tableHead.innerHTML = '<tr>' + columns.map(col => `<th>${col}</th>`).join('') + '</tr>';
+        
+        tableBody.innerHTML = data.map(row => {
+          return '<tr>' + columns.map(col => {
+            let val = row[col];
+            let tdClass = '';
+            
+            if (col.toLowerCase().includes('id')) {
+              tdClass = 'col-id';
+            }
+            
+            if (typeof val === 'object' && val !== null) {
+               if (val.id) {
+                 const targetTable = getTableNameFromCol(col);
+                 val = `<button class="fk-link btn-outline" data-target-table="${targetTable}" data-target-id="${val.id}" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #2b58f9; color: #2b58f9; background: transparent; cursor: pointer; border-radius: 4px;">&#128279; ${truncateStr(val.id)}</button>`;
+               } else {
+                 let summaryText = 'JSON Data';
+                 const formattedJson = JSON.stringify(val, null, 2).replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                 val = `<details style="cursor:pointer;">
+                          <summary style="font-family:monospace; color:#2b58f9;">{ ${summaryText} }</summary>
+                          <pre style="margin:4px 0 0; padding:6px; background:#f4f5f7; border-radius:4px; font-size:0.75rem; color:#1a1f36; white-space:pre-wrap;">${formattedJson}</pre>
+                        </details>`;
+               }
+            } else if (typeof val === 'string' && val.length > 20 && col.toLowerCase().includes('id')) {
+               val = `<span title="${val}" style="cursor:help;">${truncateStr(val)}</span>`;
+            } else if (typeof val === 'string' && val.length > 40) {
+               val = `<span title="${val}" style="cursor:help;">${val.substring(0, 37)}...</span>`;
+            }
+
+            return `<td class="${tdClass}">${val}</td>`;
+          }).join('') + '</tr>';
+        }).join('');
+      }
     })();
   </script>
 </body>

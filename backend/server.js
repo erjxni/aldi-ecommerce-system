@@ -440,6 +440,38 @@ app.get('/api/admin/customers', async (req, res) => {
 });
 
 // ---------------------------------------------------------
+// API: Database Viewer
+// ---------------------------------------------------------
+app.get('/api/admin/database/:table', async (req, res) => {
+  const allowedTables = {
+    'User': '{ users { id email role displayName createdAt } }',
+    'Product': '{ products { id name category price stockQuantity updatedAt } }',
+    'Cart': '{ carts { id user { id email } updatedAt } }',
+    'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',
+    'Order': '{ orders { id user { id email } totalAmount status createdAt } }',
+    'OrderItem': '{ orderItems { order { id } product { id name } priceAtPurchase quantity } }',
+    'FinancialRecord': '{ financialRecords { id transactionId amount transactionType relatedOrder { id } processedBy { id email } description createdAt } }'
+  };
+
+  const table = req.params.table;
+  const query = allowedTables[table];
+
+  if (!query) {
+    return res.status(400).json({ error: 'Invalid or unsupported table' });
+  }
+
+  try {
+    const result = await sqlConnect.executeGraphqlRead(query);
+    // Dynamic key matching (users, products, etc.)
+    const dataKey = Object.keys(result.data)[0];
+    res.json(result.data[dataKey] || []);
+  } catch (error) {
+    console.error(`Failed to fetch database table ${table}:`, error);
+    res.status(500).json({ error: 'Failed to fetch table data' });
+  }
+});
+
+// ---------------------------------------------------------
 // API: Checkout — Atomic Order + FinancialRecord creation
 // ---------------------------------------------------------
 // Persistent cart routes. The user identity always comes from the signed cookie.
@@ -589,12 +621,13 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
 
       // ---- STEP 5: Insert FinancialRecord ----
       const financialMutation = `
-        mutation InsertFinancialRecord($transactionId: String!, $amount: Float!, $transactionType: String!, $orderId: UUID!, $description: String!) {
+        mutation InsertFinancialRecord($transactionId: String!, $amount: Float!, $transactionType: String!, $orderId: UUID!, $userId: UUID!, $description: String!) {
           financialRecord_insert(data: {
             transactionId: $transactionId,
             amount: $amount,
             transactionType: $transactionType,
             relatedOrder: { id: $orderId },
+            processedBy: { id: $userId },
             description: $description
           })
         }
@@ -610,6 +643,7 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
           amount: roundedTotal,
           transactionType: 'ecommerce_sale',
           orderId,
+          userId,
           description
         }
       });

@@ -162,14 +162,36 @@ Tracks monetary transactions for financial audits.
 
 ---
 
-## Seeding & Mock Users
+## Database Scripts and Tools
 
-To populate the database with mock users for testing, run:
+The following Node.js helper scripts are located in the `database/` directory and can be executed via Node.js to manage database records and query statuses:
+
+### 1. Mock Users Seeding
+To populate the SQL database with a set of mock users for local login testing, run:
 ```bash
 node database/seed.js
 ```
-This script will seed exactly 10 mock users across the standardized roles:
-* **Admin**: `admin@aldi-mock.com`
-* **Financial Officer**: `financial@aldi-mock.com`
-* **Employee**: `employee@aldi-mock.com`
-* **Customers**: `user_1@aldi-mock.com` through `user_7@aldi-mock.com`
+This wipes all existing users and inserts exactly 10 mock users with standardized credentials:
+* **Admin**: `admin@aldi-mock.com` (password: `adminPassword123`)
+* **Financial Officer**: `financial@aldi-mock.com` (password: `financialPassword123`)
+* **Employee**: `employee@aldi-mock.com` (password: `employeePassword123`)
+* **Customers**: `customer_1@aldi-mock.com` through `customer_7@aldi-mock.com` (passwords: `customerPassword1` through `customerPassword7`)
+
+### 2. Product Catalog Seeding
+To wipe the catalog and seed products from the system's product schema, run:
+```bash
+node database/seed-products.js
+```
+This script wipes the database product table and populates it with default catalog items.
+
+### 3. List Registered Users
+To query the database and quickly print a list of all registered users (showing ID, Email, Role, and Display Name), run:
+```bash
+node database/list-users.js
+```
+
+### 4. Schema Introspection
+To inspect the database structure and print out active schema types and tables registered in Firebase Data Connect, run:
+```bash
+node database/inspect-schema.js
+```

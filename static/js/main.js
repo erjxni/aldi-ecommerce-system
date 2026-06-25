@@ -451,7 +451,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span class="product-size">${p.size}</span>
             <div class="product-footer">
               <span class="product-price">€${p.price.toFixed(2)}</span>
-              <button class="btn-view" data-id="${p.id}">View</button>
+              ${p.stockQuantity === 0 ? '<span class="out-of-stock-badge">Out of Stock</span>' : ''}<button class="btn-view" data-id="${p.id}" ${p.stockQuantity === 0 ? 'disabled' : ''}>View</button>
             </div>
           </div>
         `;
@@ -513,6 +513,10 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       fetch(`/api/products/${productId}`)
         .then(res => {
+          if (res.status === 404) {
+            window.location.href = '/404.html';
+            return;
+          }
           if (!res.ok) throw new Error("Product not found");
           return res.json();
         })

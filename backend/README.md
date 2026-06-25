@@ -1,38 +1,58 @@
 # Backend Directory
 
-This directory contains the FastAPI backend for the ALDI E-Commerce System.
+This directory contains the Node.js Express backend application for the ALDI E-Commerce System. It serves static assets, provides RESTful endpoints, broadcasts real-time updates via WebSockets, and interfaces with Firebase Data Connect.
 
-## Files
-- `main.py`: The main FastAPI application file. Contains the API routing, endpoints, and the lifespan event for database seeding.
-- `models.py`: SQLAlchemy ORM database models (`User`, `Product`) mapping python objects to database tables.
-- `schemas.py`: Pydantic models used for data validation and serialization of API requests and responses.
-- `database.py`: SQLAlchemy connection setup, engine configuration, and session management functions.
-- `db_queries.sql`: A collection of raw SQL queries and scripts used for reference or manual database operations.
-- `ecommerce.db`: The active SQLite database file storing all application data (users, products, etc.).
-- `requirements.txt`: The list of Python dependencies required to run the FastAPI backend (e.g., fastapi, sqlalchemy, passlib).
-- `.venv/`: The isolated Python virtual environment containing the installed backend dependencies.
-- `__pycache__/`: Auto-generated compiled Python files for faster execution.
+## Core Files
 
-```
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+* **[`server.js`](file:///e:/projects/antigravity/aldi-ecommerce-system/backend/server.js)**: The main entry point. Sets up the HTTP server, WebSocketServer, CORS, cookie parsing, route definitions, and error handling.
+* **[`db.js`](file:///e:/projects/antigravity/aldi-ecommerce-system/backend/db.js)**: Initializes the Firebase Admin SDK using the project credentials and exports the SQL Connect (`getDataConnect`) client.
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyD91_SijfkVYhqTO9xpew8O1fag8jISrPs",
-  authDomain: "aldi-ecommerce-managemen-b40e8.firebaseapp.com",
-  projectId: "aldi-ecommerce-managemen-b40e8",
-  storageBucket: "aldi-ecommerce-managemen-b40e8.firebasestorage.app",
-  messagingSenderId: "921043652737",
-  appId: "1:921043652737:web:3e0e20841fdf4c36f77d80",
-  measurementId: "G-QMYJFHQV15"
-};
+---
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-```
+## Authentication & Authorization
+
+The system utilizes JSON Web Tokens (JWT) for secure authentication.
+
+### Middleware
+
+1. **`authenticateJWT`**
+   - Extracts and verifies the JWT token from the `Authorization: Bearer <token>` header, the `x-auth-token` header, the `token` query parameter, or the `aldi_jwt` cookie.
+   - Decodes the payload and attaches user details to `req.user`.
+
+2. **`adminProtect`**
+   - Specifically protects `/admin.html` and `/api/admin/*` endpoints.
+   - Extracts the JWT from the `aldi_jwt` HttpOnly cookie.
+   - Validates that the user has a staff role (`admin`, `financial_officer`, or `employee`).
+   - If authorization fails, it returns a detailed 403 Forbidden page or JSON response. If the session is missing, it redirects to the login screen.
+
+---
+
+## API Endpoints
+
+### Public / Customer Routes
+
+* **`GET /api/products`**: Lists all products fetched from the database.
+* **`GET /api/products/:id`**: Returns details of a specific product by ID.
+* **`POST /api/register`**: Registers a new customer account.
+* **`POST /api/login`**: Authenticates a user. On success:
+  - Sets the `aldi_jwt` token as an `HttpOnly`, `Lax` cookie.
+  - Updates the `lastLogin` timestamp in the database.
+  - Returns user profile data and the JWT token.
+* **`POST /api/logout`**: Clears the `aldi_jwt` cookie.
+* **`POST /api/checkout`**: (Authenticated) Processes shopping cart checkouts:
+  - Performs multi-step insertion: `Order` $\to$ `OrderItem`s $\to$ `FinancialRecord`.
+  - If the `FinancialRecord` insertion fails (e.g. key collision), a rollback runs to delete the created `OrderItems` and `Order` to prevent orphan database data.
+  - On checkout success, broadcasts details to active admin WebSocket connections.
+
+### Protected Admin Routes (`/api/admin/*`)
+
+* **`GET /api/admin/sales-losses`**: Computes and returns mock weekly sales loss trends and analytics for dashboard charts.
+* **`GET /api/admin/customers`**: Retrieves a list of system users. Supports text searching by email or name.
+
+---
+
+## WebSocket Server
+
+* **Port**: Runs concurrently on the same port as the HTTP Express app (default: `3000`).
+* **Authentication**: Connection URL must include `?token=<JWT_TOKEN>`. The connection is closed with a `4001` or `4003` status code if the token is missing or unauthorized.
+* **Broadcasting**: Sends a `financial_update` JSON message containing transaction amounts and order IDs to connected clients whenever a checkout is successfully completed.

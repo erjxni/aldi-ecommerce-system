@@ -8,7 +8,7 @@ const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Enable Cross-Origin Resource Sharing
 app.use(cors({ credentials: true, origin: true }));
@@ -40,13 +40,13 @@ const authenticateJWT = (req, res, next) => {
   if (token) {
     jwt.verify(token, JWT_SECRET, (err, user) => {
       if (err) {
-        return res.status(403).json({ detail: 'Forbidden: Invalid or expired token' });
+        return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
       }
       req.user = user;
       next();
     });
   } else {
-    res.status(401).json({ detail: 'Unauthorized: Missing token' });
+    res.status(401).json({ error: 'Unauthorized: Missing token' });
   }
 };
 
@@ -132,8 +132,8 @@ app.get('/admin.html', adminProtect, (req, res) => {
 
 app.use('/api/admin', adminProtect);
 
-// Serve static files from the frontend folder
-app.use(express.static(path.join(__dirname, '../static')));
+// Serve static files from the frontend folder (supporting html extension-less routing)
+app.use(express.static(path.join(__dirname, '../static'), { extensions: ['html'] }));
 
 // ---------------------------------------------------------
 // API: Get all products
@@ -169,7 +169,12 @@ app.get('/api/products', async (req, res) => {
       specifications: {}
     }));
     
-    res.json(mappedProducts);
+    const { category } = req.query;
+    const filteredProducts = category
+      ? mappedProducts.filter(p => p.category && p.category.toLowerCase() === category.toLowerCase())
+      : mappedProducts;
+
+    res.json(filteredProducts);
   } catch (error) {
     console.error('Error fetching products from database:', error);
     res.status(500).json({ error: 'Database error' });
@@ -313,7 +318,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, first_name: user.displayName, role: user.role },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: '1h' }
     );
 
     // Update lastLogin timestamp
@@ -470,164 +475,232 @@ app.delete('/api/cart/remove', authenticateCartJWT, handleCartRequest(req =>
 let wss; // WebSocket server reference (set during server startup)
 
 app.post('/api/checkout', authenticateJWT, async (req, res) => {
-  const { items, shippingInfo } = req.body;
+  const { cartItems, paymentMethod, cardLastFour } = req.body;
 
-  if (!items || !Array.isArray(items) || items.length === 0) {
-    return res.status(400).json({ detail: 'Cart items are required' });
+  if (!cartItems || !Array.isArray(cartItems) || cartItems.length === 0) {
+    return res.status(400).json({ error: 'Cart items are required' });
   }
 
   const userId = req.user.id;
-  const totalAmount = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const transactionId = `TXN-${crypto.randomUUID()}`;
 
-  let orderId = null;
-
   try {
-    // ---- STEP 1: Insert Order ----
-    const orderMutation = `
-      mutation InsertOrder($userId: UUID!, $totalAmount: Float!, $status: String!) {
-        order_insert(data: {
-          user: { id: $userId },
-          totalAmount: $totalAmount,
-          status: $status
-        })
-      }
-    `;
+    // ---- STEP 1: Stock Validation ----
+    let totalAmount = 0;
+    const validatedItems = [];
 
-    const orderResult = await sqlConnect.executeGraphql(orderMutation, {
-      variables: {
-        userId,
-        totalAmount: Math.round(totalAmount * 100) / 100,
-        status: 'pending'
+    // Verify stock one by one
+    for (const item of cartItems) {
+      let dbp;
+      try {
+        const dbpResult = await sqlConnect.executeGraphqlRead(`
+          query CheckStock($id: UUID!) {
+            product(id: $id) {
+              id
+              stockQuantity
+              name
+              price
+            }
+          }
+        `, { variables: { id: item.productId || item.id || item.id } });
+        dbp = dbpResult.data && dbpResult.data.product;
+      } catch (err) {
+        console.error("Error checking stock for product", item.productId || item.id || item.id, err);
+        return res.status(400).json({ error: `Invalid product ID or product not found: ${item.productId || item.id || item.id}` });
       }
-    });
+      if (!dbp) {
+        return res.status(400).json({ error: `Product ${item.name || item.productId || item.id || item.id} not found.` });
+      }
 
-    orderId = orderResult.data.order_insert.id;
-    if (!orderId) {
-      throw new Error('Order insertion did not return an ID');
+      if (dbp.stockQuantity < item.quantity) {
+        return res.status(409).json({
+          error: `${dbp.name} is out of stock or does not have enough remaining stock.`,
+          productId: dbp.id
+        });
+      }
+
+      totalAmount += dbp.price * item.quantity;
+      
+      validatedItems.push({
+        ...item,
+        priceAtPurchase: dbp.price,
+        dbStockQuantity: dbp.stockQuantity
+      });
     }
 
-    // ---- STEP 2: Insert OrderItems ----
-    for (const item of items) {
-      const orderItemMutation = `
-        mutation InsertOrderItem($orderId: UUID!, $productId: UUID!, $priceAtPurchase: Float!, $quantity: Int!) {
-          orderItem_insert(data: {
-            order: { id: $orderId },
-            product: { id: $productId },
-            priceAtPurchase: $priceAtPurchase,
-            quantity: $quantity
+    // ---- STEP 2: Stock Reduction ----
+    for (const item of validatedItems) {
+      const newStock = item.dbStockQuantity - item.quantity;
+      const updateMutation = `
+        mutation UpdateStock($id: UUID!, $newStock: Int!) {
+          product_update(id: $id, data: { stockQuantity: $newStock })
+        }
+      `;
+      await sqlConnect.executeGraphql(updateMutation, {
+        variables: { id: item.productId || item.id || item.id, newStock }
+      });
+    }
+
+    let orderId = null;
+    let financialRecordId = null;
+
+    try {
+      // ---- STEP 3: Insert Order ----
+      const orderMutation = `
+        mutation InsertOrder($userId: UUID!, $totalAmount: Float!, $status: String!) {
+          order_insert(data: {
+            user: { id: $userId },
+            totalAmount: $totalAmount,
+            status: $status
+          })
+        }
+      `;
+      
+      const roundedTotal = Math.round(totalAmount * 100) / 100;
+      
+      const orderResult = await sqlConnect.executeGraphql(orderMutation, {
+        variables: { userId, totalAmount: roundedTotal, status: 'pending' }
+      });
+
+      orderId = orderResult.data.order_insert.id;
+      if (!orderId) throw new Error('Order insertion failed');
+
+      // ---- STEP 4: Insert OrderItems ----
+      for (const item of validatedItems) {
+        const orderItemMutation = `
+          mutation InsertOrderItem($orderId: UUID!, $productId: UUID!, $priceAtPurchase: Float!, $quantity: Int!) {
+            orderItem_insert(data: {
+              order: { id: $orderId },
+              product: { id: $productId },
+              priceAtPurchase: $priceAtPurchase,
+              quantity: $quantity
+            })
+          }
+        `;
+        await sqlConnect.executeGraphql(orderItemMutation, {
+          variables: {
+            orderId,
+            productId: item.productId || item.id || item.id,
+            priceAtPurchase: item.priceAtPurchase,
+            quantity: item.quantity
+          }
+        });
+      }
+
+      // ---- STEP 5: Insert FinancialRecord ----
+      const financialMutation = `
+        mutation InsertFinancialRecord($transactionId: String!, $amount: Float!, $transactionType: String!, $orderId: UUID!, $description: String!) {
+          financialRecord_insert(data: {
+            transactionId: $transactionId,
+            amount: $amount,
+            transactionType: $transactionType,
+            relatedOrder: { id: $orderId },
+            description: $description
           })
         }
       `;
 
-      await sqlConnect.executeGraphql(orderItemMutation, {
-        variables: {
-          orderId,
-          productId: item.productId,
-          priceAtPurchase: item.price,
-          quantity: item.quantity
-        }
-      });
-    }
+      const description = paymentMethod 
+        ? `Mock checkout payment by ${paymentMethod}. Card ending ${cardLastFour || 'N/A'}.`
+        : `E-commerce checkout order ${orderId}`;
 
-    // ---- STEP 3: Insert FinancialRecord (atomic with order) ----
-    const financialMutation = `
-      mutation InsertFinancialRecord($transactionId: String!, $amount: Float!, $transactionType: String!, $orderId: UUID!, $description: String!) {
-        financialRecord_insert(data: {
-          transactionId: $transactionId,
-          amount: $amount,
-          transactionType: $transactionType,
-          relatedOrder: { id: $orderId },
-          description: $description
-        })
-      }
-    `;
-
-    let financialRecordId;
-    try {
       const financialResult = await sqlConnect.executeGraphql(financialMutation, {
         variables: {
           transactionId,
-          amount: Math.round(totalAmount * 100) / 100,
+          amount: roundedTotal,
           transactionType: 'ecommerce_sale',
           orderId,
-          description: `E-commerce checkout order ${orderId}`
+          description
         }
       });
       financialRecordId = financialResult.data.financialRecord_insert.id;
-    } catch (financialError) {
-      // ---- ROLLBACK: Delete the order if financial record fails ----
-      console.error('FinancialRecord insertion failed, rolling back order:', financialError);
-      try {
-        // Delete order items first
-        const deleteOrderItemsMutation = `
-          mutation DeleteOrderItems($orderId: UUID!) {
-            orderItem_deleteMany(where: { order: { id: { eq: $orderId } } })
-          }
-        `;
-        await sqlConnect.executeGraphql(deleteOrderItemsMutation, {
-          variables: { orderId }
-        });
 
-        // Delete the order
-        const deleteOrderMutation = `
-          mutation DeleteOrder($id: UUID!) {
-            order_delete(id: $id)
-          }
-        `;
-        await sqlConnect.executeGraphql(deleteOrderMutation, {
-          variables: { id: orderId }
-        });
-      } catch (rollbackError) {
-        console.error('Rollback also failed:', rollbackError);
-      }
-      throw new Error('Failed to create financial record. Transaction rolled back.');
-    }
-
-    // ---- STEP 4: Broadcast WebSocket event ----
-    const wsPayload = JSON.stringify({
-      type: 'financial_update',
-      data: {
-        transactionId,
-        amount: Math.round(totalAmount * 100) / 100,
-        transactionType: 'ecommerce_sale',
-        orderId,
-        financialRecordId,
-        timestamp: new Date().toISOString()
-      }
-    });
-
-    if (wss) {
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) { // WebSocket.OPEN
-          client.send(wsPayload);
+      // ---- STEP 6: Broadcast WebSocket event ----
+      const wsPayload = JSON.stringify({
+        type: 'financial_update',
+        data: {
+          transactionId,
+          amount: roundedTotal,
+          transactionType: 'ecommerce_sale',
+          orderId,
+          financialRecordId,
+          timestamp: new Date().toISOString()
         }
       });
-    }
 
-    res.json({
-      success: true,
-      orderId,
-      transactionId,
-      financialRecordId,
-      totalAmount: Math.round(totalAmount * 100) / 100
-    });
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) { // WebSocket.OPEN
+            client.send(wsPayload);
+          }
+        });
+      }
+
+      return res.status(201).json({
+        message: 'Order created successfully.',
+        orderId,
+        status: 'pending',
+        totalAmount: roundedTotal
+      });
+
+    } catch (insertError) {
+      console.error('Checkout insertion failed, triggering rollback:', insertError);
+      // ---- ROLLBACK ----
+      try {
+        for (const item of validatedItems) {
+          const revertMutation = `
+            mutation RestoreStock($id: UUID!, $stock: Int!) {
+              product_update(id: $id, data: { stockQuantity: $stock })
+            }
+          `;
+          await sqlConnect.executeGraphql(revertMutation, {
+            variables: { id: item.productId || item.id, stock: item.dbStockQuantity }
+          });
+        }
+      } catch (stockRollbackError) {
+        console.error('Rollback of stock failed:', stockRollbackError);
+      }
+
+      if (orderId) {
+        try {
+          const deleteOrderItemsMutation = `
+            mutation DeleteOrderItems($orderId: UUID!) {
+              orderItem_deleteMany(where: { order: { id: { eq: $orderId } } })
+            }
+          `;
+          await sqlConnect.executeGraphql(deleteOrderItemsMutation, { variables: { orderId } });
+
+          const deleteOrderMutation = `
+            mutation DeleteOrder($id: UUID!) {
+              order_delete(id: $id)
+            }
+          `;
+          await sqlConnect.executeGraphql(deleteOrderMutation, { variables: { id: orderId } });
+        } catch (orderRollbackError) {
+          console.error('Rollback of order failed:', orderRollbackError);
+        }
+      }
+      
+      return res.status(500).json({ error: 'Checkout transaction failed.' });
+    }
 
   } catch (error) {
     console.error('Checkout error:', error);
-    res.status(500).json({ detail: error.message || 'Checkout failed. Please try again.' });
+    res.status(500).json({ error: 'Checkout failed. Please try again.' });
   }
 });
 
 // ---------------------------------------------------------
-// Fallback routing: send index.html for undefined frontend routes
+// Fallback routing: handle undefined routes
 // ---------------------------------------------------------
-app.get('*', (req, res, next) => {
-  // Only fallback for non-API routes
-  if (req.url.startsWith('/api')) {
-    return next();
-  }
-  res.sendFile(path.join(__dirname, '../static/index.html'));
+// API fallback: return JSON 404
+app.all('/api/*', (req, res) => {
+  res.status(404).json({ error: 'API endpoint not found' });
+});
+
+// HTML fallback: send 404.html with 404 status
+app.get('*', (req, res) => {
+  res.status(404).sendFile(path.join(__dirname, '../static/404.html'));
 });
 
 // ---------------------------------------------------------

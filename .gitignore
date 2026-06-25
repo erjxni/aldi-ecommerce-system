@@ -3,6 +3,7 @@ __pycache__
 node_modules/
 .env
 .venv/
+.DS_Store
 
 aldi-ecommerce-managemen-b40e8-firebase-adminsdk-fbsvc-b76cea1fbf.json
 *-firebase-adminsdk-*.json

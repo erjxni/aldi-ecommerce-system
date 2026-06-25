@@ -21,8 +21,10 @@ app.use(cookieParser());
 
 // Import database and JWT
 const { sqlConnect } = require('./db');
+const { CartError, createCartService, createFirebaseCartRepository } = require('./cart-service');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
+const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
 
 // ---------------------------------------------------------
 // Middleware: Authenticate JWT from header, query, or cookie
@@ -46,6 +48,19 @@ const authenticateJWT = (req, res, next) => {
   } else {
     res.status(401).json({ error: 'Unauthorized: Missing token' });
   }
+};
+
+// Cart endpoints intentionally trust only the signed HttpOnly cookie. Client-side
+// JavaScript cannot read or forge this credential.
+const authenticateCartJWT = (req, res, next) => {
+  const token = req.cookies && req.cookies.aldi_jwt;
+  if (!token) return res.status(401).json({ detail: 'Please log in to use your saved cart' });
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) return res.status(403).json({ detail: 'Your session has expired. Please log in again' });
+    req.user = user;
+    next();
+  });
 };
 
 // ---------------------------------------------------------
@@ -303,7 +318,7 @@ app.post('/api/login', async (req, res) => {
     const token = jwt.sign(
       { id: user.id, email: user.email, first_name: user.displayName, role: user.role },
       JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: '24h' }
     );
 
     // Update lastLogin timestamp
@@ -427,6 +442,36 @@ app.get('/api/admin/customers', async (req, res) => {
 // ---------------------------------------------------------
 // API: Checkout — Atomic Order + FinancialRecord creation
 // ---------------------------------------------------------
+// Persistent cart routes. The user identity always comes from the signed cookie.
+const handleCartRequest = handler => async (req, res) => {
+  try {
+    const cart = await handler(req);
+    res.json(cart);
+  } catch (error) {
+    if (error instanceof CartError) {
+      return res.status(error.status).json({ detail: error.message });
+    }
+    console.error('Cart request failed:', error);
+    res.status(500).json({ detail: 'Unable to update the cart' });
+  }
+};
+
+app.get('/api/cart', authenticateCartJWT, handleCartRequest(req =>
+  cartService.getCart(req.user.id)
+));
+
+app.post('/api/cart/add', authenticateCartJWT, handleCartRequest(req =>
+  cartService.addItem(req.user.id, req.body.productId, req.body.quantity ?? 1)
+));
+
+app.put('/api/cart/update', authenticateCartJWT, handleCartRequest(req =>
+  cartService.updateItem(req.user.id, req.body.productId, req.body.quantity)
+));
+
+app.delete('/api/cart/remove', authenticateCartJWT, handleCartRequest(req =>
+  cartService.removeItem(req.user.id, req.body.productId)
+));
+
 let wss; // WebSocket server reference (set during server startup)
 
 app.post('/api/checkout', authenticateJWT, async (req, res) => {

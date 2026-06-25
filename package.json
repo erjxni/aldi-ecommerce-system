@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
-    "test": "node tests/database-tests/run-tests.js"
+    "test": "node --test tests/cart-tests/*.test.js && node tests/database-tests/run-tests.js",
+    "test:cart": "node --test tests/cart-tests/*.test.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

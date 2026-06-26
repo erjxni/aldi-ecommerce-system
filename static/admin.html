@@ -399,6 +399,10 @@
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="new-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+            </div>
             <div id="add-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
               <button type="button" id="cancel-add-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
@@ -414,6 +418,6 @@
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script src='/js/admin.js'></script>
+  <script type="module" src='/js/admin.js'></script>
 </body>
 </html>

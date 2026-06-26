@@ -24,6 +24,7 @@ type User @table {
   displayName: String!
   phoneNumber: String
   address: String
+  photoUrl: String
 }
 
 type Product @table {
@@ -92,6 +93,7 @@ Stores user account profiles, authentication hashes, and roles.
 | `displayName` | `String!` | | User's full name/display name |
 | `phoneNumber` | `String` | | Contact phone number |
 | `address` | `String` | | Shipping and billing address details |
+| `photoUrl` | `String` | | URL to the user's uploaded profile photo |
 
 ### 2. Product Table
 Catalog items available in the ALDI E-Commerce System.

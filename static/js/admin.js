@@ -1,3 +1,16 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "aldi-ecommerce-managemen-b40e8",
+  storageBucket: "aldi-ecommerce-managemen-b40e8.appspot.com",
+};
+
+const app = initializeApp(firebaseConfig);
+const storage = getStorage(app);
+
     (function() {
       const userToken = localStorage.getItem('userToken');
       const userRole = localStorage.getItem('userRole') || 'customer';
@@ -549,10 +562,45 @@
           const email = document.getElementById('new-user-email').value.trim();
           const password = document.getElementById('new-user-password').value;
           const role = document.getElementById('new-user-role').value;
+          const photoInput = document.getElementById('new-user-photo');
 
-          const query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
-            user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
-          }`;
+          let photoUrl = '';
+          if (photoInput && photoInput.files && photoInput.files[0]) {
+            try {
+              const file = photoInput.files[0];
+              const uniqueFileName = `${Date.now()}_${file.name}`;
+              const storageRef = ref(storage, `profiles/${uniqueFileName}`);
+              
+              addUserError.textContent = 'Uploading profile photo...';
+              addUserError.style.display = 'block';
+              addUserError.style.color = '#2b58f9';
+
+              const snapshot = await uploadBytes(storageRef, file);
+              photoUrl = await getDownloadURL(snapshot.ref);
+            } catch (err) {
+              console.error('Failed to upload photo:', err);
+              addUserError.textContent = 'Failed to upload profile photo.';
+              addUserError.style.color = '#991b1b';
+              return;
+            }
+          }
+
+          addUserError.textContent = 'Creating user...';
+          addUserError.style.display = 'block';
+          addUserError.style.color = '#2b58f9';
+
+          let query, variables;
+          if (photoUrl) {
+            query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
+              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
+            }`;
+            variables = { email, password, role, name, photoUrl };
+          } else {
+            query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
+              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
+            }`;
+            variables = { email, password, role, name };
+          }
           
           try {
             const res = await fetch('/api/admin/query', {
@@ -561,7 +609,7 @@
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('userToken')}`
               },
-              body: JSON.stringify({ query, variables: { email, password, role, name } })
+              body: JSON.stringify({ query, variables })
             });
             const data = await res.json();
             if (data.errors || data.error) {
@@ -618,12 +666,17 @@
 
           const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
           
-          usersCardContainer.innerHTML = users.map(u => `
+          usersCardContainer.innerHTML = users.map(u => {
+            const avatarHtml = u.photoUrl ? `<img src="${u.photoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />` : `<div style="width: 48px; height: 48px; border-radius: 50%; background: #f4f5f7; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 1.5rem; color: #697386; border: 1px solid #e3e8ee;">&#x1F464;</div>`;
+            return `
             <div class="user-card">
-              <div class="user-card-header">
-                <div>
-                  <div style="font-weight: 600; font-size: 1.1rem; color: #1a1f36;">${u.displayName || 'Unknown Name'}</div>
-                  <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
+              <div class="user-card-header" style="align-items: center;">
+                <div style="display: flex; align-items: center;">
+                  ${avatarHtml}
+                  <div>
+                    <div style="font-weight: 600; font-size: 1.1rem; color: #1a1f36;">${u.displayName || 'Unknown Name'}</div>
+                    <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
+                  </div>
                 </div>
                 <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
                   ${trashIcon}
@@ -635,7 +688,8 @@
                 <div><span style="font-weight: 500;">Joined:</span> ${new Date(u.createdAt).toLocaleDateString()}</div>
               </div>
             </div>
-          `).join('');
+            `;
+          }).join('');
         } catch (err) {
           console.error(err);
           usersCardContainer.innerHTML = '<div style="color: #991b1b;">Error loading users.</div>';

@@ -161,13 +161,16 @@
       // --- View Toggling ---
       const dbBtn = document.getElementById('btn-db-viewer');
       const homeBtn = document.getElementById('btn-home-dashboard');
+      const usersBtn = document.getElementById('btn-users-manager');
       const dashboardView = document.getElementById('dashboard-view');
       const dbViewer = document.getElementById('database-viewer');
+      const usersViewer = document.getElementById('users-manager-view');
 
-      if (dbBtn && homeBtn && dashboardView && dbViewer) {
+      if (dbBtn && homeBtn && usersBtn && dashboardView && dbViewer && usersViewer) {
         dbBtn.addEventListener('click', (e) => {
           e.preventDefault();
           dashboardView.style.display = 'none';
+          usersViewer.style.display = 'none';
           dbViewer.style.display = 'flex';
           
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -180,11 +183,24 @@
 
         homeBtn.addEventListener('click', (e) => {
           e.preventDefault();
-          dashboardView.style.display = 'block';
           dbViewer.style.display = 'none';
+          usersViewer.style.display = 'none';
+          dashboardView.style.display = 'block';
 
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
           homeBtn.classList.add('active');
+        });
+
+        usersBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dashboardView.style.display = 'none';
+          dbViewer.style.display = 'none';
+          usersViewer.style.display = 'flex';
+
+          document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+          usersBtn.classList.add('active');
+          
+          loadUsersManagerData();
         });
       }
 
@@ -445,4 +461,121 @@
           }).join('') + '</tr>';
         }).join('');
       }
+
+      // --- Users Manager Logic ---
+      const usersCardContainer = document.getElementById('users-card-container');
+      const addUserModal = document.getElementById('add-user-modal');
+      const openAddUserBtn = document.getElementById('open-add-user-btn');
+      const cancelAddUserBtn = document.getElementById('cancel-add-user-btn');
+      const addUserForm = document.getElementById('add-user-form');
+      const addUserError = document.getElementById('add-user-error');
+
+      if (openAddUserBtn && addUserModal) {
+        openAddUserBtn.addEventListener('click', () => {
+          addUserForm.reset();
+          addUserError.style.display = 'none';
+          addUserModal.showModal();
+        });
+        cancelAddUserBtn.addEventListener('click', () => {
+          addUserModal.close();
+        });
+        
+        addUserForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const name = document.getElementById('new-user-name').value.trim();
+          const email = document.getElementById('new-user-email').value.trim();
+          const password = document.getElementById('new-user-password').value;
+          const role = document.getElementById('new-user-role').value;
+
+          const query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
+            user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
+          }`;
+          
+          try {
+            const res = await fetch('/api/admin/query', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: JSON.stringify({ query, variables: { email, password, role, name } })
+            });
+            const data = await res.json();
+            if (data.errors || data.error) {
+              addUserError.textContent = data.error || data.errors[0].message;
+              addUserError.style.display = 'block';
+            } else {
+              addUserModal.close();
+              loadUsersManagerData(); // Refresh list
+            }
+          } catch (err) {
+            addUserError.textContent = 'Failed to create user. Server error.';
+            addUserError.style.display = 'block';
+          }
+        });
+      }
+
+      window.deleteUserManager = async function(id) {
+        if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return;
+        const query = `mutation DeleteUser($id: UUID!) { user_delete(id: $id) }`;
+        try {
+          const res = await fetch('/api/admin/query', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+            },
+            body: JSON.stringify({ query, variables: { id } })
+          });
+          const data = await res.json();
+          if (data.errors || data.error) {
+            alert('Failed to delete user: ' + (data.error || data.errors[0].message));
+          } else {
+            loadUsersManagerData(); // Refresh list
+          }
+        } catch (err) {
+          alert('Error connecting to server.');
+        }
+      };
+
+      window.loadUsersManagerData = async function() {
+        if (!usersCardContainer) return;
+        usersCardContainer.innerHTML = '<div style="color: #697386;">Loading staff members...</div>';
+        try {
+          const res = await fetch('/api/admin/database/User', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch');
+          const users = await res.json();
+          
+          if (!users || users.length === 0) {
+            usersCardContainer.innerHTML = '<div style="color: #697386;">No users found.</div>';
+            return;
+          }
+
+          const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+          
+          usersCardContainer.innerHTML = users.map(u => `
+            <div class="user-card">
+              <div class="user-card-header">
+                <div>
+                  <div style="font-weight: 600; font-size: 1.1rem; color: #1a1f36;">${u.displayName || 'Unknown Name'}</div>
+                  <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
+                </div>
+                <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
+                  ${trashIcon}
+                </button>
+              </div>
+              <div class="user-card-body" style="margin-top: 12px;">
+                <div><span style="font-weight: 500;">Email:</span> ${u.email}</div>
+                <div><span style="font-weight: 500;">ID:</span> <span style="font-family: monospace;">${u.id ? u.id.substring(0, 8) + '...' : 'N/A'}</span></div>
+                <div><span style="font-weight: 500;">Joined:</span> ${new Date(u.createdAt).toLocaleDateString()}</div>
+              </div>
+            </div>
+          `).join('');
+        } catch (err) {
+          console.error(err);
+          usersCardContainer.innerHTML = '<div style="color: #991b1b;">Error loading users.</div>';
+        }
+      };
     })();

@@ -225,6 +225,35 @@
         </div>
       </div>
 
+      <!-- Document Upload Widget -->
+      <div class="widget" id="document-upload-widget">
+        <div class="widget-header">
+          <h2 class="widget-title">Document Management</h2>
+          <span style="font-size: 1.25rem;">&#x1F4C4;</span>
+        </div>
+        <form id="doc-upload-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+            <input type="text" id="doc-title" required placeholder="e.g. Q2 Governance Report" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+            <select id="doc-category" required style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer; transition: border-color 0.2s;">
+              <option value="" disabled selected>-- Select Category --</option>
+              <option value="Governance">Governance</option>
+              <option value="E-Commerce">E-Commerce</option>
+              <option value="Logistics">Logistics</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+            <input type="file" id="doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg" style="font-size: 0.85rem; color: #4f566b;" />
+          </div>
+          <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px;">Upload Document</button>
+        </form>
+        <div id="upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+      </div>
+
       <!-- Financial Ledger Table -->
       <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
         <div class="widget-header">
@@ -285,6 +314,7 @@
               <button class="db-tab" data-table="Order">Order</button>
               <button class="db-tab" data-table="OrderItem">OrderItem</button>
               <button class="db-tab" data-table="FinancialRecord">FinancialRecord</button>
+              <button class="db-tab" data-table="Document">Document</button>
             </div>
           </div>
           <div class="db-viewer-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">

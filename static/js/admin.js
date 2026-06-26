@@ -154,6 +154,69 @@
         };
       }
 
+      // --- Document Upload Widget ---
+      const uploadForm = document.getElementById('doc-upload-form');
+      const uploadStatus = document.getElementById('upload-status');
+
+      if (uploadForm && uploadStatus) {
+        uploadForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const titleInput = document.getElementById('doc-title');
+          const categoryInput = document.getElementById('doc-category');
+          const fileInput = document.getElementById('doc-file');
+
+          if (!titleInput.value || !categoryInput.value || !fileInput.files[0]) {
+            showStatus('Please fill in all fields and select a file.', '#991b1b');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('title', titleInput.value);
+          formData.append('category', categoryInput.value);
+          formData.append('file', fileInput.files[0]);
+
+          showStatus('Uploading...', '#2b58f9');
+
+          try {
+            const res = await fetch('/api/documents/upload', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              showStatus('Document uploaded successfully!', '#10b981');
+              uploadForm.reset();
+
+              // Clear db viewer cache so if they click the Document tab, it fetches fresh data
+              sessionStorage.removeItem('db_cache_Document');
+              
+              // If we are currently viewing the Document table, refresh the table view
+              const activeTab = document.querySelector('.db-tab.active');
+              if (activeTab && activeTab.dataset.table === 'Document') {
+                activeTab.click();
+              }
+            } else {
+              showStatus(data.error || data.detail || 'Upload failed.', '#991b1b');
+            }
+          } catch (error) {
+            console.error('Upload error:', error);
+            showStatus('Network error occurred during upload.', '#991b1b');
+          }
+        });
+
+        function showStatus(text, color) {
+          uploadStatus.textContent = text;
+          uploadStatus.style.color = color;
+          uploadStatus.style.display = 'block';
+        }
+      }
+
       connectWebSocket();
     })();
 

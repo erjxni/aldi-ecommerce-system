@@ -1,6 +1,7 @@
 const testConnection = require('./connection.test');
 const testOperations = require('./operations.test');
 const testCheckoutFinancial = require('./checkout-financial.test');
+const testDocumentUpload = require('./document-upload.test');
 
 async function runAll() {
   console.log('==================================================');
@@ -24,8 +25,11 @@ async function runAll() {
   const checkoutSuccess = await testCheckoutFinancial();
   console.log('');
 
+  const uploadSuccess = await testDocumentUpload();
+  console.log('');
+
   console.log('==================================================');
-  if (operationsSuccess && checkoutSuccess) {
+  if (operationsSuccess && checkoutSuccess && uploadSuccess) {
     console.log('ALL TESTS PASSED SUCCESSFULLY');
     console.log('==================================================');
     process.exit(0);
@@ -33,6 +37,7 @@ async function runAll() {
     console.error('SOME TESTS FAILED');
     if (!operationsSuccess) console.error('  - Operations tests: FAILED');
     if (!checkoutSuccess) console.error('  - Checkout-Financial tests: FAILED');
+    if (!uploadSuccess) console.error('  - Document Upload tests: FAILED');
     console.log('==================================================');
     process.exit(1);
   }

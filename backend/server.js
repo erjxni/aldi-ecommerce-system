@@ -432,14 +432,33 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
       return res.status(400).json({ error: 'Title and category are required' });
     }
 
+    const { getStorage } = require('firebase-admin/storage');
+    const bucket = getStorage().bucket('aldi-ecommerce-managemen-b40e8.firebasestorage.app');
+    const destination = `documents/${file.filename}`;
+
+    // Upload the file to Firebase Storage
+    await bucket.upload(file.path, {
+      destination: destination,
+      metadata: {
+        contentType: file.mimetype
+      }
+    });
+
+    // Cleanup the local temporary file after successful upload
+    try {
+      fs.unlinkSync(file.path);
+    } catch (err) {
+      console.error('Failed to delete temp local file:', err);
+    }
+
     const fileUrl = `/uploads/${file.filename}`;
     const uploadedById = req.user.id; // from JWT token cookie in adminProtect
 
-    // Insert metadata into database
+    // Insert metadata into database (including created_at column)
     const insertMutation = `
       mutation InsertDocument($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
         _execute(
-          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id) VALUES ($1, $2, $3, $4, $5)",
+          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
           params: [$id, $title, $category, $fileUrl, $uploadedById]
         )
       }
@@ -494,12 +513,26 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
 // ---------------------------------------------------------
 // Route: Securely serve uploaded files (Admin/Employee only)
 // ---------------------------------------------------------
-app.get('/uploads/:filename', adminProtect, (req, res) => {
-  const filepath = path.join(uploadDir, req.params.filename);
-  if (fs.existsSync(filepath)) {
-    res.sendFile(filepath);
-  } else {
-    res.status(404).json({ error: 'File not found' });
+app.get('/uploads/:filename', adminProtect, async (req, res) => {
+  try {
+    const { getStorage } = require('firebase-admin/storage');
+    const bucket = getStorage().bucket('aldi-ecommerce-managemen-b40e8.firebasestorage.app');
+    const file = bucket.file(`documents/${req.params.filename}`);
+
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const [metadata] = await file.getMetadata();
+    if (metadata.contentType) {
+      res.setHeader('Content-Type', metadata.contentType);
+    }
+
+    file.createReadStream().pipe(res);
+  } catch (error) {
+    console.error('Error serving file from storage:', error);
+    res.status(500).json({ error: 'Failed to retrieve file' });
   }
 });
 

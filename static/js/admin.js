@@ -225,6 +225,7 @@
       const dbBtn = document.getElementById('btn-db-viewer');
       const homeBtn = document.getElementById('btn-home-dashboard');
       const usersBtn = document.getElementById('btn-users-manager');
+      const docBtn = document.getElementById('btn-document-manager');
       const dashboardView = document.getElementById('dashboard-view');
       const dbViewer = document.getElementById('database-viewer');
       const usersViewer = document.getElementById('users-manager-view');
@@ -265,6 +266,23 @@
           
           loadUsersManagerData();
         });
+
+        if (docBtn) {
+          docBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            dashboardView.style.display = 'none';
+            usersViewer.style.display = 'none';
+            dbViewer.style.display = 'flex';
+            
+            document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+            docBtn.classList.add('active');
+
+            const docTab = document.querySelector('.db-tab[data-table="Document"]');
+            if (docTab) {
+              docTab.click();
+            }
+          });
+        }
       }
 
       // --- Tab and Data Fetching Logic ---
@@ -494,7 +512,10 @@
               tdClass = 'col-id';
             }
             
-            if (typeof val === 'object' && val !== null) {
+            if ((col.toLowerCase() === 'fileurl' || col.toLowerCase() === 'file_url') && val) {
+              const urlVal = val;
+              val = `<a href="${urlVal}" target="_blank" class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border: 1px solid #10b981; color: white; background: #10b981; cursor: pointer; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500; transition: opacity 0.2s;">&#128190; Download</a>`;
+            } else if (typeof val === 'object' && val !== null) {
                if (val.id) {
                  const targetTable = getTableNameFromCol(col);
                  val = `<button class="fk-link btn-outline" data-target-table="${targetTable}" data-target-id="${val.id}" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #2b58f9; color: #2b58f9; background: transparent; cursor: pointer; border-radius: 4px;">&#128279; ${truncateStr(val.id)}</button>`;

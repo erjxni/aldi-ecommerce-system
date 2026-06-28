@@ -141,7 +141,9 @@ async function testDocumentUpload() {
       if (row.title !== 'Q2 Financial Report' || row.category !== 'Governance' || row.file_url !== uploadedFileUrl) {
         throw new Error(`Data mismatch in DB record: ${JSON.stringify(row)}`);
       }
-      if (row.uploaded_by_id !== mockUserId) {
+      const actualUploadedBy = (row.uploaded_by_id || '').replace(/-/g, '');
+      const expectedUploadedBy = (mockUserId || '').replace(/-/g, '');
+      if (actualUploadedBy !== expectedUploadedBy) {
         throw new Error(`UploadedBy mismatch: expected ${mockUserId}, got ${row.uploaded_by_id}`);
       }
 

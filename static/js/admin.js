@@ -11,13 +11,45 @@
         if (revenueCard) revenueCard.classList.add('section-hidden');
       }
 
+      // --- Update Topbar Profile Pic ---
+      window.updateTopbarProfilePic = function() {
+        const userPhoto = localStorage.getItem('userPhoto');
+        const profilePicDiv = document.querySelector('.profile-pic');
+        if (profilePicDiv) {
+          if (userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== '') {
+            profilePicDiv.innerHTML = `<img src="${userPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
+          } else {
+            profilePicDiv.innerHTML = '&#x1F464;';
+          }
+        }
+      };
+      window.updateTopbarProfilePic();
+
+      // Sync user profile photo from db if not cached locally
+      if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
+        fetch(`/api/admin/database/User`, {
+          headers: { 'Authorization': `Bearer ${userToken}` }
+        })
+        .then(res => res.json())
+        .then(users => {
+          const me = users.find(u => u.email === userEmail);
+          if (me && me.photoUrl) {
+            localStorage.setItem('userPhoto', me.photoUrl);
+            window.updateTopbarProfilePic();
+          }
+        })
+        .catch(err => console.error('Failed to sync topbar profile photo:', err));
+      }
+
       // --- Logout Button ---
       const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('userId');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userToken');
           localStorage.removeItem('userRole');
+          localStorage.removeItem('userPhoto');
           fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
             window.location.href = '/index.html';
           });
@@ -831,6 +863,10 @@
               editUserError.textContent = data.error || data.errors[0].message;
               editUserError.style.color = '#991b1b';
             } else {
+              if (id === localStorage.getItem('userId')) {
+                localStorage.setItem('userPhoto', photoUrl);
+                if (window.updateTopbarProfilePic) window.updateTopbarProfilePic();
+              }
               editUserModal.close();
               loadUsersManagerData(); // Refresh list
             }

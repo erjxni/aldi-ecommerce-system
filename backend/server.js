@@ -299,6 +299,7 @@ app.post('/api/login', async (req, res) => {
           email
           passwordHash
           displayName
+          photoUrl
           role
         }
       }
@@ -349,7 +350,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ email: user.email, token, first_name: user.displayName, role: user.role });
+    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });
@@ -673,7 +674,7 @@ app.get('/api/admin/customers', async (req, res) => {
 // ---------------------------------------------------------
 app.get('/api/admin/database/:table', async (req, res) => {
   const allowedTables = {
-    'User': '{ users { id email role displayName createdAt } }',
+    'User': '{ users { id email role displayName photoUrl createdAt } }',
     'Product': '{ products { id name category price stockQuantity updatedAt } }',
     'Cart': '{ carts { id user { id email } updatedAt } }',
     'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',

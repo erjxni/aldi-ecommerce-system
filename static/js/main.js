@@ -12,9 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (navAuthSection) {
     if (userEmail && userToken) {
       // User is logged in
+      const userPhoto = localStorage.getItem('userPhoto');
+      const avatarHtml = userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined'
+        ? `<img src="${userPhoto}" class="user-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1);" />`
+        : `<span class="user-avatar">&#x1F464;</span>`;
+
       navAuthSection.innerHTML = `
         <div class="user-profile">
-          <span class="user-avatar">&#x1F464;</span>
+          ${avatarHtml}
           <span class="user-email" id="user-email-display">${userEmail}</span>
         </div>
         <button id="logout-btn" class="btn-logout" title="Log Out">

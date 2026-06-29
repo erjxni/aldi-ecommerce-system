@@ -84,9 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
     })
     .then((data) => {
       // Store session data in localStorage
+      localStorage.setItem('userId', data.id);
       localStorage.setItem('userEmail', data.email);
       localStorage.setItem('userToken', data.token);
       localStorage.setItem('userRole', data.role || 'customer');
+      localStorage.setItem('userPhoto', data.photoUrl || '');
 
       // Role-based redirection: staff → admin, customers → storefront
       const staffRoles = ['admin', 'financial_officer', 'employee'];

@@ -11,7 +11,7 @@ We have moved from a local SQLite database to Firebase. The database schema is d
 
 ## Data Schema (Firebase Data Connect)
 
-Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, and `FinancialRecord`.
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, and `Document`.
 
 ```graphql
 type User @table {
@@ -70,6 +70,14 @@ type FinancialRecord @table {
   relatedOrder: Order # Links directly to the checkout flow
   processedBy: User # Links to the Financial Officer managing the record
   description: String
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Document @table {
+  title: String!
+  category: String!
+  fileUrl: String!
+  uploadedBy: User
   createdAt: Timestamp! @default(expr: "request.time")
 }
 ```
@@ -161,6 +169,18 @@ Tracks monetary transactions for financial audits.
 | `processedBy` | `User` | Relation Reference | Financial Officer who processed the record (optional) |
 | `description` | `String` | | Description of the financial entry |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
+
+### 8. Document Table
+Stores metadata for uploaded corporate and operational documents.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the document |
+| `title` | `String!` | | The human-readable title of the document |
+| `category` | `String!` | | The category/classification of the document |
+| `fileUrl` | `String!` | | Path or URL to the securely uploaded file |
+| `uploadedBy` | `User` | Relation Reference | The user (admin/employee) who uploaded the document |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Document upload timestamp |
 
 ---
 

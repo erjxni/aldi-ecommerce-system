@@ -1,16 +1,3 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "aldi-ecommerce-managemen-b40e8",
-  storageBucket: "aldi-ecommerce-managemen-b40e8.appspot.com",
-};
-
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-
     (function() {
       const userToken = localStorage.getItem('userToken');
       const userRole = localStorage.getItem('userRole') || 'customer';
@@ -550,11 +537,42 @@ const storage = getStorage(app);
         openAddUserBtn.addEventListener('click', () => {
           addUserForm.reset();
           addUserError.style.display = 'none';
+          
+          const previewContainer = document.getElementById('photo-preview-container');
+          const previewImg = document.getElementById('photo-preview-img');
+          if (previewContainer && previewImg) {
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+          }
+          
           addUserModal.showModal();
         });
         cancelAddUserBtn.addEventListener('click', () => {
           addUserModal.close();
         });
+
+        const photoInputObj = document.getElementById('new-user-photo');
+        const previewContainer = document.getElementById('photo-preview-container');
+        const previewImg = document.getElementById('photo-preview-img');
+        const clearPhotoBtn = document.getElementById('clear-photo-btn');
+
+        if (photoInputObj && previewContainer && clearPhotoBtn) {
+          photoInputObj.addEventListener('change', () => {
+            if (photoInputObj.files && photoInputObj.files[0]) {
+              previewImg.src = URL.createObjectURL(photoInputObj.files[0]);
+              previewContainer.style.display = 'flex';
+            } else {
+              previewContainer.style.display = 'none';
+              previewImg.src = '';
+            }
+          });
+
+          clearPhotoBtn.addEventListener('click', () => {
+            photoInputObj.value = '';
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+          });
+        }
         
         addUserForm.addEventListener('submit', async (e) => {
           e.preventDefault();
@@ -568,19 +586,36 @@ const storage = getStorage(app);
           if (photoInput && photoInput.files && photoInput.files[0]) {
             try {
               const file = photoInput.files[0];
-              const uniqueFileName = `${Date.now()}_${file.name}`;
-              const storageRef = ref(storage, `profiles/${uniqueFileName}`);
-              
-              addUserError.textContent = 'Uploading profile photo...';
-              addUserError.style.display = 'block';
-              addUserError.style.color = '#2b58f9';
+              const formData = new FormData();
+              formData.append('photo', file);
 
-              const snapshot = await uploadBytes(storageRef, file);
-              photoUrl = await getDownloadURL(snapshot.ref);
+              const progressContainer = document.getElementById('upload-progress-container');
+              const progressBar = document.getElementById('upload-progress-bar');
+              if (progressContainer) progressContainer.style.display = 'block';
+              if (progressBar) progressBar.style.width = '50%';
+              
+              const uploadRes = await fetch('/api/admin/users/upload-photo', {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (progressBar) progressBar.style.width = '100%';
+
+              if (!uploadRes.ok) {
+                throw new Error('Upload failed with status ' + uploadRes.status);
+              }
+
+              const uploadData = await uploadRes.json();
+              photoUrl = uploadData.photoUrl;
+              
+              setTimeout(() => { if (progressContainer) progressContainer.style.display = 'none'; }, 500);
             } catch (err) {
               console.error('Failed to upload photo:', err);
-              addUserError.textContent = 'Failed to upload profile photo.';
+              addUserError.textContent = `Failed to upload profile photo: ${err.message || 'Unknown error'}`;
+              addUserError.style.display = 'block';
               addUserError.style.color = '#991b1b';
+              const progressContainer = document.getElementById('upload-progress-container');
+              if (progressContainer) progressContainer.style.display = 'none';
               return;
             }
           }
@@ -649,6 +684,146 @@ const storage = getStorage(app);
         }
       };
 
+      // --- EDIT USER LOGIC ---
+      const editUserModal = document.getElementById('edit-user-modal');
+      const editUserForm = document.getElementById('edit-user-form');
+      const cancelEditUserBtn = document.getElementById('cancel-edit-user-btn');
+      const editUserError = document.getElementById('edit-user-error');
+      
+      const editPhotoInput = document.getElementById('edit-user-photo');
+      const editPreviewContainer = document.getElementById('edit-photo-preview-container');
+      const editPreviewImg = document.getElementById('edit-photo-preview-img');
+      const editClearPhotoBtn = document.getElementById('edit-clear-photo-btn');
+
+      if (editPhotoInput && editPreviewContainer && editClearPhotoBtn) {
+        editPhotoInput.addEventListener('change', () => {
+          if (editPhotoInput.files && editPhotoInput.files[0]) {
+            editPreviewImg.src = URL.createObjectURL(editPhotoInput.files[0]);
+            editPreviewContainer.style.display = 'flex';
+          } else {
+            editPreviewContainer.style.display = 'none';
+            editPreviewImg.src = '';
+          }
+        });
+
+        editClearPhotoBtn.addEventListener('click', () => {
+          editPhotoInput.value = '';
+          editPreviewContainer.style.display = 'none';
+          editPreviewImg.src = '';
+        });
+      }
+
+      window.editUserManager = function(id, name, email, role, photoUrl) {
+        if (!editUserModal) return;
+        editUserForm.reset();
+        editUserError.style.display = 'none';
+
+        document.getElementById('edit-user-id').value = id;
+        document.getElementById('edit-user-name').value = name;
+        document.getElementById('edit-user-email').value = email;
+        document.getElementById('edit-user-role').value = role;
+
+        if (photoUrl) {
+          editPreviewImg.src = photoUrl;
+          editPreviewContainer.style.display = 'flex';
+          // We attach the original URL to the image so we know if it wasn't changed
+          editPreviewImg.dataset.originalUrl = photoUrl;
+        } else {
+          editPreviewContainer.style.display = 'none';
+          editPreviewImg.src = '';
+          editPreviewImg.dataset.originalUrl = '';
+        }
+
+        editUserModal.showModal();
+      };
+
+      if (cancelEditUserBtn && editUserModal) {
+        cancelEditUserBtn.addEventListener('click', () => {
+          editUserModal.close();
+        });
+      }
+
+      if (editUserForm) {
+        editUserForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('edit-user-id').value;
+          const name = document.getElementById('edit-user-name').value.trim();
+          const email = document.getElementById('edit-user-email').value.trim();
+          const role = document.getElementById('edit-user-role').value;
+          
+          let photoUrl = editPreviewImg.dataset.originalUrl; // Keep existing if no new file
+          
+          // If a new photo is selected, upload it
+          if (editPhotoInput && editPhotoInput.files && editPhotoInput.files[0]) {
+            try {
+              const file = editPhotoInput.files[0];
+              const formData = new FormData();
+              formData.append('photo', file);
+
+              const progressContainer = document.getElementById('edit-upload-progress-container');
+              const progressBar = document.getElementById('edit-upload-progress-bar');
+              if (progressContainer) progressContainer.style.display = 'block';
+              if (progressBar) progressBar.style.width = '50%';
+              
+              const uploadRes = await fetch('/api/admin/users/upload-photo', {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (progressBar) progressBar.style.width = '100%';
+
+              if (!uploadRes.ok) {
+                throw new Error('Upload failed');
+              }
+
+              const uploadData = await uploadRes.json();
+              photoUrl = uploadData.photoUrl;
+              
+              setTimeout(() => { if (progressContainer) progressContainer.style.display = 'none'; }, 500);
+            } catch (err) {
+              console.error('Failed to upload photo:', err);
+              editUserError.textContent = `Failed to upload new profile photo.`;
+              editUserError.style.display = 'block';
+              const progressContainer = document.getElementById('edit-upload-progress-container');
+              if (progressContainer) progressContainer.style.display = 'none';
+              return;
+            }
+          }
+
+          editUserError.textContent = 'Saving changes...';
+          editUserError.style.display = 'block';
+          editUserError.style.color = '#2b58f9';
+
+          const query = `mutation UpdateStaffUser($id: UUID!, $email: String!, $role: String!, $name: String!, $photoUrl: String) {
+            user_update(id: $id, data: { email: $email, role: $role, displayName: $name, photoUrl: $photoUrl })
+          }`;
+          const variables = { id, email, role, name, photoUrl };
+
+          try {
+            const res = await fetch('/api/admin/query', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: JSON.stringify({ query, variables })
+            });
+            const data = await res.json();
+            if (data.errors || data.error) {
+              editUserError.textContent = data.error || data.errors[0].message;
+              editUserError.style.color = '#991b1b';
+            } else {
+              editUserModal.close();
+              loadUsersManagerData(); // Refresh list
+            }
+          } catch (err) {
+            editUserError.textContent = 'Failed to update user. Server error.';
+            editUserError.style.color = '#991b1b';
+          }
+        });
+      }
+
+
       window.loadUsersManagerData = async function() {
         if (!usersCardContainer) return;
         usersCardContainer.innerHTML = '<div style="color: #697386;">Loading staff members...</div>';
@@ -664,6 +839,7 @@ const storage = getStorage(app);
             return;
           }
 
+          const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
           const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
           
           usersCardContainer.innerHTML = users.map(u => {
@@ -678,9 +854,14 @@ const storage = getStorage(app);
                     <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
                   </div>
                 </div>
-                <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
-                  ${trashIcon}
-                </button>
+                <div style="display: flex; gap: 8px;">
+                  <button class="edit-user-btn" onclick="window.editUserManager('${u.id}', \`${(u.displayName||'').replace(/`/g, '')}\`, '${u.email}', '${u.role}', '${u.photoUrl || ''}')" title="Edit User" style="background: none; border: 1px solid #e3e8ee; cursor: pointer; color: #697386; padding: 6px; border-radius: 6px; transition: color 0.2s, background 0.2s;" onmouseover="this.style.background='#f4f5f7'; this.style.color='#2b58f9'" onmouseout="this.style.background='none'; this.style.color='#697386'">
+                    ${editIcon}
+                  </button>
+                  <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
+                    ${trashIcon}
+                  </button>
+                </div>
               </div>
               <div class="user-card-body" style="margin-top: 12px;">
                 <div><span style="font-weight: 500;">Email:</span> ${u.email}</div>

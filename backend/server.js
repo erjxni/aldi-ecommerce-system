@@ -20,7 +20,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Import database and JWT
-const { sqlConnect } = require('./db');
+const { sqlConnect, storage } = require('./db');
 const { CartError, createCartService, createFirebaseCartRepository } = require('./cart-service');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
@@ -409,6 +409,42 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/logout', (req, res) => {
   res.clearCookie('aldi_jwt', { path: '/' });
   res.json({ message: 'Logged out successfully' });
+});
+
+// ---------------------------------------------------------
+// API: Admin — Upload Profile Photo (Admin/Employee only)
+// ---------------------------------------------------------
+app.post('/api/admin/users/upload-photo', adminProtect, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
+
+    const bucket = storage.bucket();
+    const uniqueFileName = `profiles/${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    
+    // Upload the file to Firebase Storage
+    await bucket.upload(req.file.path, {
+      destination: uniqueFileName,
+      metadata: {
+        contentType: req.file.mimetype,
+      }
+    });
+
+    // Make the file public so we can get a download URL
+    const file = bucket.file(uniqueFileName);
+    await file.makePublic();
+    const photoUrl = file.publicUrl();
+
+    // Clean up local temp file
+    fs.unlinkSync(req.file.path);
+
+    res.json({ photoUrl });
+  } catch (error) {
+    console.error('Error uploading photo to Firebase Storage:', error);
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({ error: 'Failed to upload photo to storage.' });
+  }
 });
 
 // ---------------------------------------------------------

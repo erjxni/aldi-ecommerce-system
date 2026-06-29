@@ -402,11 +402,64 @@
             <div>
               <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
               <input type="file" id="new-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
             </div>
             <div id="add-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
               <button type="button" id="cancel-add-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
               <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Create User</button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Edit User Modal -->
+        <dialog id="edit-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+          <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
+          <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <input type="hidden" id="edit-user-id">
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="edit-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="edit-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="edit-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="employee">Employee</option>
+                <option value="financial_officer">Financial Officer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="edit-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="edit-photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="edit-photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="edit-clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="edit-upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="edit-upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="edit-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button type="button" id="cancel-edit-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
+              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Save Changes</button>
             </div>
           </form>
         </dialog>

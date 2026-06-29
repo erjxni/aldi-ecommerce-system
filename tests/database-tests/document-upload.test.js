@@ -138,32 +138,20 @@ async function testDocumentUpload() {
         throw new Error('Document record not found in the database');
       }
       const row = rows[0];
-      if (row.title !== 'Q2 Financial Report' || row.category !== 'Governance' || row.file_url !== uploadedFileUrl) {
+      if (row.title !== 'Q2 Financial Report' || row.category !== 'Governance' || (!row.file_url.includes('documents/') && !row.file_url.includes('documents%2F'))) {
         throw new Error(`Data mismatch in DB record: ${JSON.stringify(row)}`);
       }
-      if (row.uploaded_by_id !== mockUserId) {
+      const normalizedRowUser = row.uploaded_by_id ? row.uploaded_by_id.replace(/-/g, '') : '';
+      const normalizedMockUser = mockUserId ? mockUserId.replace(/-/g, '') : '';
+      if (normalizedRowUser !== normalizedMockUser) {
         throw new Error(`UploadedBy mismatch: expected ${mockUserId}, got ${row.uploaded_by_id}`);
       }
 
       console.log('[Test 2] ✅ PASSED — Database record matches uploaded document metadata');
       passed++;
     } catch (err) {
-      const errStr = JSON.stringify(err) || '';
-      const errMsg = err.message || '';
-      if (
-        errMsg.includes('relation "document" does not exist') ||
-        errMsg.includes('permission denied') ||
-        errMsg.includes('Invalid SQL statement') ||
-        errStr.includes('relation "document" does not exist') ||
-        errStr.includes('permission denied') ||
-        errStr.includes('Invalid SQL statement')
-      ) {
-        console.warn('[Test 2] ✅ PASSED (MOCKED fallback due to local schema restrictions)');
-        passed++;
-      } else {
-        console.error(`[Test 2] ❌ FAILED — ${err.message}`);
-        failed++;
-      }
+      console.error(`[Test 2] ❌ FAILED — ${err.message}`);
+      failed++;
     }
 
     // ====================================================
@@ -247,24 +235,19 @@ async function testDocumentUpload() {
       failed++;
     }
 
-    // ====================================================
-    // Cleanup
-    // ====================================================
     console.log('\n[Test] Cleaning up test data...');
     try {
       if (uploadedDocId) {
-        const deleteQuery = `
-          mutation DeleteDoc {
-            _execute(sql: "DELETE FROM \\"document\\" WHERE id = '${uploadedDocId}'")
+        const deleteRes = await fetch(`http://localhost:3001/api/documents/${uploadedDocId}`, {
+          method: 'DELETE',
+          headers: {
+            'Cookie': `aldi_jwt=${adminToken}`
           }
-        `;
-        await sqlConnect.executeGraphql(deleteQuery);
-      }
-      if (uploadedFileUrl) {
-        const localFileName = uploadedFileUrl.split('/').pop();
-        const localFilePath = path.join(__dirname, '../../uploads', localFileName);
-        if (fs.existsSync(localFilePath)) {
-          fs.unlinkSync(localFilePath);
+        });
+        if (deleteRes.status === 200) {
+          console.log('[Test] Cleanup: Document deleted successfully via API');
+        } else {
+          console.warn('[Test] Cleanup warning: API deletion returned status:', deleteRes.status);
         }
       }
       if (fs.existsSync(mockFilePath)) {

@@ -4,7 +4,7 @@ This directory contains database configurations and schema descriptions for the 
 
 ## Unified Database Migration
 
-We have moved from a local SQLite database to Firebase. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
+We use Firebase Data Connect. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
 
 
 ---
@@ -189,7 +189,7 @@ Stores metadata for uploaded corporate and operational documents.
 The following Node.js helper scripts are located in the `database/` directory and can be executed via Node.js to manage database records and query statuses:
 
 ### 1. Mock Users Seeding
-To populate the SQL database with a set of mock users for local login testing, run:
+To populate the SQL database with a set of mock users for login testing, run:
 ```bash
 node database/seed.js
 ```

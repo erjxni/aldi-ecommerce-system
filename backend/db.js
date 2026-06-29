@@ -24,7 +24,7 @@ if (process.env.ALDI_SQL_CONNECT_API_KEY) {
 // Initialize Firebase App
 const app = initializeApp({
   credential: cert(serviceAccount),
-  storageBucket: 'aldi-ecommerce-managemen-b40e8.appspot.com'
+  storageBucket: 'aldi-ecommerce-managemen-b40e8.firebasestorage.app'
 });
 
 // Initialize Firebase SQL Connect (Data Connect)

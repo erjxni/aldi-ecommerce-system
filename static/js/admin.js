@@ -225,15 +225,18 @@
       const dbBtn = document.getElementById('btn-db-viewer');
       const homeBtn = document.getElementById('btn-home-dashboard');
       const usersBtn = document.getElementById('btn-users-manager');
+      const filesBtn = document.getElementById('btn-files-manager');
       const dashboardView = document.getElementById('dashboard-view');
       const dbViewer = document.getElementById('database-viewer');
       const usersViewer = document.getElementById('users-manager-view');
+      const filesViewer = document.getElementById('files-manager-view');
 
-      if (dbBtn && homeBtn && usersBtn && dashboardView && dbViewer && usersViewer) {
+      if (dbBtn && homeBtn && usersBtn && filesBtn && dashboardView && dbViewer && usersViewer && filesViewer) {
         dbBtn.addEventListener('click', (e) => {
           e.preventDefault();
           dashboardView.style.display = 'none';
           usersViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           dbViewer.style.display = 'flex';
           
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -248,6 +251,7 @@
           e.preventDefault();
           dbViewer.style.display = 'none';
           usersViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           dashboardView.style.display = 'block';
 
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -258,12 +262,26 @@
           e.preventDefault();
           dashboardView.style.display = 'none';
           dbViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           usersViewer.style.display = 'flex';
 
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
           usersBtn.classList.add('active');
           
           loadUsersManagerData();
+        });
+
+        filesBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dashboardView.style.display = 'none';
+          dbViewer.style.display = 'none';
+          usersViewer.style.display = 'none';
+          filesViewer.style.display = 'flex';
+
+          document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+          filesBtn.classList.add('active');
+          
+          loadFilesManagerData();
         });
       }
 
@@ -876,4 +894,148 @@
           usersCardContainer.innerHTML = '<div style="color: #991b1b;">Error loading users.</div>';
         }
       };
+
+      // --- Files Manager Logic ---
+      const filesUploadForm = document.getElementById('files-upload-form');
+      const filesUploadStatus = document.getElementById('files-upload-status');
+
+      if (filesUploadForm && filesUploadStatus) {
+        filesUploadForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const titleInput = document.getElementById('files-doc-title');
+          const categoryInput = document.getElementById('files-doc-category');
+          const fileInput = document.getElementById('files-doc-file');
+
+          if (!titleInput.value || !categoryInput.value || !fileInput.files[0]) {
+            showFilesStatus('Please fill in all fields and select a file.', '#991b1b');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('title', titleInput.value);
+          formData.append('category', categoryInput.value);
+          formData.append('file', fileInput.files[0]);
+
+          showFilesStatus('Uploading to Firebase Storage...', '#2b58f9');
+
+          try {
+            const res = await fetch('/api/documents/upload', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              showFilesStatus('File uploaded successfully!', '#10b981');
+              filesUploadForm.reset();
+
+              // Clear db cache
+              sessionStorage.removeItem('db_cache_Document');
+              
+              // Reload files
+              loadFilesManagerData();
+            } else {
+              showFilesStatus(data.error || data.detail || 'Upload failed.', '#991b1b');
+            }
+          } catch (error) {
+            console.error('Upload error:', error);
+            showFilesStatus('Network error occurred during upload.', '#991b1b');
+          }
+        });
+
+        function showFilesStatus(text, color) {
+          filesUploadStatus.textContent = text;
+          filesUploadStatus.style.color = color;
+          filesUploadStatus.style.display = 'block';
+        }
+      }
+
+      window.loadFilesManagerData = async function() {
+        const filesListBody = document.getElementById('files-list-body');
+        if (!filesListBody) return;
+        
+        filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #697386;">Loading files...</td></tr>';
+        
+        try {
+          const res = await fetch('/api/admin/database/Document', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch files');
+          
+          const files = await res.json();
+          
+          if (files.length === 0) {
+            filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #697386;">No files stored in the cloud.</td></tr>';
+            return;
+          }
+          
+          filesListBody.innerHTML = files.map(file => {
+            const dateStr = file.createdAt ? new Date(file.createdAt).toLocaleDateString() : 'N/A';
+            const uploadedByStr = file.uploadedBy && file.uploadedBy.displayName ? file.uploadedBy.displayName : 'N/A';
+            
+            const downloadIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+            const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
+            return `
+              <tr>
+                <td style="font-weight: 500;">${file.title}</td>
+                <td><span class="status-pill ${getCategoryClass(file.category)}">${file.category}</span></td>
+                <td style="color: #4f566b;" title="${file.uploadedBy && file.uploadedBy.id ? file.uploadedBy.id : 'N/A'}">${uploadedByStr}</td>
+                <td>${dateStr}</td>
+                <td style="text-align: right; padding-right: 24px;">
+                  <div style="display: inline-flex; gap: 8px; justify-content: flex-end;">
+                    <a href="${file.fileUrl}" download target="_blank" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; text-decoration: none;" title="Download File">
+                      ${downloadIcon} Download
+                    </a>
+                    <button class="delete-user-btn" onclick="window.deleteFile('${file.id}')" title="Delete File">
+                      ${deleteIcon}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } catch (error) {
+          console.error('Error listing files:', error);
+          filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #991b1b;">Error loading files.</td></tr>';
+        }
+      };
+
+      window.deleteFile = async function(id) {
+        if (!confirm('Are you sure you want to delete this file? This will remove it from database and storage permanently.')) return;
+        
+        try {
+          const res = await fetch(`/api/documents/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+            }
+          });
+          
+          if (res.ok) {
+            alert('File deleted successfully.');
+            // Clear db cache
+            sessionStorage.removeItem('db_cache_Document');
+            // Refresh list
+            loadFilesManagerData();
+          } else {
+            const data = await res.json();
+            alert('Failed to delete file: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Network error deleting file.');
+        }
+      };
+
+      function getCategoryClass(cat) {
+        if (cat === 'Governance') return 'status-warning';
+        if (cat === 'E-Commerce') return 'status-success';
+        return 'status-warning';
+      }
     })();

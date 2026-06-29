@@ -31,7 +31,6 @@ type Product @table {
   name: String!
   category: String! 
   price: Float!
-  stockQuantity: Int!
   description: String
   imageUrl: String
   updatedAt: Timestamp! @default(expr: "request.time") 
@@ -80,6 +79,8 @@ type Document @table {
   uploadedBy: User
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+
 ```
 
 ---
@@ -216,4 +217,4 @@ node database/list-users.js
 To inspect the database structure and print out active schema types and tables registered in Firebase Data Connect, run:
 ```bash
 node database/inspect-schema.js
-```
+```

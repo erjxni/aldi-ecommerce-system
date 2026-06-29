@@ -30,30 +30,54 @@ async function seedProducts() {
     // Insert new products
     console.log(`Seeding ${products.length} products to the database...`);
     const insertMutation = `
-      mutation InsertProduct($name: String!, $category: String!, $price: Float!, $stockQuantity: Int!, $description: String, $imageUrl: String) {
+      mutation InsertProduct($name: String!, $category: String!, $price: Float!, $description: String, $imageUrl: String) {
         product_insert(data: {
           name: $name,
           category: $category,
           price: $price,
-          stockQuantity: $stockQuantity,
           description: $description,
           imageUrl: $imageUrl
         })
       }
     `;
 
+    const insertStockBatch = `
+      mutation InsertStockBatch($productId: UUID!, $initialQuantity: Int!, $currentQuantity: Int!, $expiryDate: Timestamp!) {
+        stockBatch_insert(data: {
+          product: { id: $productId },
+          initialQuantity: $initialQuantity,
+          currentQuantity: $currentQuantity,
+          expiryDate: $expiryDate
+        })
+      }
+    `;
+
+    // Set expiry date to 6 months from now for seeded stock
+    const expiryDate = new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString();
+
     for (const product of products) {
       console.log(`Inserting: ${product.name}...`);
-      await sqlConnect.executeGraphql(insertMutation, {
+      const result = await sqlConnect.executeGraphql(insertMutation, {
         variables: {
           name: product.name,
           category: product.category,
           price: product.price,
-          stockQuantity: 100, // default stock quantity
           description: product.description || '',
           imageUrl: product.image || ''
         }
       });
+
+      // Create a stock batch for each product
+      const productId = result.data.product_insert.id;
+      await sqlConnect.executeGraphql(insertStockBatch, {
+        variables: {
+          productId,
+          initialQuantity: 100,
+          currentQuantity: 100,
+          expiryDate
+        }
+      });
+      console.log(`  → Stock batch created (100 units)`);
     }
 
     console.log('\n--- Product Seeding Complete ---');

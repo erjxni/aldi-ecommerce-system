@@ -26,6 +26,24 @@ const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
 
+// Helper: compute total stock for a product from StockBatch table
+async function getProductStock(productId) {
+  try {
+    const result = await sqlConnect.executeGraphqlRead(`
+      query GetStock($productId: UUID!) {
+        stockBatches(where: { product: { id: { eq: $productId } } }) {
+          currentQuantity
+        }
+      }
+    `, { variables: { productId } });
+    const batches = result.data?.stockBatches || [];
+    return batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
+  } catch (err) {
+    console.warn('Could not fetch stock for product', productId, err.message);
+    return 0;
+  }
+}
+
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -150,27 +168,33 @@ app.get('/api/products', async (req, res) => {
           name
           category
           price
-          stockQuantity
           description
           imageUrl
+          stockBatches_on_product {
+            currentQuantity
+          }
         }
       }
     `;
     const result = await sqlConnect.executeGraphqlRead(query);
     const dbProducts = result.data && result.data.products ? result.data.products : [];
     
-    const mappedProducts = dbProducts.map(dbp => ({
-      id: dbp.id,
-      name: dbp.name,
-      category: dbp.category,
-      price: dbp.price,
-      stockQuantity: dbp.stockQuantity,
-      description: dbp.description,
-      image: dbp.imageUrl,
-      imageUrl: dbp.imageUrl,
-      features: [],
-      specifications: {}
-    }));
+    const mappedProducts = dbProducts.map(dbp => {
+      const batches = dbp.stockBatches_on_product || [];
+      const stockQuantity = batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
+      return {
+        id: dbp.id,
+        name: dbp.name,
+        category: dbp.category,
+        price: dbp.price,
+        stockQuantity,
+        description: dbp.description,
+        image: dbp.imageUrl,
+        imageUrl: dbp.imageUrl,
+        features: [],
+        specifications: {}
+      };
+    });
     
     const { category } = req.query;
     const filteredProducts = category
@@ -196,9 +220,11 @@ app.get('/api/products/:id', async (req, res) => {
           name
           category
           price
-          stockQuantity
           description
           imageUrl
+          stockBatches_on_product {
+            currentQuantity
+          }
         }
       }
     `;
@@ -208,12 +234,14 @@ app.get('/api/products/:id', async (req, res) => {
     
     if (result.data && result.data.product) {
       const p = result.data.product;
+      const batches = p.stockBatches_on_product || [];
+      const stockQuantity = batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
       res.json({
         id: p.id,
         name: p.name,
         category: p.category,
         price: p.price,
-        stockQuantity: p.stockQuantity,
+        stockQuantity,
         description: p.description,
         image: p.imageUrl,
         imageUrl: p.imageUrl,
@@ -692,7 +720,7 @@ app.get('/api/admin/customers', async (req, res) => {
 app.get('/api/admin/database/:table', async (req, res) => {
   const allowedTables = {
     'User': '{ users { id email role displayName photoUrl createdAt } }',
-    'Product': '{ products { id name category price stockQuantity updatedAt } }',
+    'Product': '{ products { id name category price updatedAt } }',
     'Cart': '{ carts { id user { id email } updatedAt } }',
     'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',
     'Order': '{ orders { id user { id email } totalAmount status createdAt } }',
@@ -822,30 +850,33 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
     let totalAmount = 0;
     const validatedItems = [];
 
-    // Verify stock one by one
+    // Verify stock one by one using StockBatch table
     for (const item of cartItems) {
       let dbp;
+      const productId = item.productId || item.id;
       try {
         const dbpResult = await sqlConnect.executeGraphqlRead(`
           query CheckStock($id: UUID!) {
             product(id: $id) {
               id
-              stockQuantity
               name
               price
             }
           }
-        `, { variables: { id: item.productId || item.id || item.id } });
+        `, { variables: { id: productId } });
         dbp = dbpResult.data && dbpResult.data.product;
       } catch (err) {
-        console.error("Error checking stock for product", item.productId || item.id || item.id, err);
-        return res.status(400).json({ error: `Invalid product ID or product not found: ${item.productId || item.id || item.id}` });
+        console.error("Error checking stock for product", productId, err);
+        return res.status(400).json({ error: `Invalid product ID or product not found: ${productId}` });
       }
       if (!dbp) {
-        return res.status(400).json({ error: `Product ${item.name || item.productId || item.id || item.id} not found.` });
+        return res.status(400).json({ error: `Product ${item.name || productId} not found.` });
       }
 
-      if (dbp.stockQuantity < item.quantity) {
+      // Get total stock from StockBatch table
+      const totalStock = await getProductStock(productId);
+
+      if (totalStock < item.quantity) {
         return res.status(409).json({
           error: `${dbp.name} is out of stock or does not have enough remaining stock.`,
           productId: dbp.id
@@ -856,22 +887,37 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
       
       validatedItems.push({
         ...item,
+        productId,
         priceAtPurchase: dbp.price,
-        dbStockQuantity: dbp.stockQuantity
+        dbTotalStock: totalStock
       });
     }
 
-    // ---- STEP 2: Stock Reduction ----
+    // ---- STEP 2: Stock Reduction (FIFO from StockBatch) ----
     for (const item of validatedItems) {
-      const newStock = item.dbStockQuantity - item.quantity;
-      const updateMutation = `
-        mutation UpdateStock($id: UUID!, $newStock: Int!) {
-          product_update(id: $id, data: { stockQuantity: $newStock })
+      let remaining = item.quantity;
+      // Fetch batches ordered by expiry (FIFO: earliest expiry first)
+      const batchResult = await sqlConnect.executeGraphqlRead(`
+        query GetBatches($productId: UUID!) {
+          stockBatches(where: { product: { id: { eq: $productId } } }, orderBy: [{ expiryDate: ASC }]) {
+            id
+            currentQuantity
+          }
         }
-      `;
-      await sqlConnect.executeGraphql(updateMutation, {
-        variables: { id: item.productId || item.id || item.id, newStock }
-      });
+      `, { variables: { productId: item.productId } });
+      const batches = batchResult.data?.stockBatches || [];
+
+      for (const batch of batches) {
+        if (remaining <= 0) break;
+        const deduct = Math.min(remaining, batch.currentQuantity);
+        const newQty = batch.currentQuantity - deduct;
+        await sqlConnect.executeGraphql(`
+          mutation UpdateBatch($id: UUID!, $qty: Int!) {
+            stockBatch_update(id: $id, data: { currentQuantity: $qty })
+          }
+        `, { variables: { id: batch.id, qty: newQty } });
+        remaining -= deduct;
+      }
     }
 
     let orderId = null;
@@ -982,15 +1028,32 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
       console.error('Checkout insertion failed, triggering rollback:', insertError);
       // ---- ROLLBACK ----
       try {
+        // Rollback: Re-add stock to earliest-expiry batches
         for (const item of validatedItems) {
-          const revertMutation = `
-            mutation RestoreStock($id: UUID!, $stock: Int!) {
-              product_update(id: $id, data: { stockQuantity: $stock })
+          let remaining = item.quantity;
+          const batchResult = await sqlConnect.executeGraphqlRead(`
+            query GetBatches($productId: UUID!) {
+              stockBatches(where: { product: { id: { eq: $productId } } }, orderBy: [{ expiryDate: ASC }]) {
+                id
+                currentQuantity
+                initialQuantity
+              }
             }
-          `;
-          await sqlConnect.executeGraphql(revertMutation, {
-            variables: { id: item.productId || item.id, stock: item.dbStockQuantity }
-          });
+          `, { variables: { productId: item.productId } });
+          const batches = batchResult.data?.stockBatches || [];
+
+          for (const batch of batches) {
+            if (remaining <= 0) break;
+            const canRestore = Math.min(remaining, batch.initialQuantity - batch.currentQuantity);
+            if (canRestore > 0) {
+              await sqlConnect.executeGraphql(`
+                mutation RestoreBatch($id: UUID!, $qty: Int!) {
+                  stockBatch_update(id: $id, data: { currentQuantity: $qty })
+                }
+              `, { variables: { id: batch.id, qty: batch.currentQuantity + canRestore } });
+              remaining -= canRestore;
+            }
+          }
         }
       } catch (stockRollbackError) {
         console.error('Rollback of stock failed:', stockRollbackError);

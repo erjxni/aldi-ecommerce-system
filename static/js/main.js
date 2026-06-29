@@ -429,7 +429,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const filtered = allProducts.filter(p => {
         const matchesCategory = activeCategory === 'all' || p.category === activeCategory;
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          p.description.toLowerCase().includes(searchQuery.toLowerCase());
+          (p.description || '').toLowerCase().includes(searchQuery.toLowerCase());
         return matchesCategory && matchesSearch;
       });
 
@@ -453,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
           <div class="product-details">
             <span class="product-category-text">${p.category.toUpperCase()}</span>
             <h3 class="product-title clickable-title" data-id="${p.id}">${p.name}</h3>
-            <span class="product-size">${p.size}</span>
             <div class="product-footer">
               <span class="product-price">€${p.price.toFixed(2)}</span>
               ${p.stockQuantity === 0 ? '<span class="out-of-stock-badge">Out of Stock</span>' : ''}<button class="btn-view" data-id="${p.id}" ${p.stockQuantity === 0 ? 'disabled' : ''}>View</button>
@@ -542,10 +541,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="detail-info">
               <div class="detail-category">${product.category.toUpperCase()}</div>
               <h1 class="detail-title">${product.name}</h1>
-              <div class="detail-size">${product.size}</div>
               <div class="detail-price">€${product.price.toFixed(2)}</div>
               
-              <p class="detail-description">${product.description}</p>
+              <p class="detail-description">${product.description || ''}</p>
               ${featuresHtml}
               
               <div class="detail-actions">

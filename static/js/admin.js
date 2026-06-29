@@ -11,13 +11,45 @@
         if (revenueCard) revenueCard.classList.add('section-hidden');
       }
 
+      // --- Update Topbar Profile Pic ---
+      window.updateTopbarProfilePic = function() {
+        const userPhoto = localStorage.getItem('userPhoto');
+        const profilePicDiv = document.querySelector('.profile-pic');
+        if (profilePicDiv) {
+          if (userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== '') {
+            profilePicDiv.innerHTML = `<img src="${userPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
+          } else {
+            profilePicDiv.innerHTML = '&#x1F464;';
+          }
+        }
+      };
+      window.updateTopbarProfilePic();
+
+      // Sync user profile photo from db if not cached locally
+      if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
+        fetch(`/api/admin/database/User`, {
+          headers: { 'Authorization': `Bearer ${userToken}` }
+        })
+        .then(res => res.json())
+        .then(users => {
+          const me = users.find(u => u.email === userEmail);
+          if (me && me.photoUrl) {
+            localStorage.setItem('userPhoto', me.photoUrl);
+            window.updateTopbarProfilePic();
+          }
+        })
+        .catch(err => console.error('Failed to sync topbar profile photo:', err));
+      }
+
       // --- Logout Button ---
       const logoutBtn = document.getElementById('logout-btn');
       if (logoutBtn) {
         logoutBtn.addEventListener('click', () => {
+          localStorage.removeItem('userId');
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userToken');
           localStorage.removeItem('userRole');
+          localStorage.removeItem('userPhoto');
           fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
             window.location.href = '/index.html';
           });
@@ -225,16 +257,18 @@
       const dbBtn = document.getElementById('btn-db-viewer');
       const homeBtn = document.getElementById('btn-home-dashboard');
       const usersBtn = document.getElementById('btn-users-manager');
-      const docBtn = document.getElementById('btn-document-manager');
+      const filesBtn = document.getElementById('btn-files-manager');
       const dashboardView = document.getElementById('dashboard-view');
       const dbViewer = document.getElementById('database-viewer');
       const usersViewer = document.getElementById('users-manager-view');
+      const filesViewer = document.getElementById('files-manager-view');
 
-      if (dbBtn && homeBtn && usersBtn && dashboardView && dbViewer && usersViewer) {
+      if (dbBtn && homeBtn && usersBtn && filesBtn && dashboardView && dbViewer && usersViewer && filesViewer) {
         dbBtn.addEventListener('click', (e) => {
           e.preventDefault();
           dashboardView.style.display = 'none';
           usersViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           dbViewer.style.display = 'flex';
           
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -249,6 +283,7 @@
           e.preventDefault();
           dbViewer.style.display = 'none';
           usersViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           dashboardView.style.display = 'block';
 
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -259,6 +294,7 @@
           e.preventDefault();
           dashboardView.style.display = 'none';
           dbViewer.style.display = 'none';
+          filesViewer.style.display = 'none';
           usersViewer.style.display = 'flex';
 
           document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -267,22 +303,18 @@
           loadUsersManagerData();
         });
 
-        if (docBtn) {
-          docBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            dashboardView.style.display = 'none';
-            usersViewer.style.display = 'none';
-            dbViewer.style.display = 'flex';
-            
-            document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-            docBtn.classList.add('active');
+        filesBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          dashboardView.style.display = 'none';
+          dbViewer.style.display = 'none';
+          usersViewer.style.display = 'none';
+          filesViewer.style.display = 'flex';
 
-            const docTab = document.querySelector('.db-tab[data-table="Document"]');
-            if (docTab) {
-              docTab.click();
-            }
-          });
-        }
+          document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+          filesBtn.classList.add('active');
+          
+          loadFilesManagerData();
+        });
       }
 
       // --- Tab and Data Fetching Logic ---
@@ -558,11 +590,42 @@
         openAddUserBtn.addEventListener('click', () => {
           addUserForm.reset();
           addUserError.style.display = 'none';
+          
+          const previewContainer = document.getElementById('photo-preview-container');
+          const previewImg = document.getElementById('photo-preview-img');
+          if (previewContainer && previewImg) {
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+          }
+          
           addUserModal.showModal();
         });
         cancelAddUserBtn.addEventListener('click', () => {
           addUserModal.close();
         });
+
+        const photoInputObj = document.getElementById('new-user-photo');
+        const previewContainer = document.getElementById('photo-preview-container');
+        const previewImg = document.getElementById('photo-preview-img');
+        const clearPhotoBtn = document.getElementById('clear-photo-btn');
+
+        if (photoInputObj && previewContainer && clearPhotoBtn) {
+          photoInputObj.addEventListener('change', () => {
+            if (photoInputObj.files && photoInputObj.files[0]) {
+              previewImg.src = URL.createObjectURL(photoInputObj.files[0]);
+              previewContainer.style.display = 'flex';
+            } else {
+              previewContainer.style.display = 'none';
+              previewImg.src = '';
+            }
+          });
+
+          clearPhotoBtn.addEventListener('click', () => {
+            photoInputObj.value = '';
+            previewContainer.style.display = 'none';
+            previewImg.src = '';
+          });
+        }
         
         addUserForm.addEventListener('submit', async (e) => {
           e.preventDefault();
@@ -570,10 +633,62 @@
           const email = document.getElementById('new-user-email').value.trim();
           const password = document.getElementById('new-user-password').value;
           const role = document.getElementById('new-user-role').value;
+          const photoInput = document.getElementById('new-user-photo');
 
-          const query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
-            user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
-          }`;
+          let photoUrl = '';
+          if (photoInput && photoInput.files && photoInput.files[0]) {
+            try {
+              const file = photoInput.files[0];
+              const formData = new FormData();
+              formData.append('photo', file);
+
+              const progressContainer = document.getElementById('upload-progress-container');
+              const progressBar = document.getElementById('upload-progress-bar');
+              if (progressContainer) progressContainer.style.display = 'block';
+              if (progressBar) progressBar.style.width = '50%';
+              
+              const uploadRes = await fetch('/api/admin/users/upload-photo', {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (progressBar) progressBar.style.width = '100%';
+
+              if (!uploadRes.ok) {
+                throw new Error('Upload failed with status ' + uploadRes.status);
+              }
+
+              const uploadData = await uploadRes.json();
+              photoUrl = uploadData.photoUrl;
+              
+              setTimeout(() => { if (progressContainer) progressContainer.style.display = 'none'; }, 500);
+            } catch (err) {
+              console.error('Failed to upload photo:', err);
+              addUserError.textContent = `Failed to upload profile photo: ${err.message || 'Unknown error'}`;
+              addUserError.style.display = 'block';
+              addUserError.style.color = '#991b1b';
+              const progressContainer = document.getElementById('upload-progress-container');
+              if (progressContainer) progressContainer.style.display = 'none';
+              return;
+            }
+          }
+
+          addUserError.textContent = 'Creating user...';
+          addUserError.style.display = 'block';
+          addUserError.style.color = '#2b58f9';
+
+          let query, variables;
+          if (photoUrl) {
+            query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
+              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
+            }`;
+            variables = { email, password, role, name, photoUrl };
+          } else {
+            query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
+              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
+            }`;
+            variables = { email, password, role, name };
+          }
           
           try {
             const res = await fetch('/api/admin/query', {
@@ -582,7 +697,7 @@
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('userToken')}`
               },
-              body: JSON.stringify({ query, variables: { email, password, role, name } })
+              body: JSON.stringify({ query, variables })
             });
             const data = await res.json();
             if (data.errors || data.error) {
@@ -622,6 +737,150 @@
         }
       };
 
+      // --- EDIT USER LOGIC ---
+      const editUserModal = document.getElementById('edit-user-modal');
+      const editUserForm = document.getElementById('edit-user-form');
+      const cancelEditUserBtn = document.getElementById('cancel-edit-user-btn');
+      const editUserError = document.getElementById('edit-user-error');
+      
+      const editPhotoInput = document.getElementById('edit-user-photo');
+      const editPreviewContainer = document.getElementById('edit-photo-preview-container');
+      const editPreviewImg = document.getElementById('edit-photo-preview-img');
+      const editClearPhotoBtn = document.getElementById('edit-clear-photo-btn');
+
+      if (editPhotoInput && editPreviewContainer && editClearPhotoBtn) {
+        editPhotoInput.addEventListener('change', () => {
+          if (editPhotoInput.files && editPhotoInput.files[0]) {
+            editPreviewImg.src = URL.createObjectURL(editPhotoInput.files[0]);
+            editPreviewContainer.style.display = 'flex';
+          } else {
+            editPreviewContainer.style.display = 'none';
+            editPreviewImg.src = '';
+          }
+        });
+
+        editClearPhotoBtn.addEventListener('click', () => {
+          editPhotoInput.value = '';
+          editPreviewContainer.style.display = 'none';
+          editPreviewImg.src = '';
+        });
+      }
+
+      window.editUserManager = function(id, name, email, role, photoUrl) {
+        if (!editUserModal) return;
+        editUserForm.reset();
+        editUserError.style.display = 'none';
+
+        document.getElementById('edit-user-id').value = id;
+        document.getElementById('edit-user-name').value = name;
+        document.getElementById('edit-user-email').value = email;
+        document.getElementById('edit-user-role').value = role;
+
+        if (photoUrl) {
+          editPreviewImg.src = photoUrl;
+          editPreviewContainer.style.display = 'flex';
+          // We attach the original URL to the image so we know if it wasn't changed
+          editPreviewImg.dataset.originalUrl = photoUrl;
+        } else {
+          editPreviewContainer.style.display = 'none';
+          editPreviewImg.src = '';
+          editPreviewImg.dataset.originalUrl = '';
+        }
+
+        editUserModal.showModal();
+      };
+
+      if (cancelEditUserBtn && editUserModal) {
+        cancelEditUserBtn.addEventListener('click', () => {
+          editUserModal.close();
+        });
+      }
+
+      if (editUserForm) {
+        editUserForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const id = document.getElementById('edit-user-id').value;
+          const name = document.getElementById('edit-user-name').value.trim();
+          const email = document.getElementById('edit-user-email').value.trim();
+          const role = document.getElementById('edit-user-role').value;
+          
+          let photoUrl = editPreviewImg.dataset.originalUrl; // Keep existing if no new file
+          
+          // If a new photo is selected, upload it
+          if (editPhotoInput && editPhotoInput.files && editPhotoInput.files[0]) {
+            try {
+              const file = editPhotoInput.files[0];
+              const formData = new FormData();
+              formData.append('photo', file);
+
+              const progressContainer = document.getElementById('edit-upload-progress-container');
+              const progressBar = document.getElementById('edit-upload-progress-bar');
+              if (progressContainer) progressContainer.style.display = 'block';
+              if (progressBar) progressBar.style.width = '50%';
+              
+              const uploadRes = await fetch('/api/admin/users/upload-photo', {
+                method: 'POST',
+                body: formData
+              });
+              
+              if (progressBar) progressBar.style.width = '100%';
+
+              if (!uploadRes.ok) {
+                throw new Error('Upload failed');
+              }
+
+              const uploadData = await uploadRes.json();
+              photoUrl = uploadData.photoUrl;
+              
+              setTimeout(() => { if (progressContainer) progressContainer.style.display = 'none'; }, 500);
+            } catch (err) {
+              console.error('Failed to upload photo:', err);
+              editUserError.textContent = `Failed to upload new profile photo.`;
+              editUserError.style.display = 'block';
+              const progressContainer = document.getElementById('edit-upload-progress-container');
+              if (progressContainer) progressContainer.style.display = 'none';
+              return;
+            }
+          }
+
+          editUserError.textContent = 'Saving changes...';
+          editUserError.style.display = 'block';
+          editUserError.style.color = '#2b58f9';
+
+          const query = `mutation UpdateStaffUser($id: UUID!, $email: String!, $role: String!, $name: String!, $photoUrl: String) {
+            user_update(id: $id, data: { email: $email, role: $role, displayName: $name, photoUrl: $photoUrl })
+          }`;
+          const variables = { id, email, role, name, photoUrl };
+
+          try {
+            const res = await fetch('/api/admin/query', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: JSON.stringify({ query, variables })
+            });
+            const data = await res.json();
+            if (data.errors || data.error) {
+              editUserError.textContent = data.error || data.errors[0].message;
+              editUserError.style.color = '#991b1b';
+            } else {
+              if (id === localStorage.getItem('userId')) {
+                localStorage.setItem('userPhoto', photoUrl);
+                if (window.updateTopbarProfilePic) window.updateTopbarProfilePic();
+              }
+              editUserModal.close();
+              loadUsersManagerData(); // Refresh list
+            }
+          } catch (err) {
+            editUserError.textContent = 'Failed to update user. Server error.';
+            editUserError.style.color = '#991b1b';
+          }
+        });
+      }
+
+
       window.loadUsersManagerData = async function() {
         if (!usersCardContainer) return;
         usersCardContainer.innerHTML = '<div style="color: #697386;">Loading staff members...</div>';
@@ -637,18 +896,29 @@
             return;
           }
 
+          const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>`;
           const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
           
-          usersCardContainer.innerHTML = users.map(u => `
+          usersCardContainer.innerHTML = users.map(u => {
+            const avatarHtml = u.photoUrl ? `<img src="${u.photoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />` : `<div style="width: 48px; height: 48px; border-radius: 50%; background: #f4f5f7; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 1.5rem; color: #697386; border: 1px solid #e3e8ee;">&#x1F464;</div>`;
+            return `
             <div class="user-card">
-              <div class="user-card-header">
-                <div>
-                  <div style="font-weight: 600; font-size: 1.1rem; color: #1a1f36;">${u.displayName || 'Unknown Name'}</div>
-                  <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
+              <div class="user-card-header" style="align-items: center;">
+                <div style="display: flex; align-items: center;">
+                  ${avatarHtml}
+                  <div>
+                    <div style="font-weight: 600; font-size: 1.1rem; color: #1a1f36;">${u.displayName || 'Unknown Name'}</div>
+                    <div class="user-role-badge" style="margin-top: 4px;">${(u.role || 'customer').replace('_', ' ').toUpperCase()}</div>
+                  </div>
                 </div>
-                <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
-                  ${trashIcon}
-                </button>
+                <div style="display: flex; gap: 8px;">
+                  <button class="edit-user-btn" onclick="window.editUserManager('${u.id}', \`${(u.displayName||'').replace(/`/g, '')}\`, '${u.email}', '${u.role}', '${u.photoUrl || ''}')" title="Edit User" style="background: none; border: 1px solid #e3e8ee; cursor: pointer; color: #697386; padding: 6px; border-radius: 6px; transition: color 0.2s, background 0.2s;" onmouseover="this.style.background='#f4f5f7'; this.style.color='#2b58f9'" onmouseout="this.style.background='none'; this.style.color='#697386'">
+                    ${editIcon}
+                  </button>
+                  <button class="delete-user-btn" onclick="window.deleteUserManager('${u.id}')" title="Delete User">
+                    ${trashIcon}
+                  </button>
+                </div>
               </div>
               <div class="user-card-body" style="margin-top: 12px;">
                 <div><span style="font-weight: 500;">Email:</span> ${u.email}</div>
@@ -656,10 +926,211 @@
                 <div><span style="font-weight: 500;">Joined:</span> ${new Date(u.createdAt).toLocaleDateString()}</div>
               </div>
             </div>
-          `).join('');
+            `;
+          }).join('');
         } catch (err) {
           console.error(err);
           usersCardContainer.innerHTML = '<div style="color: #991b1b;">Error loading users.</div>';
         }
       };
+
+      // --- Files Manager Logic ---
+      const filesUploadForm = document.getElementById('files-upload-form');
+      const filesUploadStatus = document.getElementById('files-upload-status');
+
+      if (filesUploadForm && filesUploadStatus) {
+        filesUploadForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+
+          const titleInput = document.getElementById('files-doc-title');
+          const categoryInput = document.getElementById('files-doc-category');
+          const fileInput = document.getElementById('files-doc-file');
+
+          if (!titleInput.value || !categoryInput.value || !fileInput.files[0]) {
+            showFilesStatus('Please fill in all fields and select a file.', '#991b1b');
+            return;
+          }
+
+          const formData = new FormData();
+          formData.append('title', titleInput.value);
+          formData.append('category', categoryInput.value);
+          formData.append('file', fileInput.files[0]);
+
+          showFilesStatus('Uploading to Firebase Storage...', '#2b58f9');
+
+          try {
+            const res = await fetch('/api/documents/upload', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+              },
+              body: formData
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+              showFilesStatus('File uploaded successfully!', '#10b981');
+              filesUploadForm.reset();
+
+              // Clear db cache
+              sessionStorage.removeItem('db_cache_Document');
+              
+              // Reload files
+              loadFilesManagerData();
+            } else {
+              showFilesStatus(data.error || data.detail || 'Upload failed.', '#991b1b');
+            }
+          } catch (error) {
+            console.error('Upload error:', error);
+            showFilesStatus('Network error occurred during upload.', '#991b1b');
+          }
+        });
+
+        function showFilesStatus(text, color) {
+          filesUploadStatus.textContent = text;
+          filesUploadStatus.style.color = color;
+          filesUploadStatus.style.display = 'block';
+        }
+      }
+
+      window.loadFilesManagerData = async function() {
+        const filesListBody = document.getElementById('files-list-body');
+        if (!filesListBody) return;
+        
+        filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #697386;">Loading files...</td></tr>';
+        
+        try {
+          const res = await fetch('/api/admin/database/Document', {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('userToken')}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch files');
+          
+          const files = await res.json();
+          
+          if (files.length === 0) {
+            filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #697386;">No files stored in the cloud.</td></tr>';
+            return;
+          }
+          
+          filesListBody.innerHTML = files.map(file => {
+            const dateStr = file.createdAt ? new Date(file.createdAt).toLocaleDateString() : 'N/A';
+            const uploadedByStr = file.uploadedBy && file.uploadedBy.displayName ? file.uploadedBy.displayName : 'N/A';
+            
+            const downloadIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+            const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+            const previewIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+
+            return `
+              <tr>
+                <td style="font-weight: 500;">${file.title}</td>
+                <td><span class="status-pill ${getCategoryClass(file.category)}">${file.category}</span></td>
+                <td style="color: #4f566b;" title="${file.uploadedBy && file.uploadedBy.id ? file.uploadedBy.id : 'N/A'}">${uploadedByStr}</td>
+                <td>${dateStr}</td>
+                <td style="text-align: right; padding-right: 24px;">
+                  <div style="display: inline-flex; gap: 8px; justify-content: flex-end;">
+                    <button onclick="window.previewFile('${file.id}', \`${file.title.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`, '${file.fileUrl}', '${file.extension || ''}')" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer;" title="Preview File">
+                      ${previewIcon} Preview
+                    </button>
+                    <a href="${file.fileUrl}?download=true" download target="_blank" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; text-decoration: none;" title="Download File">
+                      ${downloadIcon} Download
+                    </a>
+                    <button class="delete-user-btn" onclick="window.deleteFile('${file.id}')" title="Delete File">
+                      ${deleteIcon}
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        } catch (error) {
+          console.error('Error listing files:', error);
+          filesListBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px; color: #991b1b;">Error loading files.</td></tr>';
+        }
+      };
+
+      window.deleteFile = async function(id) {
+        if (!confirm('Are you sure you want to delete this file? This will remove it from database and storage permanently.')) return;
+        
+        try {
+          const res = await fetch(`/api/documents/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('userToken')}`
+            }
+          });
+          
+          if (res.ok) {
+            alert('File deleted successfully.');
+            // Clear db cache
+            sessionStorage.removeItem('db_cache_Document');
+            // Refresh list
+            loadFilesManagerData();
+          } else {
+            const data = await res.json();
+            alert('Failed to delete file: ' + (data.error || 'Unknown error'));
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Network error deleting file.');
+        }
+      };
+
+      window.previewFile = function(id, title, fileUrl, extension) {
+        const previewModal = document.getElementById('file-preview-modal');
+        const previewTitle = document.getElementById('preview-modal-title');
+        const previewBody = document.getElementById('preview-modal-body');
+        if (!previewModal || !previewTitle || !previewBody) return;
+
+        previewTitle.textContent = `Preview: ${title}`;
+        previewBody.innerHTML = '<div style="color: #697386; font-family: inherit;">Loading preview...</div>';
+
+        const ext = (extension || '').toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+        const isPDF = ext === 'pdf';
+
+        if (isImage) {
+          previewBody.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
+        } else if (isPDF) {
+          previewBody.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: 1px solid #e3e8ee; border-radius: 6px;"></iframe>`;
+        } else {
+          previewBody.innerHTML = `
+            <div style="text-align: center; padding: 32px; color: #4f566b; font-family: inherit;">
+              <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F4C4;</div>
+              <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #1a1f36;">Preview not supported for this file type.</p>
+              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG) and PDFs.</p>
+              <a href="${fileUrl}" download class="btn-outline" style="text-decoration: none; padding: 10px 20px; font-weight: 600; display: inline-block;">Download File to View</a>
+            </div>
+          `;
+        }
+
+        // Display dialog
+        previewModal.style.display = 'flex';
+        previewModal.showModal();
+      };
+
+      // Preview Modal close listeners
+      const previewModal = document.getElementById('file-preview-modal');
+      const closePreviewBtn = document.getElementById('close-preview-btn');
+      if (previewModal && closePreviewBtn) {
+        const closeHandler = () => {
+          const previewBody = document.getElementById('preview-modal-body');
+          if (previewBody) previewBody.innerHTML = '';
+          previewModal.style.display = 'none';
+          previewModal.close();
+        };
+
+        closePreviewBtn.addEventListener('click', closeHandler);
+        previewModal.addEventListener('click', (e) => {
+          if (e.target === previewModal) {
+            closeHandler();
+          }
+        });
+      }
+
+      function getCategoryClass(cat) {
+        if (cat === 'Governance') return 'status-warning';
+        if (cat === 'E-Commerce') return 'status-success';
+        return 'status-warning';
+      }
     })();

@@ -4,14 +4,14 @@ This directory contains database configurations and schema descriptions for the 
 
 ## Unified Database Migration
 
-We have moved from a local SQLite database to Firebase. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
+We use Firebase Data Connect. The database schema is defined using GraphQL schemas matching Firebase Data Connect's data definition language (DDL).
 
 
 ---
 
 ## Data Schema (Firebase Data Connect)
 
-Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, and `FinancialRecord`.
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, and `Document`.
 
 ```graphql
 type User @table {
@@ -24,13 +24,13 @@ type User @table {
   displayName: String!
   phoneNumber: String
   address: String
+  photoUrl: String
 }
 
 type Product @table {
   name: String!
   category: String! 
   price: Float!
-  stockQuantity: Int!
   description: String
   imageUrl: String
   updatedAt: Timestamp! @default(expr: "request.time") 
@@ -71,6 +71,16 @@ type FinancialRecord @table {
   description: String
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+type Document @table {
+  title: String!
+  category: String!
+  fileUrl: String!
+  uploadedBy: User
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+
 ```
 
 ---
@@ -92,6 +102,7 @@ Stores user account profiles, authentication hashes, and roles.
 | `displayName` | `String!` | | User's full name/display name |
 | `phoneNumber` | `String` | | Contact phone number |
 | `address` | `String` | | Shipping and billing address details |
+| `photoUrl` | `String` | | URL to the user's uploaded profile photo |
 
 ### 2. Product Table
 Catalog items available in the ALDI E-Commerce System.
@@ -160,6 +171,18 @@ Tracks monetary transactions for financial audits.
 | `description` | `String` | | Description of the financial entry |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
 
+### 8. Document Table
+Stores metadata for uploaded corporate and operational documents.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the document |
+| `title` | `String!` | | The human-readable title of the document |
+| `category` | `String!` | | The category/classification of the document |
+| `fileUrl` | `String!` | | Path or URL to the securely uploaded file |
+| `uploadedBy` | `User` | Relation Reference | The user (admin/employee) who uploaded the document |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Document upload timestamp |
+
 ---
 
 ## Database Scripts and Tools
@@ -167,7 +190,7 @@ Tracks monetary transactions for financial audits.
 The following Node.js helper scripts are located in the `database/` directory and can be executed via Node.js to manage database records and query statuses:
 
 ### 1. Mock Users Seeding
-To populate the SQL database with a set of mock users for local login testing, run:
+To populate the SQL database with a set of mock users for login testing, run:
 ```bash
 node database/seed.js
 ```
@@ -194,4 +217,4 @@ node database/list-users.js
 To inspect the database structure and print out active schema types and tables registered in Firebase Data Connect, run:
 ```bash
 node database/inspect-schema.js
-```
+```

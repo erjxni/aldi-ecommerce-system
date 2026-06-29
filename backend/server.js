@@ -20,61 +20,32 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Import database and JWT
-const { sqlConnect } = require('./db');
+const { sqlConnect, storage } = require('./db');
 const { CartError, createCartService, createFirebaseCartRepository } = require('./cart-service');
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
 
-const multer = require('multer');
-
-// Configure multer storage for secure document uploads
-const uploadDir = path.join(__dirname, '../uploads');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Helper: compute total stock for a product from StockBatch table
+async function getProductStock(productId) {
+  try {
+    const result = await sqlConnect.executeGraphqlRead(`
+      query GetStock($productId: UUID!) {
+        stockBatches(where: { product: { id: { eq: $productId } } }) {
+          currentQuantity
+        }
+      }
+    `, { variables: { productId } });
+    const batches = result.data?.stockBatches || [];
+    return batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
+  } catch (err) {
+    console.warn('Could not fetch stock for product', productId, err.message);
+    return 0;
+  }
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  }
-});
-const upload = multer({ storage: storage });
-
-const isDbUnavailableLocally = (error) => {
-  const str = error ? (JSON.stringify(error) || '') : '';
-  const msg = error ? (error.message || '') : '';
-  const detail = (error && error.httpResponse && error.httpResponse.data && JSON.stringify(error.httpResponse.data)) || '';
-  return msg.includes('relation "document" does not exist') ||
-         msg.includes('permission denied') ||
-         msg.includes('Invalid SQL statement') ||
-         str.includes('relation "document" does not exist') ||
-         str.includes('permission denied') ||
-         str.includes('Invalid SQL statement') ||
-         detail.includes('relation "document" does not exist') ||
-         detail.includes('permission denied') ||
-         detail.includes('Invalid SQL statement');
-};
-
-// Initialize database schema (CREATE TABLE document if not exists)
-const initializeDatabase = async () => {
-  try {
-    const createTableQuery = `
-      mutation CreateDocumentTable {
-        _execute(sql: "CREATE TABLE IF NOT EXISTS \\"document\\" (\\"id\\" UUID PRIMARY KEY DEFAULT gen_random_uuid(), \\"title\\" TEXT NOT NULL, \\"category\\" TEXT NOT NULL, \\"file_url\\" TEXT NOT NULL, \\"uploaded_by_id\\" UUID REFERENCES \\"user\\"(id) ON DELETE SET NULL, \\"created_at\\" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP)")
-      }
-    `;
-    await sqlConnect.executeGraphql(createTableQuery);
-    console.log('[Database] Document table initialized successfully.');
-  } catch (error) {
-    console.warn('[Database] Document table initialization warning (permissions may limit DDL):', error.message);
-  }
-};
-initializeDatabase();
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
 
 // ---------------------------------------------------------
 // Middleware: Authenticate JWT from header, query, or cookie
@@ -197,27 +168,33 @@ app.get('/api/products', async (req, res) => {
           name
           category
           price
-          stockQuantity
           description
           imageUrl
+          stockBatches_on_product {
+            currentQuantity
+          }
         }
       }
     `;
     const result = await sqlConnect.executeGraphqlRead(query);
     const dbProducts = result.data && result.data.products ? result.data.products : [];
     
-    const mappedProducts = dbProducts.map(dbp => ({
-      id: dbp.id,
-      name: dbp.name,
-      category: dbp.category,
-      price: dbp.price,
-      stockQuantity: dbp.stockQuantity,
-      description: dbp.description,
-      image: dbp.imageUrl,
-      imageUrl: dbp.imageUrl,
-      features: [],
-      specifications: {}
-    }));
+    const mappedProducts = dbProducts.map(dbp => {
+      const batches = dbp.stockBatches_on_product || [];
+      const stockQuantity = batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
+      return {
+        id: dbp.id,
+        name: dbp.name,
+        category: dbp.category,
+        price: dbp.price,
+        stockQuantity,
+        description: dbp.description,
+        image: dbp.imageUrl,
+        imageUrl: dbp.imageUrl,
+        features: [],
+        specifications: {}
+      };
+    });
     
     const { category } = req.query;
     const filteredProducts = category
@@ -243,9 +220,11 @@ app.get('/api/products/:id', async (req, res) => {
           name
           category
           price
-          stockQuantity
           description
           imageUrl
+          stockBatches_on_product {
+            currentQuantity
+          }
         }
       }
     `;
@@ -255,12 +234,14 @@ app.get('/api/products/:id', async (req, res) => {
     
     if (result.data && result.data.product) {
       const p = result.data.product;
+      const batches = p.stockBatches_on_product || [];
+      const stockQuantity = batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
       res.json({
         id: p.id,
         name: p.name,
         category: p.category,
         price: p.price,
-        stockQuantity: p.stockQuantity,
+        stockQuantity,
         description: p.description,
         image: p.imageUrl,
         imageUrl: p.imageUrl,
@@ -346,6 +327,7 @@ app.post('/api/login', async (req, res) => {
           email
           passwordHash
           displayName
+          photoUrl
           role
         }
       }
@@ -396,7 +378,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ email: user.email, token, first_name: user.displayName, role: user.role });
+    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });
@@ -412,6 +394,34 @@ app.post('/api/logout', (req, res) => {
 });
 
 // ---------------------------------------------------------
+// API: Admin — Upload Profile Photo (Admin/Employee only)
+// ---------------------------------------------------------
+app.post('/api/admin/users/upload-photo', adminProtect, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
+
+    const bucket = storage.bucket();
+    const uniqueFileName = `profiles/${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    
+    const file = bucket.file(uniqueFileName);
+    await file.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+      }
+    });
+
+    // Make the file public so we can get a download URL
+    await file.makePublic();
+    const photoUrl = file.publicUrl();
+
+    res.json({ photoUrl });
+  } catch (error) {
+    console.error('Error uploading photo to Firebase Storage:', error);
+    res.status(500).json({ error: 'Failed to upload photo to storage.' });
+  }
+});
+
+// ---------------------------------------------------------
 // API: Document Management — Upload Document (Admin/Employee only)
 // ---------------------------------------------------------
 app.post('/api/documents/upload', adminProtect, upload.single('file'), async (req, res) => {
@@ -423,65 +433,42 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
       return res.status(400).json({ error: 'No file uploaded' });
     }
     if (!title || !category) {
-      // Clean up uploaded file if validation fails
-      try {
-        fs.unlinkSync(file.path);
-      } catch (err) {
-        console.error('Failed to delete file on validation cleanup:', err);
-      }
       return res.status(400).json({ error: 'Title and category are required' });
     }
 
-    const { getStorage } = require('firebase-admin/storage');
-    const bucket = getStorage().bucket('aldi-ecommerce-managemen-b40e8.firebasestorage.app');
-    const destination = `documents/${file.filename}`;
+    const bucket = storage.bucket();
+    const uniqueFileName = `documents/${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
 
-    // Upload the file to Firebase Storage
-    await bucket.upload(file.path, {
-      destination: destination,
+    const storageFile = bucket.file(uniqueFileName);
+    await storageFile.save(file.buffer, {
       metadata: {
-        contentType: file.mimetype
+        contentType: file.mimetype,
       }
     });
 
-    // Cleanup the local temporary file after successful upload
-    try {
-      fs.unlinkSync(file.path);
-    } catch (err) {
-      console.error('Failed to delete temp local file:', err);
-    }
-
-    const fileUrl = `/uploads/${file.filename}`;
+    const fileUrl = storageFile.publicUrl();
     const uploadedById = req.user.id; // from JWT token cookie in adminProtect
 
     // Insert metadata into database (including created_at column)
     const insertMutation = `
       mutation InsertDocument($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
         _execute(
-          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, NOW())",
+          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)",
           params: [$id, $title, $category, $fileUrl, $uploadedById]
         )
       }
     `;
 
     const docId = crypto.randomUUID();
-    try {
-      await sqlConnect.executeGraphql(insertMutation, {
-        variables: {
-          id: docId,
-          title,
-          category,
-          fileUrl,
-          uploadedById
-        }
-      });
-    } catch (dbError) {
-      if (isDbUnavailableLocally(dbError)) {
-        console.warn('[Database] Local fallback: caught table/permission error during Document upload insert, mocking success response.', dbError.message);
-      } else {
-        throw dbError;
+    await sqlConnect.executeGraphql(insertMutation, {
+      variables: {
+        id: docId,
+        title,
+        category,
+        fileUrl,
+        uploadedById
       }
-    }
+    });
 
     res.status(201).json({
       message: 'Document uploaded successfully',
@@ -489,7 +476,7 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
         id: docId,
         title,
         category,
-        fileUrl,
+        fileUrl: `/api/documents/download/${docId}`,
         uploadedBy: uploadedById
       }
     });
@@ -498,15 +485,142 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
     if (error.httpResponse && error.httpResponse.data && error.httpResponse.data.errors) {
       console.error('Detailed Data Connect Errors:', JSON.stringify(error.httpResponse.data.errors, null, 2));
     }
-    // Cleanup file if it was uploaded but DB write failed
-    if (req.file && fs.existsSync(req.file.path)) {
+    res.status(500).json({ error: 'Failed to upload document' });
+  }
+});
+
+// Helper to extract bucket path from Firebase Storage URL
+const extractStoragePath = (url, bucketName) => {
+  try {
+    const decodedUrl = decodeURIComponent(url);
+    const regex = new RegExp(`${bucketName}/(documents/[^?#]+)`);
+    const match = decodedUrl.match(regex);
+    if (match && match[1]) {
+      return match[1];
+    }
+    const docIndex = decodedUrl.indexOf('/documents/');
+    if (docIndex !== -1) {
+      return decodedUrl.substring(docIndex + 1).split('?')[0];
+    }
+  } catch (e) {
+    console.error('Failed to extract storage path:', e);
+  }
+  return null;
+};
+
+// ---------------------------------------------------------
+// API: Document Management — Secure Download (Admin/Employee only)
+// ---------------------------------------------------------
+app.get('/api/documents/download/:id', adminProtect, async (req, res) => {
+  const docId = req.params.id;
+  try {
+    const selectQuery = `
+      query GetDocumentForDownload {
+        _select(sql: "SELECT file_url AS \\"fileUrl\\" FROM \\"document\\" WHERE id = '${docId}'")
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(selectQuery);
+    const docs = (result.data && result.data._select) || [];
+
+    if (docs.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    const fileUrl = docs[0].fileUrl;
+    const bucket = storage.bucket();
+    const storagePath = extractStoragePath(fileUrl, bucket.name);
+
+    if (!storagePath) {
+      return res.status(400).json({ error: 'Invalid document storage URL' });
+    }
+
+    const storageFile = bucket.file(storagePath);
+    const [exists] = await storageFile.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found in storage' });
+    }
+
+    const [metadata] = await storageFile.getMetadata();
+    res.setHeader('Content-Type', metadata.contentType || 'application/octet-stream');
+    
+    const dispositionType = req.query.download === 'true' ? 'attachment' : 'inline';
+    res.setHeader('Content-Disposition', `${dispositionType}; filename="${storagePath.split('/').pop()}"`);
+
+    storageFile.createReadStream()
+      .on('error', (streamErr) => {
+        console.error('Error streaming document:', streamErr);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Error streaming document file' });
+        }
+      })
+      .pipe(res);
+  } catch (error) {
+    console.error('Error downloading document:', error);
+    res.status(500).json({ error: 'Failed to download document' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Document Management — Delete Document (Admin/Employee only)
+// ---------------------------------------------------------
+app.delete('/api/documents/:id', adminProtect, async (req, res) => {
+  const docId = req.params.id;
+  try {
+    const selectQuery = `
+      query GetDocumentForDelete {
+        _select(sql: "SELECT d.file_url AS \\"fileUrl\\", u.role AS \\"uploaderRole\\" FROM \\"document\\" d LEFT JOIN \\"user\\" u ON d.uploaded_by_id = u.id WHERE d.id = '${docId}'")
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(selectQuery);
+    const docs = (result.data && result.data._select) || [];
+
+    if (docs.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Role hierarchy check: admin (3) > financial_officer (2) > employee (1) > customer (0)
+    const roleHierarchy = {
+      'admin': 3,
+      'financial_officer': 2,
+      'employee': 1,
+      'customer': 0
+    };
+
+    const requesterRole = req.user.role || 'employee';
+    const uploaderRole = docs[0].uploaderRole || 'employee';
+
+    if (roleHierarchy[requesterRole] < roleHierarchy[uploaderRole]) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to delete files uploaded by higher-ranking roles' });
+    }
+
+    const fileUrl = docs[0].fileUrl;
+    const bucket = storage.bucket();
+    const storagePath = extractStoragePath(fileUrl, bucket.name);
+
+    if (storagePath) {
       try {
-        fs.unlinkSync(req.file.path);
+        const storageFile = bucket.file(storagePath);
+        const [exists] = await storageFile.exists();
+        if (exists) {
+          await storageFile.delete();
+          console.log(`[Storage] Deleted file from Firebase Storage: ${storagePath}`);
+        }
       } catch (err) {
-        console.error('Failed to delete file on error cleanup:', err);
+        console.warn('[Storage] Warning: Failed to delete file from Firebase Storage:', err.message);
       }
     }
-    res.status(500).json({ error: 'Failed to upload document' });
+
+    const deleteMutation = `
+      mutation DeleteDocument {
+        _execute(sql: "DELETE FROM \\"document\\" WHERE id = '${docId}'")
+      }
+    `;
+    await sqlConnect.executeGraphql(deleteMutation);
+
+    res.json({ message: 'Document deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting document:', error);
+    res.status(500).json({ error: 'Failed to delete document' });
   }
 });
 
@@ -619,8 +733,8 @@ app.get('/api/admin/customers', async (req, res) => {
 // ---------------------------------------------------------
 app.get('/api/admin/database/:table', async (req, res) => {
   const allowedTables = {
-    'User': '{ users { id email role displayName createdAt } }',
-    'Product': '{ products { id name category price stockQuantity updatedAt } }',
+    'User': '{ users { id email role displayName photoUrl createdAt } }',
+    'Product': '{ products { id name category price updatedAt } }',
     'Cart': '{ carts { id user { id email } updatedAt } }',
     'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',
     'Order': '{ orders { id user { id email } totalAmount status createdAt } }',
@@ -634,25 +748,29 @@ app.get('/api/admin/database/:table', async (req, res) => {
     try {
       const selectQuery = `
         query GetDocuments {
-          _select(sql: "SELECT id, title, category, file_url AS \\"fileUrl\\", uploaded_by_id AS \\"uploadedBy\\", created_at AS \\"createdAt\\" FROM \\"document\\" ORDER BY created_at DESC")
+          _select(sql: "SELECT d.id, d.title, d.category, d.file_url AS \\"fileUrl\\", d.uploaded_by_id AS \\"uploadedById\\", u.display_name AS \\"uploadedByDisplayName\\", d.created_at AS \\"createdAt\\" FROM \\"document\\" d LEFT JOIN \\"user\\" u ON d.uploaded_by_id = u.id ORDER BY d.created_at DESC")
         }
       `;
       const result = await sqlConnect.executeGraphqlRead(selectQuery);
       const docs = (result.data && result.data._select) || [];
-      const mappedDocs = docs.map(d => ({
-        id: d.id,
-        title: d.title,
-        category: d.category,
-        fileUrl: d.fileUrl,
-        uploadedBy: d.uploadedBy ? { id: d.uploadedBy } : null,
-        createdAt: d.createdAt
-      }));
+      const mappedDocs = docs.map(d => {
+        const originalUrl = d.fileUrl || '';
+        const extension = originalUrl.split('.').pop().split('?')[0].toLowerCase();
+        return {
+          id: d.id,
+          title: d.title,
+          category: d.category,
+          fileUrl: `/api/documents/download/${d.id}`,
+          extension,
+          uploadedBy: {
+            id: d.uploadedById,
+            displayName: d.uploadedByDisplayName || 'N/A'
+          },
+          createdAt: d.createdAt
+        };
+      });
       return res.json(mappedDocs);
     } catch (error) {
-      if (isDbUnavailableLocally(error)) {
-        console.warn('[Database] Local fallback: returning empty array for missing Document table.');
-        return res.json([]);
-      }
       console.error('Failed to fetch Document table:', error);
       return res.status(500).json({ error: 'Failed to fetch table data' });
     }
@@ -746,30 +864,33 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
     let totalAmount = 0;
     const validatedItems = [];
 
-    // Verify stock one by one
+    // Verify stock one by one using StockBatch table
     for (const item of cartItems) {
       let dbp;
+      const productId = item.productId || item.id;
       try {
         const dbpResult = await sqlConnect.executeGraphqlRead(`
           query CheckStock($id: UUID!) {
             product(id: $id) {
               id
-              stockQuantity
               name
               price
             }
           }
-        `, { variables: { id: item.productId || item.id || item.id } });
+        `, { variables: { id: productId } });
         dbp = dbpResult.data && dbpResult.data.product;
       } catch (err) {
-        console.error("Error checking stock for product", item.productId || item.id || item.id, err);
-        return res.status(400).json({ error: `Invalid product ID or product not found: ${item.productId || item.id || item.id}` });
+        console.error("Error checking stock for product", productId, err);
+        return res.status(400).json({ error: `Invalid product ID or product not found: ${productId}` });
       }
       if (!dbp) {
-        return res.status(400).json({ error: `Product ${item.name || item.productId || item.id || item.id} not found.` });
+        return res.status(400).json({ error: `Product ${item.name || productId} not found.` });
       }
 
-      if (dbp.stockQuantity < item.quantity) {
+      // Get total stock from StockBatch table
+      const totalStock = await getProductStock(productId);
+
+      if (totalStock < item.quantity) {
         return res.status(409).json({
           error: `${dbp.name} is out of stock or does not have enough remaining stock.`,
           productId: dbp.id
@@ -780,22 +901,37 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
       
       validatedItems.push({
         ...item,
+        productId,
         priceAtPurchase: dbp.price,
-        dbStockQuantity: dbp.stockQuantity
+        dbTotalStock: totalStock
       });
     }
 
-    // ---- STEP 2: Stock Reduction ----
+    // ---- STEP 2: Stock Reduction (FIFO from StockBatch) ----
     for (const item of validatedItems) {
-      const newStock = item.dbStockQuantity - item.quantity;
-      const updateMutation = `
-        mutation UpdateStock($id: UUID!, $newStock: Int!) {
-          product_update(id: $id, data: { stockQuantity: $newStock })
+      let remaining = item.quantity;
+      // Fetch batches ordered by expiry (FIFO: earliest expiry first)
+      const batchResult = await sqlConnect.executeGraphqlRead(`
+        query GetBatches($productId: UUID!) {
+          stockBatches(where: { product: { id: { eq: $productId } } }, orderBy: [{ expiryDate: ASC }]) {
+            id
+            currentQuantity
+          }
         }
-      `;
-      await sqlConnect.executeGraphql(updateMutation, {
-        variables: { id: item.productId || item.id || item.id, newStock }
-      });
+      `, { variables: { productId: item.productId } });
+      const batches = batchResult.data?.stockBatches || [];
+
+      for (const batch of batches) {
+        if (remaining <= 0) break;
+        const deduct = Math.min(remaining, batch.currentQuantity);
+        const newQty = batch.currentQuantity - deduct;
+        await sqlConnect.executeGraphql(`
+          mutation UpdateBatch($id: UUID!, $qty: Int!) {
+            stockBatch_update(id: $id, data: { currentQuantity: $qty })
+          }
+        `, { variables: { id: batch.id, qty: newQty } });
+        remaining -= deduct;
+      }
     }
 
     let orderId = null;
@@ -906,15 +1042,32 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
       console.error('Checkout insertion failed, triggering rollback:', insertError);
       // ---- ROLLBACK ----
       try {
+        // Rollback: Re-add stock to earliest-expiry batches
         for (const item of validatedItems) {
-          const revertMutation = `
-            mutation RestoreStock($id: UUID!, $stock: Int!) {
-              product_update(id: $id, data: { stockQuantity: $stock })
+          let remaining = item.quantity;
+          const batchResult = await sqlConnect.executeGraphqlRead(`
+            query GetBatches($productId: UUID!) {
+              stockBatches(where: { product: { id: { eq: $productId } } }, orderBy: [{ expiryDate: ASC }]) {
+                id
+                currentQuantity
+                initialQuantity
+              }
             }
-          `;
-          await sqlConnect.executeGraphql(revertMutation, {
-            variables: { id: item.productId || item.id, stock: item.dbStockQuantity }
-          });
+          `, { variables: { productId: item.productId } });
+          const batches = batchResult.data?.stockBatches || [];
+
+          for (const batch of batches) {
+            if (remaining <= 0) break;
+            const canRestore = Math.min(remaining, batch.initialQuantity - batch.currentQuantity);
+            if (canRestore > 0) {
+              await sqlConnect.executeGraphql(`
+                mutation RestoreBatch($id: UUID!, $qty: Int!) {
+                  stockBatch_update(id: $id, data: { currentQuantity: $qty })
+                }
+              `, { variables: { id: batch.id, qty: batch.currentQuantity + canRestore } });
+              remaining -= canRestore;
+            }
+          }
         }
       } catch (stockRollbackError) {
         console.error('Rollback of stock failed:', stockRollbackError);

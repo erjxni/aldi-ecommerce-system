@@ -1,5 +1,6 @@
 const { initializeApp, cert } = require('firebase-admin/app');
 const { getDataConnect } = require('firebase-admin/data-connect');
+const { getStorage } = require('firebase-admin/storage');
 const path = require('path');
 
 let serviceAccount;
@@ -22,7 +23,8 @@ if (process.env.ALDI_SQL_CONNECT_API_KEY) {
 
 // Initialize Firebase App
 const app = initializeApp({
-  credential: cert(serviceAccount)
+  credential: cert(serviceAccount),
+  storageBucket: 'aldi-ecommerce-managemen-b40e8.firebasestorage.app'
 });
 
 // Initialize Firebase SQL Connect (Data Connect)
@@ -31,7 +33,10 @@ const sqlConnect = getDataConnect({
   location: 'europe-west3'
 });
 
+const storage = getStorage(app);
+
 module.exports = {
   app,
-  sqlConnect
+  sqlConnect,
+  storage
 };

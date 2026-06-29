@@ -24,7 +24,7 @@ function createCartService(repository) {
       name: item.product.name,
       category: item.product.category,
       price: item.product.price,
-      stockQuantity: item.product.stockQuantity,
+      stockQuantity: item.stockQuantity || 0,
       description: item.product.description,
       image: item.product.imageUrl,
       imageUrl: item.product.imageUrl,
@@ -49,8 +49,9 @@ function createCartService(repository) {
 
     const existing = await repository.findItem(cart.id, productId);
     const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
-    if (requestedQuantity > product.stockQuantity) {
-      throw new CartError(400, `Only ${product.stockQuantity} item(s) are available in stock`);
+    const totalStock = await repository.getStockForProduct(productId);
+    if (requestedQuantity > totalStock) {
+      throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
     }
 
     if (existing) {
@@ -77,8 +78,9 @@ function createCartService(repository) {
     } else {
       const product = await repository.findProduct(productId);
       if (!product) throw new CartError(404, 'Product not found');
-      if (quantity > product.stockQuantity) {
-        throw new CartError(400, `Only ${product.stockQuantity} item(s) are available in stock`);
+      const totalStock = await repository.getStockForProduct(productId);
+      if (quantity > totalStock) {
+        throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
       }
       await repository.updateItem(existing.id, quantity);
     }
@@ -106,7 +108,6 @@ function createFirebaseCartRepository(sqlConnect) {
     name
     category
     price
-    stockQuantity
     description
     imageUrl
   `;
@@ -148,7 +149,29 @@ function createFirebaseCartRepository(sqlConnect) {
           }
         }
       `, { variables: { cartId } });
-      return result.data?.cartItems || [];
+      const items = result.data?.cartItems || [];
+      // Enrich each item with computed stock
+      for (const item of items) {
+        item.stockQuantity = await this.getStockForProduct(item.product.id);
+      }
+      return items;
+    },
+
+    async getStockForProduct(productId) {
+      try {
+        const result = await sqlConnect.executeGraphqlRead(`
+          query GetStock($productId: UUID!) {
+            stockBatches(where: { product: { id: { eq: $productId } } }) {
+              currentQuantity
+            }
+          }
+        `, { variables: { productId } });
+        const batches = result.data?.stockBatches || [];
+        return batches.reduce((sum, b) => sum + (b.currentQuantity || 0), 0);
+      } catch (err) {
+        console.warn('Could not fetch stock for product', productId, err.message);
+        return 0;
+      }
     },
 
     async findItem(cartId, productId) {

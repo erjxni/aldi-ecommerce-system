@@ -59,7 +59,7 @@
         
         <div style="flex-grow: 1; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
           <!-- Folder Icon -->
-          <a href="#" id="btn-document-manager" class="sidebar-icon" title="Documents">
+          <a href="#" id="btn-files-manager" class="sidebar-icon" title="Files">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
           </a>
           <!-- Activity Icon -->
@@ -375,6 +375,66 @@
           </div>
         </div>
 
+        <!-- Files Manager View (Hidden by default) -->
+        <div id="files-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 class="dashboard-title">Files Manager</h1>
+          </div>
+          
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+            <!-- Left: Upload Widget -->
+            <div class="widget" style="width: 320px; flex-shrink: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee;">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Upload New File</h2>
+              </div>
+              <form id="files-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+                  <input type="text" id="files-doc-title" required placeholder="e.g. Q2 Governance Report" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+                  <select id="files-doc-category" required>
+                    <option value="" disabled selected>-- Select Category --</option>
+                    <option value="Governance">Governance</option>
+                    <option value="E-Commerce">E-Commerce</option>
+                    <option value="Logistics">Logistics</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+                  <input type="file" id="files-doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg" />
+                </div>
+                <button type="submit">Upload File</button>
+              </form>
+              <div id="files-upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+            </div>
+
+            <!-- Right: Files List -->
+            <div class="widget table-widget" style="flex: 1; min-width: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 0; border-radius: 12px; background: white; border: 1px solid #e3e8ee; max-height: none;">
+              <div class="widget-header" style="padding: 24px 24px 12px 24px; margin-bottom: 0;">
+                <h2 class="widget-title">Stored Files</h2>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Uploaded By</th>
+                    <th>Date</th>
+                    <th style="text-align: right; padding-right: 24px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="files-list-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center; padding: 24px; color: #697386;">Loading files...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
         <!-- Add User Modal -->
         <dialog id="add-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
           <h2 style="margin-top: 0; color: #1a1f36;">Add New Staff User</h2>
@@ -399,12 +459,80 @@
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="new-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
             <div id="add-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
               <button type="button" id="cancel-add-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
               <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Create User</button>
             </div>
           </form>
+        </dialog>
+
+        <!-- Edit User Modal -->
+        <dialog id="edit-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+          <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
+          <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <input type="hidden" id="edit-user-id">
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="edit-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="edit-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="edit-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="employee">Employee</option>
+                <option value="financial_officer">Financial Officer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="edit-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="edit-photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="edit-photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="edit-clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="edit-upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="edit-upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="edit-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button type="button" id="cancel-edit-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
+              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Save Changes</button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- File Preview Modal -->
+        <dialog id="file-preview-modal" style="border: none; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 800px; width: 90%; height: 80vh; display: none; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e8ee; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 id="preview-modal-title" style="margin: 0; color: #1a1f36; font-size: 1.25rem;">File Preview</h2>
+            <button id="close-preview-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #697386;">&times;</button>
+          </div>
+          <div id="preview-modal-body" style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; width: 100%;">
+            <!-- Loaded content goes here -->
+          </div>
         </dialog>
 
       </div> <!-- /.admin-content-wrapper -->
@@ -414,6 +542,6 @@
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script src='/js/admin.js'></script>
+  <script type="module" src='/js/admin.js'></script>
 </body>
 </html>

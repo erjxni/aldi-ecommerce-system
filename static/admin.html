@@ -31,15 +31,60 @@
       </div>
 
       <div class="topbar-right">
-        <button class="icon-btn">&#x1F50D;</button> <!-- Search -->
         <button class="icon-btn">&#x1F514;</button> <!-- Notification -->
         <div class="profile-pic" title="Profile">&#x1F464;</div>
         <button id="logout-btn" class="icon-btn" title="Log Out">&#x21AA;</button>
       </div>
     </nav>
 
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
+    <div class="admin-layout-container">
+      <!-- Sidebar -->
+      <aside class="admin-sidebar">
+        <div style="flex-grow: 0; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
+          <!-- Search Icon -->
+          <a href="#" class="sidebar-icon" title="Search">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </a>
+          <!-- Home Icon (Active) -->
+          <a href="#" id="btn-home-dashboard" class="sidebar-icon active" title="Home">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </a>
+          <!-- Settings Icon -->
+          <a href="#" class="sidebar-icon" title="Settings">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </a>
+        </div>
+        
+        <div class="sidebar-divider"></div>
+        
+        <div style="flex-grow: 1; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
+          <!-- Folder Icon -->
+          <a href="#" id="btn-files-manager" class="sidebar-icon" title="Files">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          </a>
+          <!-- Activity Icon -->
+          <a href="#" class="sidebar-icon" title="Activity">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+          </a>
+          <!-- Database Icon -->
+          <a href="#" id="btn-db-viewer" class="sidebar-icon" title="Database">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+          </a>
+          <!-- Users Icon -->
+          <a href="#" id="btn-users-manager" class="sidebar-icon" title="Users">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          </a>
+          <!-- Shield Icon -->
+          <a href="#" class="sidebar-icon" title="Security">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          </a>
+        </div>
+      </aside>
+      
+      <div class="admin-content-wrapper">
+        <div id="dashboard-view">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
       <h1 class="dashboard-title">
         Overview 
         <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
@@ -180,6 +225,35 @@
         </div>
       </div>
 
+      <!-- Document Upload Widget -->
+      <div class="widget" id="document-upload-widget">
+        <div class="widget-header">
+          <h2 class="widget-title">Document Management</h2>
+          <span style="font-size: 1.25rem;">&#x1F4C4;</span>
+        </div>
+        <form id="doc-upload-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+            <input type="text" id="doc-title" required placeholder="e.g. Q2 Governance Report" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+            <select id="doc-category" required style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer; transition: border-color 0.2s;">
+              <option value="" disabled selected>-- Select Category --</option>
+              <option value="Governance">Governance</option>
+              <option value="E-Commerce">E-Commerce</option>
+              <option value="Logistics">Logistics</option>
+            </select>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px;">
+            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+            <input type="file" id="doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg" style="font-size: 0.85rem; color: #4f566b;" />
+          </div>
+          <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px;">Upload Document</button>
+        </form>
+        <div id="upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+      </div>
+
       <!-- Financial Ledger Table -->
       <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
         <div class="widget-header">
@@ -226,170 +300,237 @@
       </div>
 
     </main>
+        </div> <!-- /#dashboard-view -->
+
+        <!-- Database Viewer (Hidden by default) -->
+        <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header">
+            <h1 class="dashboard-title">Database Viewer</h1>
+            <div class="db-tabs">
+              <button class="db-tab active" data-table="User">User</button>
+              <button class="db-tab" data-table="Product">Product</button>
+              <button class="db-tab" data-table="Cart">Cart</button>
+              <button class="db-tab" data-table="CartItem">CartItem</button>
+              <button class="db-tab" data-table="Order">Order</button>
+              <button class="db-tab" data-table="OrderItem">OrderItem</button>
+              <button class="db-tab" data-table="FinancialRecord">FinancialRecord</button>
+              <button class="db-tab" data-table="Document">Document</button>
+            </div>
+          </div>
+          <div class="db-viewer-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
+            <div class="db-viewer-inner table-widget" style="flex: 1; border-radius: 8px 8px 0 0; overflow-y: auto;">
+              <table class="modern-table" id="db-table">
+                <thead id="db-table-head">
+                  <!-- Dynamically populated -->
+                </thead>
+                <tbody id="db-table-body">
+                  <tr><td style="padding: 24px; text-align: center; color: #697386;">Select a table to view data</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Query Runner Component -->
+          <div class="db-viewer-content" style="margin-top: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+            <div class="db-viewer-inner table-widget" style="flex: 1; padding: 32px; background: white; overflow-y: auto;">
+              <h3 style="margin-top: 0; color: #1a1f36;">Run Direct Database Query</h3>
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Template:</label>
+                <select id="query-template-select" style="width: 100%; max-width: 400px; padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-family: 'Poppins', sans-serif;">
+                  <option value="">-- Custom Query --</option>
+                  <option value="addProduct">Add a new Product</option>
+                  <option value="deleteOrder">Delete an Order</option>
+                  <option value="deleteUser">Delete a User</option>
+                </select>
+              </div>
+              <div style="display: flex; gap: 24px;">
+                <div style="flex: 1; min-width: 0;">
+                  <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">GraphQL Query / Mutation</label>
+                  <textarea id="query-input" style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;" placeholder="mutation { ... }"></textarea>
+                </div>
+                <div style="width: 300px; flex-shrink: 0;">
+                  <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Variables (JSON)</label>
+                  <textarea id="variables-input" style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;" placeholder="{&#10;  &quot;id&quot;: &quot;...&quot;&#10;}"></textarea>
+                </div>
+              </div>
+              <div style="margin-top: 16px;">
+                <button id="run-query-btn" style="background: #2b58f9; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Execute Query</button>
+              </div>
+              <div style="margin-top: 24px;">
+                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Response:</label>
+                <pre id="query-output" style="background: #f4f5f7; padding: 16px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; min-height: 100px; color: #1a1f36;">Awaiting execution...</pre>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Users Manager View (Hidden by default) -->
+        <div id="users-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <h1 class="dashboard-title">Staff Management</h1>
+            <button id="open-add-user-btn" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">+ Add User</button>
+          </div>
+          <div id="users-card-container" style="flex: 1; padding: 24px 32px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; align-content: flex-start;">
+            <!-- User cards will be injected here -->
+          </div>
+        </div>
+
+        <!-- Files Manager View (Hidden by default) -->
+        <div id="files-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h1 class="dashboard-title">Files Manager</h1>
+          </div>
+          
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+            <!-- Left: Upload Widget -->
+            <div class="widget" style="width: 320px; flex-shrink: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee;">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Upload New File</h2>
+              </div>
+              <form id="files-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+                  <input type="text" id="files-doc-title" required placeholder="e.g. Q2 Governance Report" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+                  <select id="files-doc-category" required>
+                    <option value="" disabled selected>-- Select Category --</option>
+                    <option value="Governance">Governance</option>
+                    <option value="E-Commerce">E-Commerce</option>
+                    <option value="Logistics">Logistics</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+                  <input type="file" id="files-doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg" />
+                </div>
+                <button type="submit">Upload File</button>
+              </form>
+              <div id="files-upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+            </div>
+
+            <!-- Right: Files List -->
+            <div class="widget table-widget" style="flex: 1; min-width: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 0; border-radius: 12px; background: white; border: 1px solid #e3e8ee; max-height: none;">
+              <div class="widget-header" style="padding: 24px 24px 12px 24px; margin-bottom: 0;">
+                <h2 class="widget-title">Stored Files</h2>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Category</th>
+                    <th>Uploaded By</th>
+                    <th>Date</th>
+                    <th style="text-align: right; padding-right: 24px;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="files-list-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center; padding: 24px; color: #697386;">Loading files...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add User Modal -->
+        <dialog id="add-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+          <h2 style="margin-top: 0; color: #1a1f36;">Add New Staff User</h2>
+          <form id="add-user-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="new-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="new-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Password</label>
+              <input type="password" id="new-user-password" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="SecurePassword123">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="new-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="employee">Employee</option>
+                <option value="financial_officer">Financial Officer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="new-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="add-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button type="button" id="cancel-add-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
+              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Create User</button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- Edit User Modal -->
+        <dialog id="edit-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+          <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
+          <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <input type="hidden" id="edit-user-id">
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="edit-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="edit-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="edit-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="employee">Employee</option>
+                <option value="financial_officer">Financial Officer</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
+              <input type="file" id="edit-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="edit-photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="edit-photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="edit-clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="edit-upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="edit-upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="edit-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button type="button" id="cancel-edit-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
+              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Save Changes</button>
+            </div>
+          </form>
+        </dialog>
+
+      </div> <!-- /.admin-content-wrapper -->
+    </div> <!-- /.admin-layout-container -->
   </div>
 
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script>
-    (function() {
-      const userToken = localStorage.getItem('userToken');
-      const userRole = localStorage.getItem('userRole') || 'customer';
-      const userEmail = localStorage.getItem('userEmail') || '';
-
-      // --- Role-Based UI Hiding for Employees ---
-      if (userRole === 'employee') {
-        const financialSection = document.getElementById('financial-ledger-section');
-        const revenueCard = document.getElementById('revenue-card');
-        if (financialSection) financialSection.classList.add('section-hidden');
-        if (revenueCard) revenueCard.classList.add('section-hidden');
-      }
-
-      // --- Logout Button ---
-      const logoutBtn = document.getElementById('logout-btn');
-      if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-          localStorage.removeItem('userEmail');
-          localStorage.removeItem('userToken');
-          localStorage.removeItem('userRole');
-          fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
-            window.location.href = '/index.html';
-          });
-        });
-      }
-
-      // --- Track cumulative revenue from WebSocket events ---
-      let cumulativeRevenue = 0;
-      const revenueDisplay = document.getElementById('total-revenue-amount');
-
-      function updateRevenueDisplay() {
-        if (revenueDisplay) {
-          revenueDisplay.textContent = '€' + cumulativeRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          
-          // Animate the revenue change
-          revenueDisplay.style.transform = 'scale(1.05)';
-          revenueDisplay.style.color = '#10b981'; // green for increase
-          setTimeout(() => {
-            revenueDisplay.style.transform = 'scale(1)';
-            revenueDisplay.style.color = '#1a1f36';
-            revenueDisplay.style.transition = 'all 0.3s ease';
-          }, 400);
-        }
-      }
-
-      // --- Financial Ledger: add rows in real-time ---
-      const ledgerBody = document.getElementById('financial-ledger-body');
-      function addLedgerRow(data) {
-        if (!ledgerBody) return;
-        // Clear the placeholder on first real entry
-        if (ledgerBody.querySelector('.ledger-empty')) {
-          ledgerBody.innerHTML = '';
-        }
-        const tr = document.createElement('tr');
-        const timestamp = new Date(data.timestamp).toLocaleString('en-AU', {
-          day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-        tr.innerHTML = `
-          <td style="font-family:monospace;">${data.transactionId || 'N/A'}</td>
-          <td><span class="status-pill status-success">Sale</span></td>
-          <td style="font-weight:600;">€${data.amount.toFixed(2)}</td>
-          <td style="font-family:monospace;">${data.orderId ? data.orderId.substring(0, 8) + '...' : 'N/A'}</td>
-          <td>${timestamp}</td>
-        `;
-        // Insert at the top
-        ledgerBody.insertBefore(tr, ledgerBody.firstChild);
-      }
-
-      // --- Toast Notification ---
-      function showFinancialToast(amount) {
-        const existing = document.querySelector('.financial-update-toast');
-        if (existing) existing.remove();
-
-        const toast = document.createElement('div');
-        toast.className = 'financial-update-toast';
-        toast.innerHTML = `
-          <div style="font-weight: 600; margin-bottom: 4px;">&#x1F4B0; New Revenue</div>
-          <div style="font-size: 1.1rem; font-weight: 600; color: #10b981;">+€${amount.toFixed(2)}</div>
-        `;
-        toast.style.position = 'fixed';
-        toast.style.top = '24px';
-        toast.style.right = '24px';
-        toast.style.zIndex = '9999';
-        toast.style.background = '#ffffff';
-        toast.style.border = '1px solid #e3e8ee';
-        toast.style.color = '#1a1f36';
-        toast.style.padding = '16px 24px';
-        toast.style.borderRadius = '12px';
-        toast.style.boxShadow = '0 8px 32px rgba(0,0,0,0.1)';
-        toast.style.transform = 'translateX(120%)';
-        toast.style.transition = 'transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)';
-        
-        document.body.appendChild(toast);
-        requestAnimationFrame(() => toast.style.transform = 'translateX(0)');
-        setTimeout(() => {
-          toast.style.transform = 'translateX(120%)';
-          setTimeout(() => toast.remove(), 400);
-        }, 5000);
-      }
-
-      // --- WebSocket Connection ---
-      const wsStatus = document.getElementById('ws-status');
-      const wsStatusText = wsStatus ? wsStatus.querySelector('.ws-status-text') : null;
-      const wsStatusDot = wsStatus ? wsStatus.querySelector('div') : null;
-
-      if (!userToken) return;
-
-      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${wsProtocol}//${window.location.host}?token=${encodeURIComponent(userToken)}`;
-      
-      let ws;
-      let reconnectAttempts = 0;
-      const maxReconnectAttempts = 10;
-
-      function connectWebSocket() {
-        ws = new WebSocket(wsUrl);
-
-        ws.onopen = () => {
-          console.log('[WebSocket] Connected to admin channel');
-          reconnectAttempts = 0;
-          if (wsStatusText) wsStatusText.textContent = 'Live';
-          if (wsStatusDot) wsStatusDot.style.background = '#10b981';
-        };
-
-        ws.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            if (message.type === 'financial_update') {
-              const data = message.data;
-              cumulativeRevenue += data.amount;
-              updateRevenueDisplay();
-              addLedgerRow(data);
-              showFinancialToast(data.amount);
-            }
-          } catch (err) {
-            console.error('[WebSocket] Failed to parse message:', err);
-          }
-        };
-
-        ws.onclose = (event) => {
-          console.log('[WebSocket] Disconnected:', event.code, event.reason);
-          if (wsStatusText) wsStatusText.textContent = 'Offline';
-          if (wsStatusDot) wsStatusDot.style.background = '#991b1b';
-
-          if (reconnectAttempts < maxReconnectAttempts) {
-            const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 30000);
-            reconnectAttempts++;
-            setTimeout(connectWebSocket, delay);
-          }
-        };
-
-        ws.onerror = (error) => {
-          console.error('[WebSocket] Error:', error);
-        };
-      }
-
-      connectWebSocket();
-    })();
-  </script>
+  <script type="module" src='/js/admin.js'></script>
 </body>
 </html>

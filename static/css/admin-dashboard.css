@@ -3,6 +3,13 @@
 
 body.admin-body {
   background-color: #f4f5f7;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(43, 88, 249, 0.03),
+    rgba(43, 88, 249, 0.03) 20px,
+    transparent 20px,
+    transparent 40px
+  );
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   color: #1a1f36;
   margin: 0;
@@ -86,7 +93,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 /* Dashboard Header */
 .dashboard-header {
   max-width: 1400px;
-  margin: 32px auto 24px;
+  margin: 32px 0 24px 0;
   padding: 0 32px;
   display: flex;
   justify-content: space-between;
@@ -123,7 +130,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 /* Grid Layout */
 .dashboard-grid {
   max-width: 1400px;
-  margin: 0 auto 40px;
+  margin: 0 0 40px 0;
   padding: 0 32px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -407,3 +414,265 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 
 /* Utilities */
 .text-right { text-align: right; }
+
+/* Database Viewer Styles (Light Theme) */
+/* Admin Sidebar Layout */
+.admin-layout-container {
+  display: flex;
+  min-height: calc(100vh - 57px); /* approx topbar height */
+}
+
+.admin-sidebar {
+  width: 64px;
+  background: white;
+  border-right: 1px solid #e3e8ee;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0;
+  flex-shrink: 0;
+  z-index: 90;
+}
+
+.admin-sidebar .sidebar-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 8px;
+  color: #697386;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.admin-sidebar .sidebar-icon:hover {
+  background: #f4f5f7;
+  color: #1a1f36;
+}
+
+.admin-sidebar .sidebar-icon.active {
+  background: #eef2ff;
+  color: #2b58f9;
+}
+
+.admin-sidebar .brand-icon {
+  margin-bottom: 8px;
+}
+.admin-sidebar .brand-icon:hover {
+  background: none;
+}
+
+.admin-sidebar .sidebar-divider {
+  width: 32px;
+  height: 1px;
+  background: #e3e8ee;
+  margin: 8px 0;
+}
+
+.admin-content-wrapper {
+  flex-grow: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Database Viewer Styles (Light Theme) */
+.db-viewer-header {
+  max-width: 1400px;
+  margin: 32px 0 0 0;
+  padding: 0 32px;
+  background-color: transparent;
+  width: 100%;
+  box-sizing: border-box;
+}
+.db-tabs {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  border-bottom: 1px solid #e3e8ee;
+  padding-bottom: 0px;
+}
+.db-tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #697386;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.db-tab:hover {
+  color: #1a1f36;
+}
+.db-tab.active {
+  color: #2b58f9;
+  border-bottom-color: #2b58f9;
+}
+.db-viewer-content {
+  max-width: 1400px;
+  margin: 0 0 40px 0;
+  width: 100%;
+  box-sizing: border-box;
+  /* We match the grid padding */
+  padding: 0 32px;
+  /* And since the table has its own background, we apply the background/border to a wrapper or just the table itself. */
+  /* Wait, let's keep the box styling but wrap it in the padding. */
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+.db-viewer-inner {
+  background: white;
+  border: 1px solid #e3e8ee;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  overflow: hidden;
+}
+.db-viewer-content .modern-table th,
+.db-viewer-content .modern-table td {
+  padding: 10px 16px;
+  font-size: 0.85rem;
+}
+.db-viewer-content th {
+  background: #f4f5f7;
+  color: #697386;
+  font-weight: 600;
+}
+.db-viewer-content td {
+  font-family: 'Inter', 'Poppins', sans-serif;
+}
+.db-viewer-content td.col-id {
+  font-family: monospace;
+  color: #4f566b;
+}
+
+/* Users Manager Cards */
+.user-card {
+  background: white;
+  border: 1px solid #e3e8ee;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  display: flex;
+  flex-direction: column;
+}
+.user-card:hover {
+  box-shadow: 0 8px 15px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
+}
+.user-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px dashed #e3e8ee;
+  padding-bottom: 16px;
+  margin-bottom: 16px;
+}
+.user-card-body {
+  font-size: 0.9rem;
+  color: #4f566b;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.user-role-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #f4f5f7;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #4f566b;
+}
+.delete-user-btn {
+  background: transparent;
+  border: 1px solid #e3e8ee;
+  border-radius: 6px;
+  color: #697386;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.delete-user-btn:hover {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+/* Files Manager Upload Form Styles */
+#files-upload-form input[type="text"],
+#files-upload-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #e3e8ee;
+  border-radius: 8px;
+  outline: none;
+  font-size: 0.9rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  background: white;
+}
+
+#files-upload-form input[type="text"]:focus,
+#files-upload-form select:focus {
+  border-color: #2b58f9;
+  box-shadow: 0 0 0 3px rgba(43, 88, 249, 0.15);
+}
+
+#files-upload-form input[type="file"] {
+  font-size: 0.85rem;
+  color: #4f566b;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 0;
+}
+
+#files-upload-form input[type="file"]::file-selector-button {
+  background-color: #f4f5f7;
+  border: 1px solid #e3e8ee;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #4f566b;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-right: 8px;
+}
+
+#files-upload-form input[type="file"]::file-selector-button:hover {
+  background-color: #eef2ff;
+  border-color: #2b58f9;
+  color: #2b58f9;
+}
+
+#files-upload-form button[type="submit"] {
+  background: #2b58f9;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  margin-top: 10px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#files-upload-form button[type="submit"]:hover {
+  background: #1d4ed8;
+  box-shadow: 0 4px 12px rgba(43, 88, 249, 0.25);
+}
+
+#files-upload-form button[type="submit"]:active {
+  transform: scale(0.98);
+}

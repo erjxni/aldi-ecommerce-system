@@ -676,3 +676,8 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 #files-upload-form button[type="submit"]:active {
   transform: scale(0.98);
 }
+
+#file-preview-modal[open] {
+  display: flex;
+  flex-direction: column;
+}

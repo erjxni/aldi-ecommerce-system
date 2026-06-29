@@ -54,7 +54,7 @@ async function testDocumentUpload() {
     // Get a real admin user ID from the database for relation foreign key
     const userQuery = `
       query GetAdminUser {
-        users(limit: 1) {
+        users(where: { email: { eq: "admin@aldi-mock.com" } }) {
           id
         }
       }
@@ -65,6 +65,16 @@ async function testDocumentUpload() {
     // Generate JWT tokens
     const adminToken = jwt.sign(
       { id: mockUserId, email: 'admin@aldi-mock.com', first_name: 'Admin', role: 'admin' },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const financialOfficerToken = jwt.sign(
+      { id: '22222222-2222-2222-2222-222222222222', email: 'officer@aldi-mock.com', first_name: 'Officer', role: 'financial_officer' },
+      JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+    const employeeToken = jwt.sign(
+      { id: '33333333-3333-3333-3333-333333333333', email: 'employee@aldi-mock.com', first_name: 'Employee', role: 'employee' },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -232,6 +242,42 @@ async function testDocumentUpload() {
       passed++;
     } catch (err) {
       console.error(`[Test 5] ❌ FAILED — ${err.message}`);
+      failed++;
+    }
+
+    // ====================================================
+    // TEST 6: Document deletion role hierarchy check
+    // ====================================================
+    console.log('\n[Test 6] Enforce role hierarchy on document deletion...');
+    try {
+      if (!uploadedDocId) throw new Error('No uploaded doc ID from Test 1 to verify');
+
+      // 6a. Employee tries to delete Admin-uploaded document (Expect 403 Forbidden)
+      const resEmployee = await fetch(`http://localhost:3001/api/documents/${uploadedDocId}`, {
+        method: 'DELETE',
+        headers: {
+          'Cookie': `aldi_jwt=${employeeToken}`
+        }
+      });
+      if (resEmployee.status !== 403) {
+        throw new Error(`Expected Employee delete to be rejected with 403, got ${resEmployee.status}`);
+      }
+
+      // 6b. Financial Officer tries to delete Admin-uploaded document (Expect 403 Forbidden)
+      const resOfficer = await fetch(`http://localhost:3001/api/documents/${uploadedDocId}`, {
+        method: 'DELETE',
+        headers: {
+          'Cookie': `aldi_jwt=${financialOfficerToken}`
+        }
+      });
+      if (resOfficer.status !== 403) {
+        throw new Error(`Expected Financial Officer delete to be rejected with 403, got ${resOfficer.status}`);
+      }
+
+      console.log('[Test 6] ✅ PASSED — Deletion rejected correctly for lower-ranking roles');
+      passed++;
+    } catch (err) {
+      console.error(`[Test 6] ❌ FAILED — ${err.message}`);
       failed++;
     }
 

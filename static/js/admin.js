@@ -1016,6 +1016,7 @@
             
             const downloadIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
             const deleteIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+            const previewIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: text-bottom;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
 
             return `
               <tr>
@@ -1025,7 +1026,10 @@
                 <td>${dateStr}</td>
                 <td style="text-align: right; padding-right: 24px;">
                   <div style="display: inline-flex; gap: 8px; justify-content: flex-end;">
-                    <a href="${file.fileUrl}" download target="_blank" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; text-decoration: none;" title="Download File">
+                    <button onclick="window.previewFile('${file.id}', \`${file.title.replace(/`/g, '\\`').replace(/\$/g, '\\$')}\`, '${file.fileUrl}', '${file.extension || ''}')" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; cursor: pointer;" title="Preview File">
+                      ${previewIcon} Preview
+                    </button>
+                    <a href="${file.fileUrl}?download=true" download target="_blank" class="btn-outline" style="padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px; font-size: 0.8rem; text-decoration: none;" title="Download File">
                       ${downloadIcon} Download
                     </a>
                     <button class="delete-user-btn" onclick="window.deleteFile('${file.id}')" title="Delete File">
@@ -1068,6 +1072,58 @@
           alert('Network error deleting file.');
         }
       };
+
+      window.previewFile = function(id, title, fileUrl, extension) {
+        const previewModal = document.getElementById('file-preview-modal');
+        const previewTitle = document.getElementById('preview-modal-title');
+        const previewBody = document.getElementById('preview-modal-body');
+        if (!previewModal || !previewTitle || !previewBody) return;
+
+        previewTitle.textContent = `Preview: ${title}`;
+        previewBody.innerHTML = '<div style="color: #697386; font-family: inherit;">Loading preview...</div>';
+
+        const ext = (extension || '').toLowerCase();
+        const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
+        const isPDF = ext === 'pdf';
+
+        if (isImage) {
+          previewBody.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
+        } else if (isPDF) {
+          previewBody.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: 1px solid #e3e8ee; border-radius: 6px;"></iframe>`;
+        } else {
+          previewBody.innerHTML = `
+            <div style="text-align: center; padding: 32px; color: #4f566b; font-family: inherit;">
+              <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F4C4;</div>
+              <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #1a1f36;">Preview not supported for this file type.</p>
+              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG) and PDFs.</p>
+              <a href="${fileUrl}" download class="btn-outline" style="text-decoration: none; padding: 10px 20px; font-weight: 600; display: inline-block;">Download File to View</a>
+            </div>
+          `;
+        }
+
+        // Display dialog
+        previewModal.style.display = 'flex';
+        previewModal.showModal();
+      };
+
+      // Preview Modal close listeners
+      const previewModal = document.getElementById('file-preview-modal');
+      const closePreviewBtn = document.getElementById('close-preview-btn');
+      if (previewModal && closePreviewBtn) {
+        const closeHandler = () => {
+          const previewBody = document.getElementById('preview-modal-body');
+          if (previewBody) previewBody.innerHTML = '';
+          previewModal.style.display = 'none';
+          previewModal.close();
+        };
+
+        closePreviewBtn.addEventListener('click', closeHandler);
+        previewModal.addEventListener('click', (e) => {
+          if (e.target === previewModal) {
+            closeHandler();
+          }
+        });
+      }
 
       function getCategoryClass(cat) {
         if (cat === 'Governance') return 'status-warning';

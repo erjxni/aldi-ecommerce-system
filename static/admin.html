@@ -524,6 +524,17 @@
           </form>
         </dialog>
 
+        <!-- File Preview Modal -->
+        <dialog id="file-preview-modal" style="border: none; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 800px; width: 90%; height: 80vh; display: none; flex-direction: column;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e8ee; padding-bottom: 12px; margin-bottom: 16px;">
+            <h2 id="preview-modal-title" style="margin: 0; color: #1a1f36; font-size: 1.25rem;">File Preview</h2>
+            <button id="close-preview-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #697386;">&times;</button>
+          </div>
+          <div id="preview-modal-body" style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; width: 100%;">
+            <!-- Loaded content goes here -->
+          </div>
+        </dialog>
+
       </div> <!-- /.admin-content-wrapper -->
     </div> <!-- /.admin-layout-container -->
   </div>

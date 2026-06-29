@@ -514,7 +514,9 @@ app.get('/api/documents/download/:id', adminProtect, async (req, res) => {
 
     const [metadata] = await storageFile.getMetadata();
     res.setHeader('Content-Type', metadata.contentType || 'application/octet-stream');
-    res.setHeader('Content-Disposition', `attachment; filename="${storagePath.split('/').pop()}"`);
+    
+    const dispositionType = req.query.download === 'true' ? 'attachment' : 'inline';
+    res.setHeader('Content-Disposition', `${dispositionType}; filename="${storagePath.split('/').pop()}"`);
 
     storageFile.createReadStream()
       .on('error', (streamErr) => {
@@ -538,7 +540,7 @@ app.delete('/api/documents/:id', adminProtect, async (req, res) => {
   try {
     const selectQuery = `
       query GetDocumentForDelete {
-        _select(sql: "SELECT file_url AS \\"fileUrl\\" FROM \\"document\\" WHERE id = '${docId}'")
+        _select(sql: "SELECT d.file_url AS \\"fileUrl\\", u.role AS \\"uploaderRole\\" FROM \\"document\\" d LEFT JOIN \\"user\\" u ON d.uploaded_by_id = u.id WHERE d.id = '${docId}'")
       }
     `;
     const result = await sqlConnect.executeGraphqlRead(selectQuery);
@@ -546,6 +548,21 @@ app.delete('/api/documents/:id', adminProtect, async (req, res) => {
 
     if (docs.length === 0) {
       return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Role hierarchy check: admin (3) > financial_officer (2) > employee (1) > customer (0)
+    const roleHierarchy = {
+      'admin': 3,
+      'financial_officer': 2,
+      'employee': 1,
+      'customer': 0
+    };
+
+    const requesterRole = req.user.role || 'employee';
+    const uploaderRole = docs[0].uploaderRole || 'employee';
+
+    if (roleHierarchy[requesterRole] < roleHierarchy[uploaderRole]) {
+      return res.status(403).json({ error: 'Forbidden: You do not have permission to delete files uploaded by higher-ranking roles' });
     }
 
     const fileUrl = docs[0].fileUrl;
@@ -694,17 +711,22 @@ app.get('/api/admin/database/:table', async (req, res) => {
       `;
       const result = await sqlConnect.executeGraphqlRead(selectQuery);
       const docs = (result.data && result.data._select) || [];
-      const mappedDocs = docs.map(d => ({
-        id: d.id,
-        title: d.title,
-        category: d.category,
-        fileUrl: `/api/documents/download/${d.id}`,
-        uploadedBy: {
-          id: d.uploadedById,
-          displayName: d.uploadedByDisplayName || 'N/A'
-        },
-        createdAt: d.createdAt
-      }));
+      const mappedDocs = docs.map(d => {
+        const originalUrl = d.fileUrl || '';
+        const extension = originalUrl.split('.').pop().split('?')[0].toLowerCase();
+        return {
+          id: d.id,
+          title: d.title,
+          category: d.category,
+          fileUrl: `/api/documents/download/${d.id}`,
+          extension,
+          uploadedBy: {
+            id: d.uploadedById,
+            displayName: d.uploadedByDisplayName || 'N/A'
+          },
+          createdAt: d.createdAt
+        };
+      });
       return res.json(mappedDocs);
     } catch (error) {
       console.error('Failed to fetch Document table:', error);

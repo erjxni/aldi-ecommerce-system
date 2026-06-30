@@ -41,6 +41,27 @@ This project is organized into several distinct directories. For a detailed brea
    npm test
    ```
 
+4. **Run the final live demo smoke test**:
+   ```bash
+   npm run test:e2e
+   ```
+
+## Deployment
+
+Story 14 deployment assets are included:
+
+* [`Dockerfile`](Dockerfile): containerized Node.js deployment.
+* [`render.yaml`](render.yaml): Render web service configuration.
+* [`docs/deployment-guide.md`](docs/deployment-guide.md): step-by-step production setup.
+* [`docs/final-testing-report.md`](docs/final-testing-report.md): final E2E test report with 10 test cases.
+
+The deployed app should expose:
+
+* `/api/health` for hosting health checks.
+* `/api/live-check` for database connectivity and seeded product count verification.
+
+Final production catalog seeding is intentionally left to the database owner/QA lead so the live data uses approved real ALDI product records and images.
+
 ---
 
 ## IDE Configuration (VS Code)

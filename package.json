@@ -6,8 +6,11 @@
   "scripts": {
     "start": "node backend/server.js",
     "dev": "node backend/server.js",
+    "seed": "node database/seed.js",
+    "seed:products": "node database/seed-products.js",
     "test": "node --test tests/cart-tests/*.test.js && node tests/database-tests/run-tests.js",
-    "test:cart": "node --test tests/cart-tests/*.test.js"
+    "test:cart": "node --test tests/cart-tests/*.test.js",
+    "test:e2e": "node tests/e2e/final-live-demo.test.js"
   },
   "dependencies": {
     "cookie-parser": "^1.4.7",

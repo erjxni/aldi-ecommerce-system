@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: aldi-ecommerce-system
+    env: node
+    plan: free
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        sync: false
+      - key: ALDI_SQL_CONNECT_API_KEY
+        sync: false

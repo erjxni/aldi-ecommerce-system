@@ -39,6 +39,10 @@ function createFakeRepository() {
     async findProduct(id) {
       return state.products.find(product => product.id === id) || null;
     },
+    async getStockForProduct(productId) {
+      const product = state.products.find(item => item.id === productId);
+      return product ? product.stockQuantity : 0;
+    },
     async createItem(cartId, productId, quantity) {
       const item = { id: `item-${state.items.length + 1}`, cartId, productId, quantity };
       state.items.push(item);

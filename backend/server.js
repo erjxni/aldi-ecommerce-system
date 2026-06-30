@@ -8,7 +8,7 @@ const { WebSocketServer } = require('ws');
 const crypto = require('crypto');
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // Enable Cross-Origin Resource Sharing
 app.use(cors({ credentials: true, origin: true }));
@@ -25,6 +25,41 @@ const { CartError, createCartService, createFirebaseCartRepository } = require('
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    service: 'aldi-ecommerce-system',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
+  });
+});
+
+app.get('/api/live-check', async (req, res) => {
+  try {
+    const productResult = await sqlConnect.executeGraphqlRead(`
+      query LiveCheckProducts {
+        products {
+          id
+        }
+      }
+    `);
+    const products = productResult.data?.products || [];
+    res.json({
+      status: 'ok',
+      database: 'connected',
+      productCount: products.length,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Live check failed:', error);
+    res.status(500).json({
+      status: 'error',
+      database: 'unavailable',
+      message: error.message
+    });
+  }
+});
 
 // Helper: compute total stock for a product from StockBatch table
 async function getProductStock(productId) {

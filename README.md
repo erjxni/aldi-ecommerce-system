@@ -46,15 +46,6 @@ This project is organized into several distinct directories. For a detailed brea
    npm run test:e2e
    ```
 
-5. **Seed the production demo database**:
-   ```bash
-   npm run seed:production
-   ```
-
-   This creates final demo accounts and 4,000 clean product records for the live assessment database. Run it only when the team is ready to reset demo data.
-
----
-
 ## Deployment
 
 Story 14 deployment assets are included:
@@ -68,6 +59,8 @@ The deployed app should expose:
 
 * `/api/health` for hosting health checks.
 * `/api/live-check` for database connectivity and seeded product count verification.
+
+Final production catalog seeding is intentionally left to the database owner/QA lead so the live data uses approved real ALDI product records and images.
 
 ---
 

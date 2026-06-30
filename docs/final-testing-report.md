@@ -16,7 +16,7 @@ This report covers the final Story 14 demo path for the ALDI E-Commerce System: 
 | TC-06 | Checkout creates a financial record | Checkout/database integration tests confirm financial record creation and amount matching | Covered by `npm test`. |
 | TC-07 | Checkout triggers live dashboard WebSocket payload | Server emits `financial_update` payload after checkout | Covered by database integration test payload validation. |
 | TC-08 | Product stock is protected | Checkout rejects insufficient stock and cart rejects over-limit quantities | Covered by existing cart and checkout validation. |
-| TC-09 | Production seed creates clean data | `npm run seed:production` creates demo users and 4,000 professional product records | Covered by seed script output and `/api/live-check`. |
+| TC-09 | Production database contains clean data | The live database contains professional demo users, product records, and stock data approved by the team | Covered by `/api/live-check` and manual QA after the final database seed is provided by the database owner. |
 | TC-10 | Deployment configuration is reproducible | Render config, Dockerfile, and deployment guide are present | Covered by repository files. |
 
 ## Demo Accounts
@@ -31,3 +31,5 @@ This report covers the final Story 14 demo path for the ALDI E-Commerce System: 
 ## Notes
 
 The Firebase service account JSON must remain private. It should be configured as the `ALDI_SQL_CONNECT_API_KEY` secret in the live hosting provider, not committed to GitHub.
+
+The final 4,000-record production seed should be handled by the database owner/QA lead so the live catalog uses approved real product data and images.

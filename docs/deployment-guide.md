@@ -23,16 +23,6 @@ Deploy the integrated ALDI E-Commerce System so the Express backend and static f
 6. After deployment, open `/api/health` on the public URL and confirm it returns `{"status":"ok"}`.
 7. Open `/api/live-check` to confirm Firebase Data Connect is reachable and products are available.
 
-## Production Seed
-
-Run the final seed only after confirming the team is ready to reset demo data:
-
-```bash
-npm run seed:production
-```
-
-This script creates demo users and 4,000 clean professional product records with stock batches. It intentionally removes existing users, carts, orders, financial records, products, and stock batches first, so it should only be run for the final demo database.
-
 ## Live Smoke Test
 
 After the site is deployed and seeded, run:

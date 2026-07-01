@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -14,7 +15,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/public/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/public/favicon-16x16.png">
   <link rel="manifest" href="/assets/public/site.webmanifest">
-  </head>
+</head>
 
 <body class="admin-body">
   <div id="admin-app">
@@ -44,339 +45,450 @@
         <div style="flex-grow: 0; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
           <!-- Search Icon -->
           <a href="#" class="sidebar-icon" title="Search">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
           </a>
           <!-- Home Icon (Active) -->
           <a href="#" id="btn-home-dashboard" class="sidebar-icon active" title="Home">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
           </a>
           <!-- Settings Icon -->
           <a href="#" class="sidebar-icon" title="Settings">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="3"></circle>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
+            </svg>
           </a>
         </div>
-        
+
         <div class="sidebar-divider"></div>
-        
+
         <div style="flex-grow: 1; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
           <!-- Folder Icon -->
           <a href="#" id="btn-files-manager" class="sidebar-icon" title="Files">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
           </a>
           <!-- Activity Icon -->
           <a href="#" class="sidebar-icon" title="Activity">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
           </a>
           <!-- Database Icon -->
           <a href="#" id="btn-db-viewer" class="sidebar-icon" title="Database">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+          </a>
+          <!-- Financials Icon -->
+          <a href="#" id="btn-financials" class="sidebar-icon" title="Financials">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8a7.7 7.7 0 0 0 5.2-2"></path>
+              <path d="M4 10h12"></path>
+              <path d="M4 14h10"></path>
+            </svg>
           </a>
           <!-- Users Icon -->
           <a href="#" id="btn-users-manager" class="sidebar-icon" title="Users">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+              <circle cx="9" cy="7" r="4"></circle>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
           </a>
           <!-- Shield Icon -->
           <a href="#" class="sidebar-icon" title="Security">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
           </a>
         </div>
       </aside>
-      
+
       <div class="admin-content-wrapper">
         <div id="dashboard-view">
-        <!-- Dashboard Header -->
-        <div class="dashboard-header">
-      <h1 class="dashboard-title">
-        Overview 
-        <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
-      </h1>
-      <div class="header-actions">
-        <button class="btn-outline">&#x1F4C5; Jan 01 - July 31</button>
-        <span style="color:#697386; font-size:0.8rem; align-self:center;">compared to</span>
-        <button class="btn-outline">&#x1F4C5; Aug 01 - Dec 31</button>
-        <button class="btn-outline">Daily</button>
-        <button class="btn-outline" style="background:#f4f5f7;">Add widget +</button>
-      </div>
-    </div>
-
-    <!-- Main Grid -->
-    <main class="dashboard-grid">
-
-      <!-- Daily Losses Trend (span 2) -->
-      <div class="widget widget-span-2">
-        <div class="widget-header">
-          <h2 class="widget-title">Daily Losses Trend</h2>
-          <button class="widget-icon-btn">&#x22EF;</button>
-        </div>
-        
-        <div class="bar-chart-container">
-          <!-- Mocking 3D bars -->
-          <div class="bar-group"><div class="bar-3d" style="height: 60%;"></div><div class="bar-label">Mon</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 80%;"></div><div class="bar-label">Tue</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 50%;"></div><div class="bar-label">Wed</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 40%;"></div><div class="bar-label">Thu</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 70%;"></div><div class="bar-label">Fri</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 90%;"></div><div class="bar-label">Sat</div></div>
-          <div class="bar-group"><div class="bar-3d" style="height: 30%;"></div><div class="bar-label">Sun</div></div>
-        </div>
-      </div>
-
-      <!-- Total Revenue (Gross Volume) -->
-      <div class="widget" id="revenue-card">
-        <div class="widget-header">
-          <h2 class="widget-title">Total Revenue</h2>
-          <button class="widget-icon-btn">&#x22EF;</button>
-        </div>
-        <h3 class="metric-value" id="total-revenue-amount">€0.00</h3>
-        <span class="metric-change positive">&#x25B2; 15%</span>
-
-        <div class="progress-list">
-          <div class="progress-item">
-            <div class="progress-label">
-              <span>Online Payments</span>
-              <span class="progress-val">€0.00</span>
-            </div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill pb-green" style="width: 70%;"></div></div>
-          </div>
-          <div class="progress-item">
-            <div class="progress-label">
-              <span>Subscriptions</span>
-              <span class="progress-val">€0.00</span>
-            </div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill pb-blue" style="width: 45%;"></div></div>
-          </div>
-          <div class="progress-item">
-            <div class="progress-label">
-              <span>In-Store Sales</span>
-              <span class="progress-val">€0.00</span>
-            </div>
-            <div class="progress-bar-bg"><div class="progress-bar-fill pb-pink" style="width: 20%;"></div></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Loss Categories (Retention) -->
-      <div class="widget">
-        <div class="widget-header">
-          <h2 class="widget-title">Loss Categories</h2>
-          <button class="widget-icon-btn">&#x22EF;</button>
-        </div>
-        <div class="line-chart-mock">
-          <div style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1);">42%</div>
-        </div>
-        <div style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; color:#697386;">
-          <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
-        </div>
-      </div>
-
-      <!-- Stacked small widgets: Customers & Sales Losses -->
-      <div class="widget-stack">
-        <div class="widget" style="padding: 20px;">
-          <div class="widget-header" style="margin-bottom:10px;">
-            <h2 class="widget-title">Sales Losses</h2>
-            <button class="widget-icon-btn">&#x22EF;</button>
-          </div>
-          <div class="stat-group">
-            <div class="stat-value" id="total-loss-amount">€0.00</div>
-            <div>
-              <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period</div>
-              <div style="font-size:0.9rem; font-weight:600; text-align:right;">+€34,002</div>
+          <!-- Dashboard Header -->
+          <div class="dashboard-header">
+            <h1 class="dashboard-title">
+              Overview
+              <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
+            </h1>
+            <div class="header-actions">
+              <button class="btn-outline">&#x1F4C5; Jan 01 - July 31</button>
+              <span style="color:#697386; font-size:0.8rem; align-self:center;">compared to</span>
+              <button class="btn-outline">&#x1F4C5; Aug 01 - Dec 31</button>
+              <button class="btn-outline">Daily</button>
+              <button class="btn-outline" style="background:#f4f5f7;">Add widget +</button>
             </div>
           </div>
-          <div class="dot-chart" style="margin-top:10px;">
-            <div class="dot-col"><div class="dot active-green"></div><div class="dot"></div></div>
-            <div class="dot-col"><div class="dot active-green"></div><div class="dot active-green"></div></div>
-            <div class="dot-col"><div class="dot active-green"></div><div class="dot active-green"></div><div class="dot active-green"></div></div>
-            <div class="dot-col"><div class="dot active-green"></div></div>
-            <div class="dot-col"><div class="dot"></div></div>
-          </div>
-        </div>
-        
-        <div class="widget" style="padding: 20px;">
-          <div class="widget-header" style="margin-bottom:10px;">
-            <h2 class="widget-title">Customers</h2>
-            <button class="widget-icon-btn">&#x22EF;</button>
-          </div>
-          <div class="stat-group">
-            <div class="stat-value" id="customer-table-count-value">1,284</div>
-            <div>
-              <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period</div>
-              <div style="font-size:0.9rem; font-weight:600; text-align:right;">+320</div>
+
+          <!-- Main Grid -->
+          <main class="dashboard-grid">
+
+            <!-- Daily Losses Trend (span 2) -->
+            <div class="widget widget-span-2">
+              <div class="widget-header">
+                <h2 class="widget-title">Daily Losses Trend</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+
+              <div class="bar-chart-container">
+                <!-- Mocking 3D bars -->
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 60%;"></div>
+                  <div class="bar-label">Mon</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 80%;"></div>
+                  <div class="bar-label">Tue</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 50%;"></div>
+                  <div class="bar-label">Wed</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 40%;"></div>
+                  <div class="bar-label">Thu</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 70%;"></div>
+                  <div class="bar-label">Fri</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 90%;"></div>
+                  <div class="bar-label">Sat</div>
+                </div>
+                <div class="bar-group">
+                  <div class="bar-3d" style="height: 30%;"></div>
+                  <div class="bar-label">Sun</div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div class="dot-chart" style="margin-top:10px;">
-            <div class="dot-col"><div class="dot active-blue"></div></div>
-            <div class="dot-col"><div class="dot active-blue"></div><div class="dot"></div></div>
-            <div class="dot-col"><div class="dot active-blue"></div><div class="dot active-blue"></div><div class="dot active-blue"></div></div>
-            <div class="dot-col"><div class="dot active-blue"></div></div>
-          </div>
-        </div>
-      </div>
 
-      <!-- Insights / WebSocket Status -->
-      <div class="widget widget-insights">
-        <div class="insight-badge">&#x1F4A1; System Health</div>
-        <div class="insight-percent">100%</div>
-        <div class="insight-text">WebSocket connected successfully.</div>
-        <div class="insight-subtext">Real-time financial synchronization is active. Revenue streams are being updated continuously.</div>
-        
-        <div id="ws-status" style="position:absolute; bottom:24px; right:24px; background:rgba(255,255,255,0.2); padding:6px 12px; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
-          <div style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
-          <span class="ws-status-text">Connected</span>
-        </div>
-      </div>
+            <!-- Total Revenue (Gross Volume) -->
+            <div class="widget" id="revenue-card">
+              <div class="widget-header">
+                <h2 class="widget-title">Total Revenue</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <h3 class="metric-value" id="total-revenue-amount">€0.00</h3>
+              <span class="metric-change positive">&#x25B2; 15%</span>
 
-      <!-- Document Upload Widget -->
-      <div class="widget" id="document-upload-widget">
-        <div class="widget-header">
-          <h2 class="widget-title">Document Management</h2>
-          <span style="font-size: 1.25rem;">&#x1F4C4;</span>
-        </div>
-        <form id="doc-upload-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
-            <input type="text" id="doc-title" required placeholder="e.g. Q2 Governance Report" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
-            <select id="doc-category" required style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer; transition: border-color 0.2s;">
-              <option value="" disabled selected>-- Select Category --</option>
-              <option value="Governance">Governance</option>
-              <option value="E-Commerce">E-Commerce</option>
-              <option value="Logistics">Logistics</option>
-            </select>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 4px;">
-            <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
-            <input type="file" id="doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg" style="font-size: 0.85rem; color: #4f566b;" />
-          </div>
-          <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px;">Upload Document</button>
-        </form>
-        <div id="upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
-      </div>
+              <div class="progress-list">
+                <div class="progress-item">
+                  <div class="progress-label">
+                    <span>Online Payments</span>
+                    <span class="progress-val">€0.00</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill pb-green" style="width: 70%;"></div>
+                  </div>
+                </div>
+                <div class="progress-item">
+                  <div class="progress-label">
+                    <span>Subscriptions</span>
+                    <span class="progress-val">€0.00</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill pb-blue" style="width: 45%;"></div>
+                  </div>
+                </div>
+                <div class="progress-item">
+                  <div class="progress-label">
+                    <span>In-Store Sales</span>
+                    <span class="progress-val">€0.00</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill pb-pink" style="width: 20%;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-      <!-- Financial Ledger Table -->
-      <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
-        <div class="widget-header">
-          <h2 class="widget-title">Financial Ledger</h2>
-          <button class="widget-icon-btn">&#x22EF;</button>
-        </div>
-        <table class="modern-table">
-          <thead>
-            <tr>
-              <th>Transaction ID</th>
-              <th>Type</th>
-              <th>Amount</th>
-              <th>Related Order</th>
-              <th>Timestamp</th>
-            </tr>
-          </thead>
-          <tbody id="financial-ledger-body">
-            <tr>
-              <td colspan="5" style="text-align:center; padding: 24px; color: #697386;" class="ledger-empty">Awaiting real-time financial records via WebSocket...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            <!-- Loss Categories (Retention) -->
+            <div class="widget">
+              <div class="widget-header">
+                <h2 class="widget-title">Loss Categories</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <div class="line-chart-mock">
+                <div
+                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                  42%</div>
+              </div>
+              <div
+                style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; color:#697386;">
+                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
+              </div>
+            </div>
 
-      <!-- Customer Database -->
-      <div class="widget table-widget">
-        <div class="widget-header">
-          <h2 class="widget-title">Recent Customers</h2>
-          <button class="widget-icon-btn">&#x22EF;</button>
-        </div>
-        <table class="modern-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="customer-table-body">
-            <tr>
-              <td colspan="2" style="text-align:center; padding: 24px; color: #697386;" class="loading-state-admin">Loading customer database...</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+            <!-- Stacked small widgets: Customers & Sales Losses -->
+            <div class="widget-stack">
+              <div class="widget" style="padding: 20px;">
+                <div class="widget-header" style="margin-bottom:10px;">
+                  <h2 class="widget-title">Sales Losses</h2>
+                  <button class="widget-icon-btn">&#x22EF;</button>
+                </div>
+                <div class="stat-group">
+                  <div class="stat-value" id="total-loss-amount">€0.00</div>
+                  <div>
+                    <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
+                    </div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+€34,002</div>
+                  </div>
+                </div>
+                <div class="dot-chart" style="margin-top:10px;">
+                  <div class="dot-col">
+                    <div class="dot active-green"></div>
+                    <div class="dot"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-green"></div>
+                    <div class="dot active-green"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-green"></div>
+                    <div class="dot active-green"></div>
+                    <div class="dot active-green"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-green"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot"></div>
+                  </div>
+                </div>
+              </div>
 
-    <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
-    <div class="finance-widget-header">
-        <div>
-            <h2>Financial Reporting</h2>
-            <p>View revenue, expenses, and profit summary for a selected date range.</p>
-        </div>
+              <div class="widget" style="padding: 20px;">
+                <div class="widget-header" style="margin-bottom:10px;">
+                  <h2 class="widget-title">Customers</h2>
+                  <button class="widget-icon-btn">&#x22EF;</button>
+                </div>
+                <div class="stat-group">
+                  <div class="stat-value" id="customer-table-count-value">1,284</div>
+                  <div>
+                    <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
+                    </div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+320</div>
+                  </div>
+                </div>
+                <div class="dot-chart" style="margin-top:10px;">
+                  <div class="dot-col">
+                    <div class="dot active-blue"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-blue"></div>
+                    <div class="dot"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-blue"></div>
+                    <div class="dot active-blue"></div>
+                    <div class="dot active-blue"></div>
+                  </div>
+                  <div class="dot-col">
+                    <div class="dot active-blue"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-        <button type="button" id="download-finance-csv" class="admin-button">
-            Download CSV Report
-        </button>
-    </div>
+            <!-- Insights / WebSocket Status -->
+            <div class="widget widget-insights">
+              <div class="insight-badge">&#x1F4A1; System Health</div>
+              <div class="insight-percent">100%</div>
+              <div class="insight-text">WebSocket connected successfully.</div>
+              <div class="insight-subtext">Real-time financial synchronization is active. Revenue streams are being
+                updated continuously.</div>
 
-    <div class="finance-filters">
-        <label>
-            Date Range
-            <select id="finance-date-range">
-                <option value="7">Last 7 Days</option>
-                <option value="30" selected>Last 30 Days</option>
-                <option value="90">Last 90 Days</option>
-                <option value="custom">Custom Range</option>
-            </select>
-        </label>
+              <div id="ws-status"
+                style="position:absolute; bottom:24px; right:24px; background:rgba(255,255,255,0.2); padding:6px 12px; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
+                <div style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
+                <span class="ws-status-text">Connected</span>
+              </div>
+            </div>
 
-        <label>
-            Start Date
-            <input type="date" id="finance-start-date">
-        </label>
+            <!-- Document Upload Widget -->
+            <div class="widget" id="document-upload-widget">
+              <div class="widget-header">
+                <h2 class="widget-title">Document Management</h2>
+                <span style="font-size: 1.25rem;">&#x1F4C4;</span>
+              </div>
+              <form id="doc-upload-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+                  <input type="text" id="doc-title" required placeholder="e.g. Q2 Governance Report"
+                    style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+                  <select id="doc-category" required
+                    style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer; transition: border-color 0.2s;">
+                    <option value="" disabled selected>-- Select Category --</option>
+                    <option value="Governance">Governance</option>
+                    <option value="E-Commerce">E-Commerce</option>
+                    <option value="Logistics">Logistics</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+                  <input type="file" id="doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg"
+                    style="font-size: 0.85rem; color: #4f566b;" />
+                </div>
+                <button type="submit"
+                  style="background: #2b58f9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px;">Upload
+                  Document</button>
+              </form>
+              <div id="upload-status"
+                style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;">
+              </div>
+            </div>
 
-        <label>
-            End Date
-            <input type="date" id="finance-end-date">
-        </label>
-
-        <button type="button" id="load-finance-report" class="admin-button secondary">
-            Load Report
-        </button>
-    </div>
-
-    <div id="finance-message" class="finance-message"></div>
-
-    <div class="finance-summary-grid">
-        <div class="finance-summary-card">
-            <span>Total Revenue</span>
-            <strong id="finance-total-revenue">€0.00</strong>
-        </div>
-
-        <div class="finance-summary-card">
-            <span>Total Expenses</span>
-            <strong id="finance-total-expenses">€0.00</strong>
-        </div>
-
-        <div class="finance-summary-card">
-            <span>Total Profit</span>
-            <strong id="finance-total-profit">€0.00</strong>
-        </div>
-    </div>
-
-    <div class="finance-table-wrapper">
-        <table class="finance-table">
-            <thead>
-                <tr>
-                    <th>Date</th>
-                    <th>Transaction Type</th>
-                    <th>Description</th>
+            <!-- Financial Ledger Table -->
+            <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
+              <div class="widget-header">
+                <h2 class="widget-title">Financial Ledger</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Transaction ID</th>
+                    <th>Type</th>
                     <th>Amount</th>
                     <th>Related Order</th>
-                </tr>
-            </thead>
-            <tbody id="finance-ledger-body">
-                <tr>
-                    <td colspan="5">No financial records loaded yet.</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</section>
-    </main>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="financial-ledger-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center; padding: 24px; color: #697386;" class="ledger-empty">
+                      Awaiting real-time financial records via WebSocket...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Customer Database -->
+            <div class="widget table-widget">
+              <div class="widget-header">
+                <h2 class="widget-title">Recent Customers</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-table-body">
+                  <tr>
+                    <td colspan="2" style="text-align:center; padding: 24px; color: #697386;"
+                      class="loading-state-admin">Loading customer database...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
+              <div class="finance-widget-header">
+                <div>
+                  <h2>Financial Reporting</h2>
+                  <p>View revenue, expenses, and profit summary for a selected date range.</p>
+                </div>
+
+                <button type="button" id="download-finance-csv" class="admin-button">
+                  Download CSV Report
+                </button>
+              </div>
+
+              <div class="finance-filters">
+                <label>
+                  Date Range
+                  <select id="finance-date-range">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </label>
+
+                <label>
+                  Start Date
+                  <input type="date" id="finance-start-date">
+                </label>
+
+                <label>
+                  End Date
+                  <input type="date" id="finance-end-date">
+                </label>
+
+                <button type="button" id="load-finance-report" class="admin-button secondary">
+                  Load Report
+                </button>
+              </div>
+
+              <div id="finance-message" class="finance-message"></div>
+
+              <div class="finance-summary-grid">
+                <div class="finance-summary-card">
+                  <span>Total Revenue</span>
+                  <strong id="finance-total-revenue">€0.00</strong>
+                </div>
+
+                <div class="finance-summary-card">
+                  <span>Total Expenses</span>
+                  <strong id="finance-total-expenses">€0.00</strong>
+                </div>
+
+                <div class="finance-summary-card">
+                  <span>Total Profit</span>
+                  <strong id="finance-total-profit">€0.00</strong>
+                </div>
+              </div>
+
+              <div class="finance-table-wrapper">
+                <table class="finance-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Transaction Type</th>
+                      <th>Description</th>
+                      <th>Amount</th>
+                      <th>Related Order</th>
+                    </tr>
+                  </thead>
+                  <tbody id="finance-ledger-body">
+                    <tr>
+                      <td colspan="5">No financial records loaded yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </main>
         </div> <!-- /#dashboard-view -->
 
         <!-- Database Viewer (Hidden by default) -->
@@ -401,19 +513,25 @@
                   <!-- Dynamically populated -->
                 </thead>
                 <tbody id="db-table-body">
-                  <tr><td style="padding: 24px; text-align: center; color: #697386;">Select a table to view data</td></tr>
+                  <tr>
+                    <td style="padding: 24px; text-align: center; color: #697386;">Select a table to view data</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
           </div>
 
           <!-- Query Runner Component -->
-          <div class="db-viewer-content" style="margin-top: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
-            <div class="db-viewer-inner table-widget" style="flex: 1; padding: 32px; background: white; overflow-y: auto;">
+          <div class="db-viewer-content"
+            style="margin-top: 24px; flex: 1; display: flex; flex-direction: column; min-height: 0;">
+            <div class="db-viewer-inner table-widget"
+              style="flex: 1; padding: 32px; background: white; overflow-y: auto;">
               <h3 style="margin-top: 0; color: #1a1f36;">Run Direct Database Query</h3>
               <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Template:</label>
-                <select id="query-template-select" style="width: 100%; max-width: 400px; padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-family: 'Poppins', sans-serif;">
+                <label
+                  style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Template:</label>
+                <select id="query-template-select"
+                  style="width: 100%; max-width: 400px; padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-family: 'Poppins', sans-serif;">
                   <option value="">-- Custom Query --</option>
                   <option value="addProduct">Add a new Product</option>
                   <option value="deleteOrder">Delete an Order</option>
@@ -422,20 +540,32 @@
               </div>
               <div style="display: flex; gap: 24px;">
                 <div style="flex: 1; min-width: 0;">
-                  <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">GraphQL Query / Mutation</label>
-                  <textarea id="query-input" style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;" placeholder="mutation { ... }"></textarea>
+                  <label
+                    style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">GraphQL
+                    Query / Mutation</label>
+                  <textarea id="query-input"
+                    style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;"
+                    placeholder="mutation { ... }"></textarea>
                 </div>
                 <div style="width: 300px; flex-shrink: 0;">
-                  <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Variables (JSON)</label>
-                  <textarea id="variables-input" style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;" placeholder="{&#10;  &quot;id&quot;: &quot;...&quot;&#10;}"></textarea>
+                  <label
+                    style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Variables
+                    (JSON)</label>
+                  <textarea id="variables-input"
+                    style="box-sizing: border-box; width: 100%; height: 200px; padding: 12px; font-family: monospace; font-size: 0.85rem; border: 1px solid #e3e8ee; border-radius: 8px; resize: vertical;"
+                    placeholder="{&#10;  &quot;id&quot;: &quot;...&quot;&#10;}"></textarea>
                 </div>
               </div>
               <div style="margin-top: 16px;">
-                <button id="run-query-btn" style="background: #2b58f9; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Execute Query</button>
+                <button id="run-query-btn"
+                  style="background: #2b58f9; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Execute
+                  Query</button>
               </div>
               <div style="margin-top: 24px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Response:</label>
-                <pre id="query-output" style="background: #f4f5f7; padding: 16px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; min-height: 100px; color: #1a1f36;">Awaiting execution...</pre>
+                <label
+                  style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Response:</label>
+                <pre id="query-output"
+                  style="background: #f4f5f7; padding: 16px; border-radius: 8px; font-size: 0.85rem; overflow-x: auto; min-height: 100px; color: #1a1f36;">Awaiting execution...</pre>
               </div>
             </div>
           </div>
@@ -445,22 +575,28 @@
         <div id="users-manager-view" style="display: none; height: 100%; flex-direction: column;">
           <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center;">
             <h1 class="dashboard-title">Staff Management</h1>
-            <button id="open-add-user-btn" style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">+ Add User</button>
+            <button id="open-add-user-btn"
+              style="background: #10b981; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">+
+              Add User</button>
           </div>
-          <div id="users-card-container" style="flex: 1; padding: 24px 32px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; align-content: flex-start;">
+          <div id="users-card-container"
+            style="flex: 1; padding: 24px 32px; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; align-content: flex-start;">
             <!-- User cards will be injected here -->
           </div>
         </div>
 
         <!-- Files Manager View (Hidden by default) -->
         <div id="files-manager-view" style="display: none; height: 100%; flex-direction: column;">
-          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+          <div class="db-viewer-header"
+            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h1 class="dashboard-title">Files Manager</h1>
           </div>
-          
-          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+
+          <div
+            style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
             <!-- Left: Upload Widget -->
-            <div class="widget" style="width: 320px; flex-shrink: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee;">
+            <div class="widget"
+              style="width: 320px; flex-shrink: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee;">
               <div class="widget-header" style="margin-bottom: 16px;">
                 <h2 class="widget-title">Upload New File</h2>
               </div>
@@ -484,11 +620,14 @@
                 </div>
                 <button type="submit">Upload File</button>
               </form>
-              <div id="files-upload-status" style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+              <div id="files-upload-status"
+                style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;">
+              </div>
             </div>
 
             <!-- Right: Files List -->
-            <div class="widget table-widget" style="flex: 1; min-width: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 0; border-radius: 12px; background: white; border: 1px solid #e3e8ee; max-height: none;">
+            <div class="widget table-widget"
+              style="flex: 1; min-width: 0; box-shadow: 0 4px 20px rgba(0,0,0,0.05); padding: 0; border-radius: 12px; background: white; border: 1px solid #e3e8ee; max-height: none;">
               <div class="widget-header" style="padding: 24px 24px 12px 24px; margin-bottom: 0;">
                 <h2 class="widget-title">Stored Files</h2>
               </div>
@@ -513,101 +652,146 @@
         </div>
 
         <!-- Add User Modal -->
-        <dialog id="add-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+        <dialog id="add-user-modal"
+          style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
           <h2 style="margin-top: 0; color: #1a1f36;">Add New Staff User</h2>
           <form id="add-user-form" style="display: flex; flex-direction: column; gap: 16px;">
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
-              <input type="text" id="new-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="new-user-name" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;"
+                placeholder="Jane Doe">
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
-              <input type="email" id="new-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="new-user-email" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;"
+                placeholder="jane@aldi.com">
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Password</label>
-              <input type="password" id="new-user-password" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="SecurePassword123">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Password</label>
+              <input type="password" id="new-user-password" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;"
+                placeholder="SecurePassword123">
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
-              <select id="new-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="new-user-role" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
-              <input type="file" id="new-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
-              <div id="photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
-                <img id="photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
-                <button type="button" id="clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile
+                Photo</label>
+              <input type="file" id="new-user-photo" accept="image/*"
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="photo-preview-container"
+                style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="photo-preview-img" src=""
+                  style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="clear-photo-btn"
+                  style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
               </div>
               <div id="upload-progress-container" style="display: none; margin-top: 12px;">
                 <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
                 <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
-                  <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                  <div id="upload-progress-bar"
+                    style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
                 </div>
               </div>
             </div>
             <div id="add-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
-              <button type="button" id="cancel-add-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
-              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Create User</button>
+              <button type="button" id="cancel-add-user-btn" class="btn-outline"
+                style="padding: 10px 20px;">Cancel</button>
+              <button type="submit"
+                style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer;">Create
+                User</button>
             </div>
           </form>
         </dialog>
 
         <!-- Edit User Modal -->
-        <dialog id="edit-user-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
+        <dialog id="edit-user-modal"
+          style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
           <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
           <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
             <input type="hidden" id="edit-user-id">
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
-              <input type="text" id="edit-user-name" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="Jane Doe">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Name</label>
+              <input type="text" id="edit-user-name" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;"
+                placeholder="Jane Doe">
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
-              <input type="email" id="edit-user-email" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;" placeholder="jane@aldi.com">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Email</label>
+              <input type="email" id="edit-user-email" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;"
+                placeholder="jane@aldi.com">
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
-              <select id="edit-user-role" required style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
+              <select id="edit-user-role" required
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
             <div>
-              <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile Photo</label>
-              <input type="file" id="edit-user-photo" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
-              <div id="edit-photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
-                <img id="edit-photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
-                <button type="button" id="edit-clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              <label
+                style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Profile
+                Photo</label>
+              <input type="file" id="edit-user-photo" accept="image/*"
+                style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+              <div id="edit-photo-preview-container"
+                style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="edit-photo-preview-img" src=""
+                  style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="edit-clear-photo-btn"
+                  style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
               </div>
               <div id="edit-upload-progress-container" style="display: none; margin-top: 12px;">
                 <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
                 <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
-                  <div id="edit-upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                  <div id="edit-upload-progress-bar"
+                    style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
                 </div>
               </div>
             </div>
             <div id="edit-user-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
-              <button type="button" id="cancel-edit-user-btn" class="btn-outline" style="padding: 10px 20px;">Cancel</button>
-              <button type="submit" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Save Changes</button>
+              <button type="button" id="cancel-edit-user-btn" class="btn-outline"
+                style="padding: 10px 20px;">Cancel</button>
+              <button type="submit"
+                style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Save
+                Changes</button>
             </div>
           </form>
         </dialog>
 
         <!-- File Preview Modal -->
-        <dialog id="file-preview-modal" style="border: none; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 800px; width: 90%; height: 80vh; display: none; flex-direction: column;">
-          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e8ee; padding-bottom: 12px; margin-bottom: 16px;">
+        <dialog id="file-preview-modal"
+          style="border: none; border-radius: 12px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 800px; width: 90%; height: 80vh; display: none; flex-direction: column;">
+          <div
+            style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e3e8ee; padding-bottom: 12px; margin-bottom: 16px;">
             <h2 id="preview-modal-title" style="margin: 0; color: #1a1f36; font-size: 1.25rem;">File Preview</h2>
-            <button id="close-preview-btn" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #697386;">&times;</button>
+            <button id="close-preview-btn"
+              style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #697386;">&times;</button>
           </div>
-          <div id="preview-modal-body" style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; width: 100%;">
+          <div id="preview-modal-body"
+            style="flex: 1; display: flex; align-items: center; justify-content: center; overflow: hidden; min-height: 0; width: 100%;">
             <!-- Loaded content goes here -->
           </div>
         </dialog>
@@ -622,4 +806,5 @@
   <script type="module" src='/js/admin.js'></script>
   <script src="js/finance-reporting.js"></script>
 </body>
+
 </html>

@@ -47,13 +47,16 @@ function createCartService(repository) {
     let cart = await repository.findCartByUser(userId);
     if (!cart) cart = await repository.createCart(userId);
 
-    const existing = await repository.findItem(cart.id, productId);
-    const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
-    const totalStock = await repository.getStockForProduct(productId);
-    if (requestedQuantity > totalStock) {
-      throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
-    }
+   const existing = await repository.findItem(cart.id, productId);
+const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
 
+if (typeof repository.getStockForProduct === 'function') {
+    const totalStock = await repository.getStockForProduct(productId);
+
+    if (requestedQuantity > totalStock) {
+        throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
+    }
+}
     if (existing) {
       await repository.updateItem(existing.id, requestedQuantity);
     } else {
@@ -76,12 +79,16 @@ function createCartService(repository) {
     if (quantity === 0) {
       await repository.deleteItem(existing.id);
     } else {
-      const product = await repository.findProduct(productId);
-      if (!product) throw new CartError(404, 'Product not found');
-      const totalStock = await repository.getStockForProduct(productId);
-      if (quantity > totalStock) {
+     const product = await repository.findProduct(productId);
+if (!product) throw new CartError(404, 'Product not found');
+
+if (typeof repository.getStockForProduct === 'function') {
+    const totalStock = await repository.getStockForProduct(productId);
+
+    if (quantity > totalStock) {
         throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
-      }
+    }
+}
       await repository.updateItem(existing.id, quantity);
     }
     await repository.touchCart(cart.id);

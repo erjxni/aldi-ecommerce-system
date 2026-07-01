@@ -77,6 +77,10 @@
           <a href="#" id="btn-users-manager" class="sidebar-icon" title="Users">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           </a>
+          <!-- Notification Icon -->
+          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications" onclick="event.preventDefault(); document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display='none'); document.getElementById('notifications-manager').style.display='flex';">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+          </a>
           <!-- Shield Icon -->
           <a href="#" class="sidebar-icon" title="Security">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -304,6 +308,58 @@
 
     </main>
         </div> <!-- /#dashboard-view -->
+
+        <!-- Notifications Manager (Hidden by default) -->
+        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header">
+            <h1 class="dashboard-title">Notification Manager</h1>
+          </div>
+
+          <!-- Create Notification Widget -->
+          <div class="db-viewer-content" style="margin-top: 24px;">
+            <div class="db-viewer-inner table-widget" style="padding: 32px; background: white;">
+              <h3 style="margin-top: 0; color: #1a1f36;">Create Notification</h3>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Message:</label>
+                <input type="text" id="notif-message-input" placeholder="Enter notification message..." style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; outline: none;" />
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Type:</label>
+                <select id="notif-type-select" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none;">
+                  <option value="system">System</option>
+                  <option value="order">Order</option>
+                  <option value="meeting">Meeting</option>
+                  <option value="poll">Poll</option>
+                </select>
+              </div>
+
+              <div style="margin-bottom: 24px;">
+                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Send To:</label>
+                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="role-admin" value="admin" checked /> Admin
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="role-employee" value="employee" checked /> Employee
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="role-financial" value="financial_officer" checked /> Financial Officer
+                  </label>
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" id="role-customer" value="customer" /> Customer
+                  </label>
+                </div>
+              </div>
+
+              <button id="send-notif-btn" style="background: #1a1f36; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
+                Send Notification
+              </button>
+              <span id="notif-status" style="margin-left: 16px; font-size: 0.85rem; color: #4f566b;"></span>
+            </div>
+          </div>
+        </div> <!-- /#notifications-manager -->
 
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">

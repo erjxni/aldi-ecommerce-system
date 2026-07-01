@@ -1565,3 +1565,9 @@ body {
   color: #666;
   font-size: 0.85rem;
 }
+
+/* Hide dropdown border when empty */
+.notif-dropdown:empty {
+  border: none;
+  box-shadow: none;
+}

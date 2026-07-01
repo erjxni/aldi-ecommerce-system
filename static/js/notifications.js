@@ -27,7 +27,8 @@
     notifBadge.style.display = unread > 0 ? 'flex' : 'none';
 
     if (notifications.length === 0) {
-      notifDropdown.innerHTML = '<div class="notif-empty">No notifications</div>';
+      notifDropdown.innerHTML = '';
+      notifDropdown.classList.remove('open');
       return;
     }
 

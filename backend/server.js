@@ -1217,3 +1217,54 @@ app.put('/api/notifications/:id/read', authenticateJWT, async (req, res) => {
     res.status(500).json({ error: 'Failed to mark notification as read' });
   }
 });
+
+// ---------------------------------------------------------
+// API: Broadcast notification to users by role (Admin only)
+// ---------------------------------------------------------
+app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
+  try {
+    const { message, type, roles } = req.body;
+    const allowedRoles = ['admin', 'financial_officer', 'employee'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admins can broadcast notifications' });
+    }
+
+    // Get all users with the specified roles
+    const query = `
+      query GetUsersByRoles {
+        users {
+          id
+          role
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const users = result.data && result.data.users ? result.data.users : [];
+    const targetUsers = users.filter(u => roles.includes(u.role));
+
+    // Insert notification for each target user
+    const mutation = `
+      mutation CreateNotification($userId: UUID!, $type: String!, $message: String!) {
+        notification_insert(data: {
+          user: { id: $userId },
+          type: $type,
+          message: $message,
+          isRead: false
+        }) {
+          id
+        }
+      }
+    `;
+
+    for (const user of targetUsers) {
+      await sqlConnect.executeGraphql(mutation, {
+        variables: { userId: user.id, type, message }
+      });
+    }
+
+    res.json({ success: true, sent: targetUsers.length });
+  } catch (error) {
+    console.error('Error broadcasting notification:', error);
+    res.status(500).json({ error: 'Failed to broadcast notification' });
+  }
+});

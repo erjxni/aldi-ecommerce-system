@@ -11,8 +11,8 @@ function requirePositiveInteger(value, field = 'quantity') {
     throw new CartError(400, `${field} must be a positive integer`);
   }
 }
-async function getAvailableStock(product, productId) {
-  if (typeof repository.getStockForProduct === 'function') {
+async function getAvailableStock(repository, product, productId) {
+  if (repository && typeof repository.getStockForProduct === 'function') {
     return await repository.getStockForProduct(productId);
   }
 
@@ -61,7 +61,7 @@ function createCartService(repository) {
    const existing = await repository.findItem(cart.id, productId);
    const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
 
-   const totalStock = await getAvailableStock(product, productId);
+   const totalStock = await getAvailableStock(repository, product, productId);
 
    if (totalStock !== null && requestedQuantity > totalStock) {
     throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
@@ -92,7 +92,7 @@ function createCartService(repository) {
      const product = await repository.findProduct(productId);
     if (!product) throw new CartError(404, 'Product not found');
 
-    const totalStock = await getAvailableStock(product, productId);
+    const totalStock = await getAvailableStock(repository, product, productId);
 
     if (totalStock !== null && quantity > totalStock) {
       throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);

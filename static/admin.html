@@ -31,7 +31,10 @@
       </div>
 
       <div class="topbar-right">
-        <button class="icon-btn">&#x1F514;</button> <!-- Notification -->
+        <div id="notification-bell" class="notification-bell">
+          <button class="bell-btn icon-btn" id="bell-btn">&#x1F514;<span class="notif-badge" id="notif-badge">0</span></button>
+          <div class="notif-dropdown" id="notif-dropdown"></div>
+        </div>
         <div class="profile-pic" title="Profile">&#x1F464;</div>
         <button id="logout-btn" class="icon-btn" title="Log Out">&#x21AA;</button>
       </div>
@@ -543,5 +546,6 @@
 
   <!-- WebSocket Connection & Role-Based UI Script -->
   <script type="module" src='/js/admin.js'></script>
+  <script src="/js/notifications.js"></script>
 </body>
 </html>

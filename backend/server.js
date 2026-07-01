@@ -1168,3 +1168,52 @@ if (require.main === module) {
 }
 
 module.exports = { app, server };
+
+// ---------------------------------------------------------
+// API: Get notifications for the logged-in user
+// ---------------------------------------------------------
+app.get('/api/notifications', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const query = `
+      query GetNotifications($userId: UUID!) {
+        notifications(where: { userId: { eq: $userId } }, orderBy: { createdAt: DESC }) {
+          id
+          userId
+          type
+          message
+          isRead
+          createdAt
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, { variables: { userId } });
+    const notifications = result.data && result.data.notifications ? result.data.notifications : [];
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Mark a notification as read (SCRUM-200)
+// ---------------------------------------------------------
+app.put('/api/notifications/:id/read', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mutation = `
+      mutation MarkAsRead($id: UUID!) {
+        notification_update(id: { id: $id }, data: { isRead: true }) {
+          id
+          isRead
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphql(mutation, { variables: { id } });
+    res.json({ success: true, notification: result.data.notification_update });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});

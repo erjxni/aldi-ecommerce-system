@@ -49,3 +49,6 @@ To get the best development experience and proper diagram rendering:
 
 1. **Recommended Extensions**:
    - **Markdown Preview Mermaid Support** (Matt Bierner): Required to render the system flows and sequence diagrams in [docs/architecture.md](docs/architecture.md).
+
+## Disclaimer
+> This project was created solely for educational purposes. All Aldi brands, logos, and assets used in this project are the intellectual property of Aldi. No copyright infringement is intended, and no profit was made from this work.

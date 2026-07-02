@@ -258,17 +258,31 @@
   const homeBtn = document.getElementById('btn-home-dashboard');
   const usersBtn = document.getElementById('btn-users-manager');
   const filesBtn = document.getElementById('btn-files-manager');
+  const financialsBtn = document.getElementById('btn-financials');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
   const filesViewer = document.getElementById('files-manager-view');
+  const financialsViewer = document.getElementById('financials-view');
 
-  if (dbBtn && homeBtn && usersBtn && filesBtn && dashboardView && dbViewer && usersViewer && filesViewer) {
+  if (
+  dbBtn &&
+  homeBtn &&
+  usersBtn &&
+  filesBtn &&
+  financialsBtn &&
+  dashboardView &&
+  dbViewer &&
+  usersViewer &&
+  filesViewer &&
+  financialsViewer
+) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
       dashboardView.style.display = 'none';
       usersViewer.style.display = 'none';
       filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'none';
       dbViewer.style.display = 'flex';
 
       document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -278,16 +292,48 @@
       const activeTab = document.querySelector('.db-tab.active');
       if (activeTab) loadTableData(activeTab.dataset.table);
     });
+    financialsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      dashboardView.style.display = 'none';
+      dbViewer.style.display = 'none';
+      usersViewer.style.display = 'none';
+      filesViewer.style.display = 'none';
+
+      financialsViewer.style.display = 'flex';
+
+      document
+        .querySelectorAll('.admin-sidebar .sidebar-icon')
+        .forEach((i) => i.classList.remove('active'));
+
+      financialsBtn.classList.add('active');
+    });
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
       dbViewer.style.display = 'none';
       usersViewer.style.display = 'none';
       filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'none';
       dashboardView.style.display = 'block';
 
       document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
       homeBtn.classList.add('active');
+    });
+    financialsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      dashboardView.style.display = 'none';
+      dbViewer.style.display = 'none';
+      usersViewer.style.display = 'none';
+      filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'flex';
+
+      document
+        .querySelectorAll('.admin-sidebar .sidebar-icon')
+        .forEach((i) => i.classList.remove('active'));
+
+      financialsBtn.classList.add('active');
     });
 
     usersBtn.addEventListener('click', (e) => {
@@ -295,6 +341,7 @@
       dashboardView.style.display = 'none';
       dbViewer.style.display = 'none';
       filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'none';
       usersViewer.style.display = 'flex';
 
       document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -302,6 +349,21 @@
 
       loadUsersManagerData();
     });
+    financialsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      dashboardView.style.display = 'none';
+      dbViewer.style.display = 'none';
+      usersViewer.style.display = 'none';
+      filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'flex';
+
+    document
+      .querySelectorAll('.admin-sidebar .sidebar-icon')
+      .forEach((i) => i.classList.remove('active'));
+
+    financialsBtn.classList.add('active');
+  });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -309,12 +371,28 @@
       dbViewer.style.display = 'none';
       usersViewer.style.display = 'none';
       filesViewer.style.display = 'flex';
+      financialsViewer.style.display = 'none';
 
       document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
       filesBtn.classList.add('active');
 
       loadFilesManagerData();
     });
+    financialsBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+
+      dashboardView.style.display = 'none';
+      dbViewer.style.display = 'none';
+      usersViewer.style.display = 'none';
+      filesViewer.style.display = 'none';
+      financialsViewer.style.display = 'flex';
+
+    document
+      .querySelectorAll('.admin-sidebar .sidebar-icon')
+      .forEach((i) => i.classList.remove('active'));
+
+    financialsBtn.classList.add('active');
+  });
   }
 
   // --- Tab and Data Fetching Logic ---

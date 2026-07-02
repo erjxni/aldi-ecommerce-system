@@ -412,14 +412,22 @@
               </table>
             </div>
 
-            <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
+           
+          </main>
+        </div> <!-- /#dashboard-view -->
+        <!-- Financials View -->
+<div
+  id="financials-view"
+  style="display: none; height: 100%; flex-direction: column;"
+>
+  <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
               <div class="finance-widget-header">
                 <div>
                   <h2>Financial Reporting</h2>
                   <p>View revenue, expenses, and profit summary for a selected date range.</p>
                 </div>
 
-                <button type="button" id="download-finance-csv" class="admin-button">
+                <button type="button" id="download-finance-csv" class="btn-outline">
                   Download CSV Report
                 </button>
               </div>
@@ -445,7 +453,7 @@
                   <input type="date" id="finance-end-date">
                 </label>
 
-                <button type="button" id="load-finance-report" class="admin-button secondary">
+             <button type="button" id="load-finance-report" class="btn-outline">
                   Load Report
                 </button>
               </div>
@@ -488,8 +496,7 @@
                 </table>
               </div>
             </section>
-          </main>
-        </div> <!-- /#dashboard-view -->
+</div>
 
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">

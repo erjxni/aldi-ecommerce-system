@@ -1089,6 +1089,135 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
 });
 
 // ---------------------------------------------------------
+function getAuthenticatedUserRole(req) {
+    return (
+        req.user?.role ||
+        req.user?.userRole ||
+        req.user?.accountRole ||
+        req.user?.claims?.role ||
+        ""
+    );
+}
+
+function requireFinanceAccess(req, res, next) {
+    const role = getAuthenticatedUserRole(req);
+
+    const allowedRoles = ["admin", "financial_officer"];
+
+    if (!allowedRoles.includes(role)) {
+        return res.status(403).json({
+            error: "Forbidden: finance summary is only available to admin or financial officer users."
+        });
+    }
+
+    return next();
+}
+
+function getDateRangeFromQuery(query) {
+    const now = new Date();
+
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(now.getDate() - 30);
+
+    const startDate = query.startDate
+        ? new Date(query.startDate)
+        : defaultStartDate;
+
+    const endDate = query.endDate
+        ? new Date(query.endDate)
+        : now;
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return null;
+    }
+
+    return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+    };
+}
+
+function summarizeFinancialRecords(records) {
+    let totalRevenue = 0;
+    let totalExpenses = 0;
+
+    const groupedByType = {};
+
+    records.forEach((record) => {
+        const amount = Number(record.amount || 0);
+        const transactionType = record.transactionType || "unknown";
+
+        if (!groupedByType[transactionType]) {
+            groupedByType[transactionType] = {
+                transactionType,
+                totalAmount: 0,
+                recordCount: 0
+            };
+        }
+
+        groupedByType[transactionType].totalAmount += amount;
+        groupedByType[transactionType].recordCount += 1;
+
+        if (transactionType === "ecommerce_sale") {
+            totalRevenue += amount;
+        }
+
+        if (transactionType === "operational_cost") {
+            totalExpenses += amount;
+        }
+    });
+
+    return {
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        totalExpenses: Number(totalExpenses.toFixed(2)),
+        totalProfit: Number((totalRevenue - totalExpenses).toFixed(2)),
+        groupedByType: Object.values(groupedByType).map((group) => ({
+            ...group,
+            totalAmount: Number(group.totalAmount.toFixed(2))
+        }))
+    };
+}
+
+app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (req, res) => {
+    const dateRange = getDateRangeFromQuery(req.query);
+
+    if (!dateRange) {
+        return res.status(400).json({
+            error: "Invalid startDate or endDate query parameter."
+        });
+    }
+
+    try {
+        const recordsSnapshot = await db.collection("FinancialRecord")
+            .where("createdAt", ">=", dateRange.startDate)
+            .where("createdAt", "<=", dateRange.endDate)
+            .get();
+
+        const records = [];
+
+        recordsSnapshot.forEach((doc) => {
+            records.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        const summary = summarizeFinancialRecords(records);
+
+        return res.status(200).json({
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            summary,
+            records
+        });
+    } catch (error) {
+        console.error("Failed to load finance summary:", error);
+
+        return res.status(500).json({
+            error: "Failed to load finance summary."
+        });
+    }
+});
 // Fallback routing: handle undefined routes
 // ---------------------------------------------------------
 // API fallback: return JSON 404

@@ -11,6 +11,17 @@ function requirePositiveInteger(value, field = 'quantity') {
     throw new CartError(400, `${field} must be a positive integer`);
   }
 }
+async function getAvailableStock(repository, product, productId) {
+  if (repository && typeof repository.getStockForProduct === 'function') {
+    return await repository.getStockForProduct(productId);
+  }
+
+  if (product && product.stockQuantity !== undefined) {
+    return Number(product.stockQuantity);
+  }
+
+  return null;
+}
 
 function createCartService(repository) {
   async function getCart(userId) {
@@ -47,12 +58,14 @@ function createCartService(repository) {
     let cart = await repository.findCartByUser(userId);
     if (!cart) cart = await repository.createCart(userId);
 
-    const existing = await repository.findItem(cart.id, productId);
-    const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
-    const totalStock = await repository.getStockForProduct(productId);
-    if (requestedQuantity > totalStock) {
-      throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
-    }
+   const existing = await repository.findItem(cart.id, productId);
+   const requestedQuantity = (existing ? existing.quantity : 0) + quantity;
+
+   const totalStock = await getAvailableStock(repository, product, productId);
+
+   if (totalStock !== null && requestedQuantity > totalStock) {
+    throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
+}
 
     if (existing) {
       await repository.updateItem(existing.id, requestedQuantity);
@@ -76,12 +89,15 @@ function createCartService(repository) {
     if (quantity === 0) {
       await repository.deleteItem(existing.id);
     } else {
-      const product = await repository.findProduct(productId);
-      if (!product) throw new CartError(404, 'Product not found');
-      const totalStock = await repository.getStockForProduct(productId);
-      if (quantity > totalStock) {
-        throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
+     const product = await repository.findProduct(productId);
+    if (!product) throw new CartError(404, 'Product not found');
+
+    const totalStock = await getAvailableStock(repository, product, productId);
+
+    if (totalStock !== null && quantity > totalStock) {
+      throw new CartError(400, `Only ${totalStock} item(s) are available in stock`);
       }
+
       await repository.updateItem(existing.id, quantity);
     }
     await repository.touchCart(cart.id);

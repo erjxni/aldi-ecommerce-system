@@ -259,155 +259,80 @@
   const usersBtn = document.getElementById('btn-users-manager');
   const filesBtn = document.getElementById('btn-files-manager');
   const financialsBtn = document.getElementById('btn-financials');
+  const notifBtn = document.getElementById('btn-notifications-manager');
+
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
   const filesViewer = document.getElementById('files-manager-view');
   const financialsViewer = document.getElementById('financials-view');
+  const notifPanel = document.getElementById('notifications-manager');
 
-  if (
-  dbBtn &&
-  homeBtn &&
-  usersBtn &&
-  filesBtn &&
-  financialsBtn &&
-  dashboardView &&
-  dbViewer &&
-  usersViewer &&
-  filesViewer &&
-  financialsViewer
-) {
+  const views = [dashboardView, dbViewer, usersViewer, filesViewer, financialsViewer, notifPanel];
+
+  function hideAllViews() {
+    views.forEach(v => {
+      if (v) v.style.display = 'none';
+    });
+    document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+  }
+
+  if (homeBtn) {
+    homeBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideAllViews();
+      if (dashboardView) dashboardView.style.display = 'block';
+      homeBtn.classList.add('active');
+    });
+  }
+
+  if (dbBtn) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dbViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (dbViewer) dbViewer.style.display = 'flex';
       dbBtn.classList.add('active');
-
-      // Load default tab
       const activeTab = document.querySelector('.db-tab.active');
       if (activeTab) loadTableData(activeTab.dataset.table);
     });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+  }
 
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
-    });
-
-    homeBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dashboardView.style.display = 'block';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-      homeBtn.classList.add('active');
-    });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
-    });
-
+  if (usersBtn) {
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      usersViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (usersViewer) usersViewer.style.display = 'flex';
       usersBtn.classList.add('active');
-
-      loadUsersManagerData();
+      if (typeof loadUsersManagerData === 'function') loadUsersManagerData();
     });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
+  }
 
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-    document
-      .querySelectorAll('.admin-sidebar .sidebar-icon')
-      .forEach((i) => i.classList.remove('active'));
-
-    financialsBtn.classList.add('active');
-  });
-
+  if (filesBtn) {
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'flex';
-      financialsViewer.style.display = 'none';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (filesViewer) filesViewer.style.display = 'flex';
       filesBtn.classList.add('active');
-
-      loadFilesManagerData();
+      if (typeof loadFilesManagerData === 'function') loadFilesManagerData();
     });
+  }
+
+  if (financialsBtn) {
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      hideAllViews();
+      if (financialsViewer) financialsViewer.style.display = 'flex';
+      financialsBtn.classList.add('active');
+    });
+  }
 
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-    document
-      .querySelectorAll('.admin-sidebar .sidebar-icon')
-      .forEach((i) => i.classList.remove('active'));
-
-    financialsBtn.classList.add('active');
-  });
-
-        const notifBtn = document.getElementById('btn-notifications-manager');
-        const notifPanel = document.getElementById('notifications-manager');
-        if (notifBtn && notifPanel) {
-          notifBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            dashboardView.style.display = 'none';
-            dbViewer.style.display = 'none';
-            usersViewer.style.display = 'none';
-            filesViewer.style.display = 'none';
-            notifPanel.style.display = 'flex';
-            document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-            notifBtn.classList.add('active');
-          });
-        }
+  if (notifBtn) {
+    notifBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      hideAllViews();
+      if (notifPanel) notifPanel.style.display = 'flex';
+      notifBtn.classList.add('active');
+    });
   }
 
   // --- Tab and Data Fetching Logic ---

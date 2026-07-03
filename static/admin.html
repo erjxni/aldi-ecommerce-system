@@ -556,6 +556,191 @@
             </div>
           </div>
         </div> <!-- /#notifications-manager -->
+            </div>
+
+            <!-- Insights / WebSocket Status -->
+            <div class="widget widget-insights">
+              <div class="insight-badge">&#x1F4A1; System Health</div>
+              <div class="insight-percent">100%</div>
+              <div class="insight-text">WebSocket connected successfully.</div>
+              <div class="insight-subtext">Real-time financial synchronization is active. Revenue streams are being
+                updated continuously.</div>
+
+              <div id="ws-status"
+                style="position:absolute; bottom:24px; right:24px; background:rgba(255,255,255,0.2); padding:6px 12px; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
+                <div style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
+                <span class="ws-status-text">Connected</span>
+              </div>
+            </div>
+
+            <!-- Document Upload Widget -->
+            <div class="widget" id="document-upload-widget">
+              <div class="widget-header">
+                <h2 class="widget-title">Document Management</h2>
+                <span style="font-size: 1.25rem;">&#x1F4C4;</span>
+              </div>
+              <form id="doc-upload-form" style="display: flex; flex-direction: column; gap: 14px; margin-top: 8px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Document Title</label>
+                  <input type="text" id="doc-title" required placeholder="e.g. Q2 Governance Report"
+                    style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Category</label>
+                  <select id="doc-category" required
+                    style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer; transition: border-color 0.2s;">
+                    <option value="" disabled selected>-- Select Category --</option>
+                    <option value="Governance">Governance</option>
+                    <option value="E-Commerce">E-Commerce</option>
+                    <option value="Logistics">Logistics</option>
+                  </select>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">File Upload</label>
+                  <input type="file" id="doc-file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.png,.jpg,.jpeg"
+                    style="font-size: 0.85rem; color: #4f566b;" />
+                </div>
+                <button type="submit"
+                  style="background: #2b58f9; color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; margin-top: 10px;">Upload
+                  Document</button>
+              </form>
+              <div id="upload-status"
+                style="margin-top: 12px; font-size: 0.85rem; font-weight: 500; text-align: center; display: none;">
+              </div>
+            </div>
+
+            <!-- Financial Ledger Table -->
+            <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
+              <div class="widget-header">
+                <h2 class="widget-title">Financial Ledger</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Transaction ID</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Related Order</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="financial-ledger-body">
+                  <tr>
+                    <td colspan="5" style="text-align:center; padding: 24px; color: #697386;" class="ledger-empty">
+                      Awaiting real-time financial records via WebSocket...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Customer Database -->
+            <div class="widget table-widget">
+              <div class="widget-header">
+                <h2 class="widget-title">Recent Customers</h2>
+                <button class="widget-icon-btn">&#x22EF;</button>
+              </div>
+              <table class="modern-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="customer-table-body">
+                  <tr>
+                    <td colspan="2" style="text-align:center; padding: 24px; color: #697386;"
+                      class="loading-state-admin">Loading customer database...</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+           
+          </main>
+        </div> <!-- /#dashboard-view -->
+        <!-- Financials View -->
+<div
+  id="financials-view"
+  style="display: none; height: 100%; flex-direction: column;"
+>
+  <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
+              <div class="finance-widget-header">
+                <div>
+                  <h2>Financial Reporting</h2>
+                  <p>View revenue, expenses, and profit summary for a selected date range.</p>
+                </div>
+
+                <button type="button" id="download-finance-csv" class="btn-outline">
+                  Download CSV Report
+                </button>
+              </div>
+
+              <div class="finance-filters">
+                <label>
+                  Date Range
+                  <select id="finance-date-range">
+                    <option value="7">Last 7 Days</option>
+                    <option value="30" selected>Last 30 Days</option>
+                    <option value="90">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                </label>
+
+                <label>
+                  Start Date
+                  <input type="date" id="finance-start-date">
+                </label>
+
+                <label>
+                  End Date
+                  <input type="date" id="finance-end-date">
+                </label>
+
+             <button type="button" id="load-finance-report" class="btn-outline">
+                  Load Report
+                </button>
+              </div>
+
+              <div id="finance-message" class="finance-message"></div>
+
+              <div class="finance-summary-grid">
+                <div class="finance-summary-card">
+                  <span>Total Revenue</span>
+                  <strong id="finance-total-revenue">€0.00</strong>
+                </div>
+
+                <div class="finance-summary-card">
+                  <span>Total Expenses</span>
+                  <strong id="finance-total-expenses">€0.00</strong>
+                </div>
+
+                <div class="finance-summary-card">
+                  <span>Total Profit</span>
+                  <strong id="finance-total-profit">€0.00</strong>
+                </div>
+              </div>
+
+              <div class="finance-table-wrapper">
+                <table class="finance-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Transaction Type</th>
+                      <th>Description</th>
+                      <th>Amount</th>
+                      <th>Related Order</th>
+                    </tr>
+                  </thead>
+                  <tbody id="finance-ledger-body">
+                    <tr>
+                      <td colspan="5">No financial records loaded yet.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+</div>
 
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">

@@ -25,20 +25,31 @@
   };
   window.updateTopbarProfilePic();
 
-  // Sync user profile photo from db if not cached locally
-  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
+  // Sync user profile from db if not cached locally
+  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '' || !localStorage.getItem('userName'))) {
     fetch(`/api/admin/database/User`, {
       headers: { 'Authorization': `Bearer ${userToken}` }
     })
       .then(res => res.json())
       .then(users => {
         const me = users.find(u => u.email === userEmail);
-        if (me && me.photoUrl) {
-          localStorage.setItem('userPhoto', me.photoUrl);
-          window.updateTopbarProfilePic();
+        if (me) {
+          if (me.photoUrl) {
+            localStorage.setItem('userPhoto', me.photoUrl);
+            window.updateTopbarProfilePic();
+          }
+          if (me.displayName) {
+            localStorage.setItem('userName', me.displayName);
+            
+            // Immediately update main.js navbar if it exists
+            const emailDisplay = document.getElementById('user-email-display');
+            if (emailDisplay) {
+              emailDisplay.textContent = `Hello, ${me.displayName}`;
+            }
+          }
         }
       })
-      .catch(err => console.error('Failed to sync topbar profile photo:', err));
+      .catch(err => console.error('Failed to sync profile from db:', err));
   }
 
   // --- Logout Button ---
@@ -266,17 +277,17 @@
   const financialsViewer = document.getElementById('financials-view');
 
   if (
-  dbBtn &&
-  homeBtn &&
-  usersBtn &&
-  filesBtn &&
-  financialsBtn &&
-  dashboardView &&
-  dbViewer &&
-  usersViewer &&
-  filesViewer &&
-  financialsViewer
-) {
+    dbBtn &&
+    homeBtn &&
+    usersBtn &&
+    filesBtn &&
+    financialsBtn &&
+    dashboardView &&
+    dbViewer &&
+    usersViewer &&
+    filesViewer &&
+    financialsViewer
+  ) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
       dashboardView.style.display = 'none';
@@ -358,12 +369,12 @@
       filesViewer.style.display = 'none';
       financialsViewer.style.display = 'flex';
 
-    document
-      .querySelectorAll('.admin-sidebar .sidebar-icon')
-      .forEach((i) => i.classList.remove('active'));
+      document
+        .querySelectorAll('.admin-sidebar .sidebar-icon')
+        .forEach((i) => i.classList.remove('active'));
 
-    financialsBtn.classList.add('active');
-  });
+      financialsBtn.classList.add('active');
+    });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -387,12 +398,27 @@
       filesViewer.style.display = 'none';
       financialsViewer.style.display = 'flex';
 
-    document
-      .querySelectorAll('.admin-sidebar .sidebar-icon')
-      .forEach((i) => i.classList.remove('active'));
+      document
+        .querySelectorAll('.admin-sidebar .sidebar-icon')
+        .forEach((i) => i.classList.remove('active'));
 
-    financialsBtn.classList.add('active');
-  });
+      financialsBtn.classList.add('active');
+    });
+
+    const notifBtn = document.getElementById('btn-notifications-manager');
+    const notifPanel = document.getElementById('notifications-manager');
+    if (notifBtn && notifPanel) {
+      notifBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        dashboardView.style.display = 'none';
+        dbViewer.style.display = 'none';
+        usersViewer.style.display = 'none';
+        filesViewer.style.display = 'none';
+        notifPanel.style.display = 'flex';
+        document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+        notifBtn.classList.add('active');
+      });
+    }
   }
 
   // --- Tab and Data Fetching Logic ---
@@ -1209,3 +1235,66 @@
     return 'status-warning';
   }
 })();
+// ---------------------------------------------------------
+// Notifications Manager
+// ---------------------------------------------------------
+const btnNotificationsManager = document.getElementById('btn-notifications-manager');
+if (btnNotificationsManager) {
+  btnNotificationsManager.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display = 'none');
+    const panel = document.getElementById('notifications-manager');
+    if (panel) panel.style.display = 'flex';
+  });
+}
+
+const sendNotifBtn = document.getElementById('send-notif-btn');
+if (sendNotifBtn) {
+  sendNotifBtn.addEventListener('click', async () => {
+    const message = document.getElementById('notif-message-input').value.trim();
+    const type = document.getElementById('notif-type-select').value;
+    const roles = [];
+    if (document.getElementById('role-admin').checked) roles.push('admin');
+    if (document.getElementById('role-employee').checked) roles.push('employee');
+    if (document.getElementById('role-financial').checked) roles.push('financial_officer');
+    if (document.getElementById('role-customer').checked) roles.push('customer');
+    const status = document.getElementById('notif-status');
+
+    if (!message) {
+      status.textContent = 'Please enter a message.';
+      status.style.color = '#e53935';
+      return;
+    }
+
+    if (roles.length === 0) {
+      status.textContent = 'Please select at least one role.';
+      status.style.color = '#e53935';
+      return;
+    }
+
+    try {
+      status.textContent = 'Sending...';
+      status.style.color = '#4f566b';
+      const token = localStorage.getItem('userToken');
+      const res = await fetch('/api/notifications/broadcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ message, type, roles })
+      });
+      if (res.ok) {
+        status.textContent = 'Notification sent successfully!';
+        status.style.color = '#2e7d32';
+        document.getElementById('notif-message-input').value = '';
+      } else {
+        status.textContent = 'Failed to send notification.';
+        status.style.color = '#e53935';
+      }
+    } catch (err) {
+      status.textContent = 'Error sending notification.';
+      status.style.color = '#e53935';
+    }
+  });
+}

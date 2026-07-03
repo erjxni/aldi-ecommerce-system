@@ -79,7 +79,8 @@
   // Connect to WebSocket for real-time notifications
   function connectWebSocket() {
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    socket = new WebSocket(`${wsProtocol}//${window.location.host}`);
+    const token = localStorage.getItem('userToken') || '';
+    socket = new WebSocket(`${wsProtocol}//${window.location.host}?token=${token}`);
 
     socket.addEventListener('message', (event) => {
       try {

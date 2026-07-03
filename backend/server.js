@@ -1301,9 +1301,32 @@ app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
     `;
 
     for (const user of targetUsers) {
-      await sqlConnect.executeGraphql(mutation, {
+      const res = await sqlConnect.executeGraphql(mutation, {
         variables: { userId: user.id, type, message }
       });
+      const notifId = res.data.notification_insert.id;
+
+      const notificationObj = {
+        id: notifId,
+        userId: user.id,
+        type,
+        message,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+
+      const wsPayload = JSON.stringify({
+        type: 'new_notification',
+        notification: notificationObj
+      });
+
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1 && client.user && client.user.id === user.id) {
+            client.send(wsPayload);
+          }
+        });
+      }
     }
 
     res.json({ success: true, sent: targetUsers.length });

@@ -378,7 +378,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
+    res.json({ id: user.id, email: user.email, token, displayName: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });

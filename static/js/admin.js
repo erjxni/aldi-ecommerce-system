@@ -25,20 +25,31 @@
   };
   window.updateTopbarProfilePic();
 
-  // Sync user profile photo from db if not cached locally
-  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
+  // Sync user profile from db if not cached locally
+  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '' || !localStorage.getItem('userName'))) {
     fetch(`/api/admin/database/User`, {
       headers: { 'Authorization': `Bearer ${userToken}` }
     })
       .then(res => res.json())
       .then(users => {
         const me = users.find(u => u.email === userEmail);
-        if (me && me.photoUrl) {
-          localStorage.setItem('userPhoto', me.photoUrl);
-          window.updateTopbarProfilePic();
+        if (me) {
+          if (me.photoUrl) {
+            localStorage.setItem('userPhoto', me.photoUrl);
+            window.updateTopbarProfilePic();
+          }
+          if (me.displayName) {
+            localStorage.setItem('userName', me.displayName);
+            
+            // Immediately update main.js navbar if it exists
+            const emailDisplay = document.getElementById('user-email-display');
+            if (emailDisplay) {
+              emailDisplay.textContent = `Hello, ${me.displayName}`;
+            }
+          }
         }
       })
-      .catch(err => console.error('Failed to sync topbar profile photo:', err));
+      .catch(err => console.error('Failed to sync profile from db:', err));
   }
 
   // --- Logout Button ---

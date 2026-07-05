@@ -1350,6 +1350,179 @@ app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
+// WhatsApp Analytics Ingestion & Reporting (User Story 13)
+// ---------------------------------------------------------
+const whatsappJsonPath = path.join(__dirname, '../database/whatsapp_log.json');
+
+async function insertWhatsAppLog(logData) {
+  const { id, timestamp, topicCluster, sentimentScore } = logData;
+  try {
+    const insertMutation = `
+      mutation InsertWhatsAppLog($id: UUID!, $timestamp: Timestamp!, $topicCluster: String!, $sentimentScore: Float!) {
+        _execute(
+          sql: "INSERT INTO \\"whats_app_log\\" (id, timestamp, topic_cluster, sentiment_score) VALUES ($1, $2, $3, $4)",
+          params: [$id, $timestamp, $topicCluster, $sentimentScore]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(insertMutation, {
+      variables: {
+        id,
+        timestamp,
+        topicCluster,
+        sentimentScore
+      }
+    });
+    console.log('[WhatsAppLog] Successfully inserted log into PostgreSQL.');
+  } catch (err) {
+    console.warn('[WhatsAppLog] PostgreSQL insertion failed, falling back to local JSON database:', err.message);
+    // Fallback: local JSON file
+    try {
+      const dir = path.dirname(whatsappJsonPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      let logs = [];
+      if (fs.existsSync(whatsappJsonPath)) {
+        const fileContent = fs.readFileSync(whatsappJsonPath, 'utf8');
+        logs = JSON.parse(fileContent || '[]');
+      }
+      logs.push({ id, timestamp, topicCluster, sentimentScore });
+      fs.writeFileSync(whatsappJsonPath, JSON.stringify(logs, null, 2), 'utf8');
+      console.log('[WhatsAppLog] Successfully inserted log into local JSON file.');
+    } catch (fsErr) {
+      console.error('[WhatsAppLog] Local JSON file fallback failed:', fsErr.message);
+      throw fsErr;
+    }
+  }
+}
+
+async function getWhatsAppLogs() {
+  try {
+    const selectQuery = `
+      query GetWhatsAppLogs {
+        _select(sql: "SELECT id, timestamp, topic_cluster AS \\"topicCluster\\", sentiment_score AS \\"sentimentScore\\" FROM \\"whats_app_log\\"")
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(selectQuery);
+    if (result && result.data && Array.isArray(result.data._select)) {
+      return result.data._select;
+    }
+    return [];
+  } catch (err) {
+    console.warn('[WhatsAppLog] PostgreSQL read failed, reading from local JSON database:', err.message);
+    // Fallback: local JSON file
+    try {
+      if (fs.existsSync(whatsappJsonPath)) {
+        const fileContent = fs.readFileSync(whatsappJsonPath, 'utf8');
+        return JSON.parse(fileContent || '[]');
+      }
+      return [];
+    } catch (fsErr) {
+      console.error('[WhatsAppLog] Local JSON file read failed:', fsErr.message);
+      return [];
+    }
+  }
+}
+
+// Middleware: Protect whatsapp stats (admin & employee only)
+const whatsappStatsProtect = (req, res, next) => {
+  let token = req.cookies && req.cookies.aldi_jwt;
+  if (!token && req.headers.authorization) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    token = req.headers['x-auth-token'];
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: Missing token' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+    }
+    if (user.role !== 'admin' && user.role !== 'employee') {
+      return res.status(403).json({ error: 'Forbidden: Access restricted to admin and employee' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// Webhook endpoint: Ingest WhatsApp logs (PII Stripping enforced)
+app.post('/api/analytics/whatsapp/webhook', async (req, res) => {
+  try {
+    const { topicCluster, sentimentScore, timestamp, id } = req.body;
+
+    if (!topicCluster) {
+      return res.status(400).json({ error: 'Missing required field: topicCluster' });
+    }
+    if (sentimentScore === undefined || isNaN(Number(sentimentScore))) {
+      return res.status(400).json({ error: 'Missing or invalid required field: sentimentScore' });
+    }
+
+    // Stripping PII: extract ONLY the anonymized parameters
+    const logId = id || crypto.randomUUID();
+    const logTimestamp = timestamp || new Date().toISOString();
+    const cleanLog = {
+      id: logId,
+      timestamp: logTimestamp,
+      topicCluster,
+      sentimentScore: Number(sentimentScore)
+    };
+
+    await insertWhatsAppLog(cleanLog);
+
+    res.status(201).json({
+      message: 'WhatsApp log processed and stored successfully (anonymized)',
+      id: logId
+    });
+  } catch (error) {
+    console.error('Error in WhatsApp webhook:', error);
+    res.status(500).json({ error: 'Internal server error processing webhook' });
+  }
+});
+
+// Stats reporting endpoint: Aggregate logs (protected)
+app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) => {
+  try {
+    const logs = await getWhatsAppLogs();
+    
+    // Initialize 24-hour slots
+    const peakHours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
+    const topicMap = {};
+
+    logs.forEach(log => {
+      if (log.timestamp) {
+        const date = new Date(log.timestamp);
+        const hour = date.getUTCHours();
+        if (hour >= 0 && hour < 24) {
+          peakHours[hour].count++;
+        }
+      }
+      
+      const topic = log.topicCluster || 'Unknown';
+      topicMap[topic] = (topicMap[topic] || 0) + 1;
+    });
+
+    const topicClusters = Object.entries(topicMap).map(([topicCluster, count]) => ({
+      topicCluster,
+      count
+    })).sort((a, b) => b.count - a.count);
+
+    res.json({
+      peakHours,
+      topicClusters
+    });
+  } catch (error) {
+    console.error('Error fetching WhatsApp stats:', error);
+    res.status(500).json({ error: 'Internal server error fetching statistics' });
+  }
+});
+
 // Fallback routing: handle undefined routes
 // ---------------------------------------------------------
 // API fallback: return JSON 404

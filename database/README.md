@@ -87,6 +87,12 @@ type Notification @table {
   isRead: Boolean! @default(value: false)
   createdAt: Timestamp! @default(expr: "request.time")
 }
+
+type WhatsAppLog @table {
+  timestamp: Timestamp! @default(expr: "request.time")
+  topicCluster: String!
+  sentimentScore: Float!
+}
 ```
 
 ---
@@ -200,6 +206,16 @@ Stores user notifications for order updates, meetings, polls, and system announc
 | `message` | `String!` | | The notification message text |
 | `isRead` | `Boolean!` | `@default(value: false)` | Whether the notification has been read by the user |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
+
+### 10. WhatsAppLog Table
+Stores anonymized interaction metadata from the WhatsApp Business API.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the log entry |
+| `timestamp` | `Timestamp!` | `@default(expr: "request.time")` | Ingestion timestamp |
+| `topicCluster` | `String!` | | Classification category (e.g. `'Order Issue'`, `'Product Inquiry'`) |
+| `sentimentScore` | `Float!` | | Evaluated sentiment score from `-1.0` (negative) to `1.0` (positive) |
 
 ---
 

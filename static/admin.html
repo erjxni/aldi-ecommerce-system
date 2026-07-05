@@ -372,6 +372,37 @@
               </div>
             </div>
 
+            <!-- WhatsApp Analytics Ingested Metrics Widget -->
+            <div class="widget widget-span-2" id="whatsapp-analytics-widget" style="padding: 24px;">
+              <div class="widget-header" style="margin-bottom: 20px;">
+                <h2 class="widget-title">WhatsApp Analytics Dashboard</h2>
+                <span style="font-size: 1.25rem;">&#x1F4AC;</span>
+              </div>
+              <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: stretch; justify-content: space-between;">
+                <!-- Peak Chat Hours Graph -->
+                <div style="flex: 1.5; min-width: 320px; display: flex; flex-direction: column;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Peak Chat Hours</h3>
+                  <div id="whatsapp-hours-chart" style="display: flex; align-items: flex-end; justify-content: space-between; height: 160px; border-bottom: 2px solid #e3e8ee; padding-bottom: 8px; position: relative;">
+                    <!-- Dynamically populated vertical bars -->
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #697386; margin-top: 8px;">
+                    <span>12 AM</span>
+                    <span>6 AM</span>
+                    <span>12 PM</span>
+                    <span>6 PM</span>
+                    <span>11 PM</span>
+                  </div>
+                </div>
+                <!-- Topics list -->
+                <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Common Interaction Clusters</h3>
+                  <div id="whatsapp-topics-list" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 180px;">
+                    <div style="color: #697386; font-size: 0.9rem; text-align: center; padding-top: 24px;">No analytics data ingested yet.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <!-- Financial Ledger Table -->
             <div class="widget widget-span-2 table-widget" id="financial-ledger-section">
               <div class="widget-header">

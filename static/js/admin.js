@@ -11,6 +11,12 @@
     if (revenueCard) revenueCard.classList.add('section-hidden');
   }
 
+  // Hide WhatsApp Analytics widget if the user is not admin or employee
+  if (userRole !== 'admin' && userRole !== 'employee') {
+    const whatsappWidget = document.getElementById('whatsapp-analytics-widget');
+    if (whatsappWidget) whatsappWidget.style.display = 'none';
+  }
+
   // --- Update Topbar Profile Pic ---
   window.updateTopbarProfilePic = function () {
     const userPhoto = localStorage.getItem('userPhoto');
@@ -24,6 +30,81 @@
     }
   };
   window.updateTopbarProfilePic();
+
+  // --- WhatsApp Analytics Loader (User Story 13) ---
+  async function loadWhatsAppAnalytics() {
+    if (userRole !== 'admin' && userRole !== 'employee') return;
+
+    const hoursChart = document.getElementById('whatsapp-hours-chart');
+    const topicsList = document.getElementById('whatsapp-topics-list');
+
+    if (!hoursChart || !topicsList) return;
+
+    try {
+      const res = await fetch('/api/analytics/whatsapp/stats', {
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch WhatsApp analytics stats');
+
+      const data = await res.json();
+      const { peakHours, topicClusters } = data;
+
+      // 1. Render Peak Hours Chart (24 vertical bars)
+      hoursChart.innerHTML = '';
+      const maxCount = Math.max(...peakHours.map(h => h.count), 1);
+
+      peakHours.forEach(h => {
+        const percent = (h.count / maxCount) * 100;
+        const barGroup = document.createElement('div');
+        barGroup.className = 'bar-group';
+        barGroup.style.height = '100%';
+        barGroup.style.position = 'relative';
+
+        const labelHour = h.hour === 0 ? '12 AM' : h.hour === 12 ? '12 PM' : h.hour > 12 ? `${h.hour - 12} PM` : `${h.hour} AM`;
+
+        barGroup.innerHTML = `
+          <div class="bar-3d" style="height: ${percent}%; width: 50%; background: linear-gradient(180deg, #10b981 0%, rgba(16, 185, 129, 0.1) 100%);" title="${labelHour}: ${h.count} messages">
+            <div style="position: absolute; top: -4px; left: 0; width: 100%; height: 8px; background: #059669; border-radius: 50%;"></div>
+          </div>
+        `;
+        hoursChart.appendChild(barGroup);
+      });
+
+      // 2. Render Topics List (Common Interaction Clusters)
+      topicsList.innerHTML = '';
+      if (!topicClusters || topicClusters.length === 0) {
+        topicsList.innerHTML = '<div style="color: #697386; font-size: 0.9rem; text-align: center; padding-top: 24px;">No analytics data ingested yet.</div>';
+      } else {
+        const totalTopicCounts = topicClusters.reduce((sum, t) => sum + t.count, 0) || 1;
+        topicClusters.forEach(t => {
+          const percent = Math.round((t.count / totalTopicCounts) * 100);
+          
+          const topicItem = document.createElement('div');
+          topicItem.style.display = 'flex';
+          topicItem.style.flexDirection = 'column';
+          topicItem.style.gap = '4px';
+
+          topicItem.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #1a1f36;">
+              <span>${t.topicCluster}</span>
+              <span style="color: #697386;">${t.count} (${percent}%)</span>
+            </div>
+            <div style="background: #e3e8ee; border-radius: 10px; height: 6px; width: 100%; overflow: hidden;">
+              <div style="background: #10b981; height: 100%; width: ${percent}%; border-radius: 10px;"></div>
+            </div>
+          `;
+          topicsList.appendChild(topicItem);
+        });
+      }
+    } catch (err) {
+      console.error('Error loading WhatsApp analytics:', err);
+      hoursChart.innerHTML = `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e53935; font-size: 0.85rem; width: 100%; text-align: center;">Failed to load analytics data</div>`;
+      topicsList.innerHTML = `<div style="color: #e53935; font-size: 0.85rem; text-align: center; padding-top: 24px;">Failed to load topics</div>`;
+    }
+  }
+  loadWhatsAppAnalytics();
 
   // Sync user profile from db if not cached locally
   if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '' || !localStorage.getItem('userName'))) {

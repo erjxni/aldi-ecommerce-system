@@ -11,7 +11,7 @@ We use Firebase Data Connect. The database schema is defined using GraphQL schem
 
 ## Data Schema (Firebase Data Connect)
 
-Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, and `Document`.
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, `Document`, and `Notification`.
 
 ```graphql
 type User @table {
@@ -80,7 +80,13 @@ type Document @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
-
+type Notification @table {
+  user: User!
+  type: String!
+  message: String!
+  isRead: Boolean! @default(value: false)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
 ```
 
 ---
@@ -182,6 +188,18 @@ Stores metadata for uploaded corporate and operational documents.
 | `fileUrl` | `String!` | | Path or URL to the securely uploaded file |
 | `uploadedBy` | `User` | Relation Reference | The user (admin/employee) who uploaded the document |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Document upload timestamp |
+
+### 9. Notification Table
+Stores user notifications for order updates, meetings, polls, and system announcements.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the notification |
+| `user` | `User!` | Relation Reference | The user receiving the notification |
+| `type` | `String!` | | The type of notification (`'order'`, `'meeting'`, `'poll'`, `'system'`) |
+| `message` | `String!` | | The notification message text |
+| `isRead` | `Boolean!` | `@default(value: false)` | Whether the notification has been read by the user |
+| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
 
 ---
 

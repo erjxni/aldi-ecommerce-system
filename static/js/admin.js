@@ -25,31 +25,20 @@
   };
   window.updateTopbarProfilePic();
 
-  // Sync user profile from db if not cached locally
-  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '' || !localStorage.getItem('userName'))) {
+  // Sync user profile photo from db if not cached locally
+  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
     fetch(`/api/admin/database/User`, {
       headers: { 'Authorization': `Bearer ${userToken}` }
     })
       .then(res => res.json())
       .then(users => {
         const me = users.find(u => u.email === userEmail);
-        if (me) {
-          if (me.photoUrl) {
-            localStorage.setItem('userPhoto', me.photoUrl);
-            window.updateTopbarProfilePic();
-          }
-          if (me.displayName) {
-            localStorage.setItem('userName', me.displayName);
-            
-            // Immediately update main.js navbar if it exists
-            const emailDisplay = document.getElementById('user-email-display');
-            if (emailDisplay) {
-              emailDisplay.textContent = `Hello, ${me.displayName}`;
-            }
-          }
+        if (me && me.photoUrl) {
+          localStorage.setItem('userPhoto', me.photoUrl);
+          window.updateTopbarProfilePic();
         }
       })
-      .catch(err => console.error('Failed to sync profile from db:', err));
+      .catch(err => console.error('Failed to sync topbar profile photo:', err));
   }
 
   // --- Logout Button ---
@@ -270,24 +259,39 @@
   const usersBtn = document.getElementById('btn-users-manager');
   const filesBtn = document.getElementById('btn-files-manager');
   const financialsBtn = document.getElementById('btn-financials');
+  const pollsBtn = document.getElementById('btn-polls-manager');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
   const filesViewer = document.getElementById('files-manager-view');
   const financialsViewer = document.getElementById('financials-view');
+  const pollsViewer = document.getElementById('polls-manager-view');
+
+  // Helper to hide all main views
+  function hideAllViews() {
+    if (dashboardView) dashboardView.style.display = 'none';
+    if (dbViewer) dbViewer.style.display = 'none';
+    if (usersViewer) usersViewer.style.display = 'none';
+    if (filesViewer) filesViewer.style.display = 'none';
+    if (financialsViewer) financialsViewer.style.display = 'none';
+    if (pollsViewer) pollsViewer.style.display = 'none';
+  }
+  function clearSidebarActive() {
+    document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+  }
 
   if (
-    dbBtn &&
-    homeBtn &&
-    usersBtn &&
-    filesBtn &&
-    financialsBtn &&
-    dashboardView &&
-    dbViewer &&
-    usersViewer &&
-    filesViewer &&
-    financialsViewer
-  ) {
+  dbBtn &&
+  homeBtn &&
+  usersBtn &&
+  filesBtn &&
+  financialsBtn &&
+  dashboardView &&
+  dbViewer &&
+  usersViewer &&
+  filesViewer &&
+  financialsViewer
+) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
       dashboardView.style.display = 'none';
@@ -369,12 +373,12 @@
       filesViewer.style.display = 'none';
       financialsViewer.style.display = 'flex';
 
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
+    document
+      .querySelectorAll('.admin-sidebar .sidebar-icon')
+      .forEach((i) => i.classList.remove('active'));
 
-      financialsBtn.classList.add('active');
-    });
+    financialsBtn.classList.add('active');
+  });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -389,34 +393,17 @@
 
       loadFilesManagerData();
     });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
 
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
-    });
-
-    const notifBtn = document.getElementById('btn-notifications-manager');
-    const notifPanel = document.getElementById('notifications-manager');
-    if (notifBtn && notifPanel) {
-      notifBtn.addEventListener('click', (e) => {
+    // Polls Manager button
+    if (pollsBtn) {
+      pollsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        dashboardView.style.display = 'none';
-        dbViewer.style.display = 'none';
-        usersViewer.style.display = 'none';
-        filesViewer.style.display = 'none';
-        notifPanel.style.display = 'flex';
-        document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-        notifBtn.classList.add('active');
+        hideAllViews();
+        if (pollsViewer) pollsViewer.style.display = 'flex';
+        clearSidebarActive();
+        pollsBtn.classList.add('active');
+        // Load polls when navigating to the view
+        if (typeof window.loadPolls === 'function') window.loadPolls();
       });
     }
   }
@@ -1235,66 +1222,364 @@
     return 'status-warning';
   }
 })();
-// ---------------------------------------------------------
-// Notifications Manager
-// ---------------------------------------------------------
-const btnNotificationsManager = document.getElementById('btn-notifications-manager');
-if (btnNotificationsManager) {
-  btnNotificationsManager.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display = 'none');
-    const panel = document.getElementById('notifications-manager');
-    if (panel) panel.style.display = 'flex';
-  });
-}
 
-const sendNotifBtn = document.getElementById('send-notif-btn');
-if (sendNotifBtn) {
-  sendNotifBtn.addEventListener('click', async () => {
-    const message = document.getElementById('notif-message-input').value.trim();
-    const type = document.getElementById('notif-type-select').value;
-    const roles = [];
-    if (document.getElementById('role-admin').checked) roles.push('admin');
-    if (document.getElementById('role-employee').checked) roles.push('employee');
-    if (document.getElementById('role-financial').checked) roles.push('financial_officer');
-    if (document.getElementById('role-customer').checked) roles.push('customer');
-    const status = document.getElementById('notif-status');
+// ================================================================
+// POLLS MANAGER MODULE — SCRUM-192
+// ================================================================
+(function () {
+  const userToken = localStorage.getItem('userToken');
+  const userRole = localStorage.getItem('userRole') || 'customer';
+  let currentPolls = [];
 
-    if (!message) {
-      status.textContent = 'Please enter a message.';
-      status.style.color = '#e53935';
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function coerceVoteCounts(voteCounts) {
+    return Array.isArray(voteCounts)
+      ? voteCounts.map(vote => ({
+        option: String(vote.option || ''),
+        count: Number(vote.count || 0)
+      }))
+      : [];
+  }
+
+  // ---- DOM Elements ----
+  const pollsList = document.getElementById('polls-list');
+  const pollsLoading = document.getElementById('polls-loading');
+  const pollsEmpty = document.getElementById('polls-empty');
+  const createPollPanel = document.getElementById('create-poll-panel');
+  const createPollForm = document.getElementById('create-poll-form');
+  const createPollStatus = document.getElementById('create-poll-status');
+  const pollsStatusBadge = document.getElementById('polls-status-badge');
+  const pollsRefreshBtn = document.getElementById('polls-refresh-btn');
+  const addOptionBtn = document.getElementById('add-poll-option-btn');
+  const optionsContainer = document.getElementById('poll-options-container');
+
+  // ---- Access Control: hide create form for non-admins ----
+  if (createPollPanel && userRole !== 'admin') {
+    createPollPanel.classList.add('non-admin-create-hide');
+  }
+
+  // ---- Toast helper ----
+  function showPollToast(title, message, isError = false) {
+    const existing = document.querySelector('.poll-vote-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'poll-vote-toast' + (isError ? ' error' : '');
+    toast.innerHTML = `<div class="poll-vote-toast-title">${title}</div><div class="poll-vote-toast-msg">${message}</div>`;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  }
+
+  // ---- Build result bars HTML ----
+  function buildResultBars(poll) {
+    const options = Array.isArray(poll.options) ? poll.options : [];
+    const voteCounts = coerceVoteCounts(poll.voteCounts);
+    const userVote = poll.userVote;
+    const totalVotes = voteCounts.reduce((s, v) => s + (v.count || 0), 0);
+    const maxCount = voteCounts.reduce((m, v) => Math.max(m, v.count || 0), 0);
+
+    return options.map((option) => {
+      const match = voteCounts.find(v => v.option === option);
+      const count = match ? (match.count || 0) : 0;
+      const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      const isTop = count > 0 && count === maxCount;
+      const isUserVote = userVote === option;
+      const escapedOption = escapeHtml(option);
+      const encodedOption = encodeURIComponent(option);
+
+      // If user hasn't voted, show vote buttons
+      if (!userVote && poll.status === 'open') {
+        return `
+          <button class="vote-option-btn" data-poll-id="${escapeHtml(poll.id)}" data-option="${encodedOption}" title="Vote for ${escapedOption}">
+            ${escapedOption}
+          </button>
+        `;
+      }
+
+      // After voting or poll closed — show result bars
+      return `
+        <div class="poll-result-row">
+          <div class="poll-result-label">
+            <span class="result-option-name${isUserVote ? '" style="color:#2b58f9;font-weight:700;' : ''}">${escapedOption}${isUserVote ? ' ✓' : ''}</span>
+            <span class="poll-result-count">${count} <span class="poll-result-percentage">${pct}%</span></span>
+          </div>
+          <div class="poll-bar-bg">
+            <div class="poll-bar-fill${isTop ? ' top-option' : ''}" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---- Render a single poll card ----
+  function renderPollCard(poll) {
+    const { id, title, description, status, createdAt, closesAt, userVote } = poll;
+    const voteCounts = coerceVoteCounts(poll.voteCounts);
+    const totalVotes = voteCounts.reduce((s, v) => s + (v.count || 0), 0);
+    const hasVoted = !!userVote;
+    const isClosed = status !== 'open';
+    const closesLabel = closesAt ? new Date(closesAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No deadline';
+    const createdLabel = createdAt ? new Date(createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+
+    const card = document.createElement('div');
+    card.className = 'poll-card';
+    card.id = `poll-card-${id}`;
+
+    const adminActions = userRole === 'admin' && status === 'open'
+      ? `<button class="poll-close-btn" data-poll-id="${escapeHtml(id)}">Close Poll</button>`
+      : '';
+
+    card.innerHTML = `
+      <div class="poll-card-header">
+        <div style="flex:1;min-width:0;">
+          <h3 class="poll-card-title">${escapeHtml(title)}</h3>
+          ${description ? `<p class="poll-card-description">${escapeHtml(description)}</p>` : ''}
+        </div>
+        <span class="poll-status-badge poll-status-${escapeHtml(status)}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</span>
+      </div>
+      <div class="poll-card-body">
+        ${hasVoted || isClosed
+          ? `<div class="poll-results">${buildResultBars(poll)}</div>`
+          : `<div class="poll-options-grid">${buildResultBars(poll)}</div><div class="poll-divider"></div><div class="poll-results"></div>`
+        }
+      </div>
+      <div class="poll-card-footer">
+        <div>
+          <span class="poll-total-votes">🗳️ ${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
+          <span class="poll-meta" style="margin-left:12px;">Closes: ${closesLabel}</span>
+          ${createdLabel ? `<span class="poll-meta" style="margin-left:12px;">Created: ${createdLabel}</span>` : ''}
+        </div>
+        ${adminActions}
+      </div>
+    `;
+
+    return card;
+  }
+
+  // ---- Render all polls ----
+  function renderPolls(polls) {
+    if (!pollsList) return;
+    pollsList.innerHTML = '';
+
+    if (polls.length === 0) {
+      if (pollsLoading) pollsLoading.style.display = 'none';
+      if (pollsEmpty) pollsEmpty.style.display = 'block';
       return;
     }
 
-    if (roles.length === 0) {
-      status.textContent = 'Please select at least one role.';
-      status.style.color = '#e53935';
-      return;
+    if (pollsLoading) pollsLoading.style.display = 'none';
+    if (pollsEmpty) pollsEmpty.style.display = 'none';
+
+    polls.forEach(poll => {
+      const card = renderPollCard(poll);
+      pollsList.appendChild(card);
+    });
+
+    // Update status badge
+    if (pollsStatusBadge) {
+      pollsStatusBadge.textContent = `${polls.length} active poll${polls.length !== 1 ? 's' : ''}`;
     }
+
+    // Attach vote button handlers
+    pollsList.querySelectorAll('.vote-option-btn').forEach(btn => {
+      btn.addEventListener('click', () => submitVote(btn.dataset.pollId, decodeURIComponent(btn.dataset.option)));
+    });
+
+    // Attach close poll handlers (admin only)
+    pollsList.querySelectorAll('.poll-close-btn').forEach(btn => {
+      btn.addEventListener('click', () => closePoll(btn.dataset.pollId));
+    });
+  }
+
+  // ---- Fetch active polls ----
+  async function loadPolls() {
+    if (!pollsList) return;
+    if (pollsLoading) pollsLoading.style.display = 'block';
+    if (pollsEmpty) pollsEmpty.style.display = 'none';
+    pollsList.innerHTML = '';
 
     try {
-      status.textContent = 'Sending...';
-      status.style.color = '#4f566b';
-      const token = localStorage.getItem('userToken');
-      const res = await fetch('/api/notifications/broadcast', {
+      const res = await fetch('/api/polls/active', {
+        headers: { 'Authorization': `Bearer ${userToken}` },
+        credentials: 'include'
+      });
+
+      if (res.status === 403) {
+        if (pollsLoading) pollsLoading.innerHTML = '⛔ Access denied. This section is for internal staff only.';
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      currentPolls = await res.json();
+      renderPolls(currentPolls);
+    } catch (err) {
+      console.error('[Polls] Failed to load polls:', err);
+      if (pollsLoading) pollsLoading.textContent = 'Failed to load polls. Please refresh.';
+    }
+  }
+
+  // Expose globally for sidebar button access
+  window.loadPolls = loadPolls;
+
+  // ---- Submit a vote ----
+  async function submitVote(pollId, selectedOption) {
+    try {
+      const res = await fetch(`/api/polls/${pollId}/vote`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${userToken}`
         },
-        body: JSON.stringify({ message, type, roles })
+        credentials: 'include',
+        body: JSON.stringify({ selectedOption })
       });
-      if (res.ok) {
-        status.textContent = 'Notification sent successfully!';
-        status.style.color = '#2e7d32';
-        document.getElementById('notif-message-input').value = '';
+
+      const data = await res.json();
+
+      if (res.status === 201) {
+        showPollToast('✅ Vote Recorded!', `You voted for "${selectedOption}"`);
+        // Refresh polls to show updated counts
+        await loadPolls();
+      } else if (res.status === 409) {
+        // SCRUM-194: Duplicate vote
+        if (data.code === 'DUPLICATE_VOTE') {
+          showPollToast('⚠️ Already Voted', 'You have already submitted a vote on this poll.', true);
+        } else {
+          showPollToast('⚠️ Poll Closed', data.error || 'This poll is no longer accepting votes.', true);
+        }
       } else {
-        status.textContent = 'Failed to send notification.';
-        status.style.color = '#e53935';
+        showPollToast('❌ Error', data.error || 'Failed to submit vote.', true);
       }
     } catch (err) {
-      status.textContent = 'Error sending notification.';
-      status.style.color = '#e53935';
+      console.error('[Polls] Vote submission failed:', err);
+      showPollToast('❌ Network Error', 'Failed to reach the server. Please try again.', true);
     }
-  });
-}
+  }
+
+  // ---- Close a poll (admin only) ----
+  async function closePoll(pollId) {
+    if (!confirm('Are you sure you want to close this poll? No more votes will be accepted.')) return;
+    try {
+      const res = await fetch(`/api/polls/${pollId}/close`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${userToken}` },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showPollToast('✅ Poll Closed', 'The poll has been closed successfully.');
+        await loadPolls();
+      } else {
+        const data = await res.json();
+        showPollToast('❌ Error', data.error || 'Failed to close poll.', true);
+      }
+    } catch (err) {
+      console.error('[Polls] Failed to close poll:', err);
+      showPollToast('❌ Network Error', 'Could not close the poll. Please try again.', true);
+    }
+  }
+
+  // ---- Refresh button ----
+  if (pollsRefreshBtn) {
+    pollsRefreshBtn.addEventListener('click', loadPolls);
+  }
+
+  // ---- Dynamic option add/remove ----
+  if (addOptionBtn && optionsContainer) {
+    addOptionBtn.addEventListener('click', () => {
+      const rows = optionsContainer.querySelectorAll('.poll-option-row');
+      const optionLetter = String.fromCharCode(65 + rows.length); // A, B, C...
+      const row = document.createElement('div');
+      row.className = 'poll-option-row';
+      row.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+      row.innerHTML = `
+        <input type="text" class="poll-option-input" required placeholder="Option ${optionLetter}"
+          style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+        <button type="button" class="remove-option-btn"
+          style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0;">×</button>
+      `;
+      row.querySelector('.remove-option-btn').addEventListener('click', () => {
+        const remaining = optionsContainer.querySelectorAll('.poll-option-row');
+        if (remaining.length > 2) {
+          row.remove();
+        }
+      });
+      optionsContainer.appendChild(row);
+    });
+  }
+
+  // ---- Create Poll form submission ----
+  if (createPollForm && userRole === 'admin') {
+    createPollForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('poll-title').value.trim();
+      const description = document.getElementById('poll-description').value.trim();
+      const closesAt = document.getElementById('poll-closes-at').value;
+      const optionInputs = optionsContainer.querySelectorAll('.poll-option-input');
+      const options = Array.from(optionInputs).map(i => i.value.trim()).filter(Boolean);
+
+      if (!title) {
+        showPollStatus('Poll title is required.', '#991b1b');
+        return;
+      }
+      if (options.length < 2) {
+        showPollStatus('At least 2 options are required.', '#991b1b');
+        return;
+      }
+
+      showPollStatus('Creating poll...', '#2b58f9');
+
+      try {
+        const res = await fetch('/api/polls', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({ title, description, options, closesAt: closesAt || undefined })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201) {
+          showPollStatus('✅ Poll created successfully!', '#10b981');
+          createPollForm.reset();
+          // Reset options to 2 default rows
+          const defaultRows = optionsContainer.querySelectorAll('.poll-option-row');
+          defaultRows.forEach((row, idx) => { if (idx >= 2) row.remove(); });
+          // Reload polls list
+          await loadPolls();
+          showPollToast('🗳️ Poll Created!', `"${title}" is now live and accepting votes.`);
+          setTimeout(() => {
+            if (createPollStatus) createPollStatus.style.display = 'none';
+          }, 3000);
+        } else {
+          showPollStatus(data.error || 'Failed to create poll.', '#991b1b');
+        }
+      } catch (err) {
+        console.error('[Polls] Failed to create poll:', err);
+        showPollStatus('Network error. Please try again.', '#991b1b');
+      }
+    });
+
+    function showPollStatus(text, color) {
+      if (!createPollStatus) return;
+      createPollStatus.textContent = text;
+      createPollStatus.style.color = color;
+      createPollStatus.style.display = 'block';
+    }
+  }
+})();

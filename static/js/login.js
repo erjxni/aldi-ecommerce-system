@@ -86,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
       // Store session data in localStorage
       localStorage.setItem('userId', data.id);
       localStorage.setItem('userEmail', data.email);
-      localStorage.setItem('userName', data.displayName || '');
       localStorage.setItem('userToken', data.token);
       localStorage.setItem('userRole', data.role || 'customer');
       localStorage.setItem('userPhoto', data.photoUrl || '');

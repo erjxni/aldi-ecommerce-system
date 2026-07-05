@@ -86,12 +86,17 @@ const authenticateCartJWT = (req, res, next) => {
 
 // ---------------------------------------------------------
 // Middleware: Protect admin routes (/admin.html, /api/admin/*)
-// Reads JWT from HttpOnly cookie, verifies role
+// Reads JWT from HttpOnly cookie or API token, verifies role
 // ---------------------------------------------------------
 const adminProtect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  const xToken = req.headers['x-auth-token'];
+  const queryToken = req.query.token;
   const cookieToken = req.cookies && req.cookies.aldi_jwt;
+  const token = cookieToken || headerToken || xToken || queryToken;
 
-  if (!cookieToken) {
+  if (!token) {
     // No token present → 401 Unauthorized
     if (req.path === '/admin.html') {
       return res.status(401).send(`
@@ -106,7 +111,7 @@ const adminProtect = (req, res, next) => {
     return res.status(401).json({ detail: 'Unauthorized: No valid token present. Please log in.' });
   }
 
-  jwt.verify(cookieToken, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       if (req.path === '/admin.html') {
         return res.status(401).send(`
@@ -378,7 +383,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ id: user.id, email: user.email, token, displayName: user.displayName, role: user.role, photoUrl: user.photoUrl });
+    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });
@@ -1218,121 +1223,417 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
         });
     }
 });
-// ---------------------------------------------------------
-// API: Get notifications for the logged-in user
-// ---------------------------------------------------------
-app.get('/api/notifications', authenticateJWT, async (req, res) => {
+// ==========================================================
+// POLLING SYSTEM — SCRUM-190 / SCRUM-191 / SCRUM-193
+// ==========================================================
+
+function escapeSqlLiteral(value) {
+  return String(value).replace(/'/g, "''");
+}
+
+function graphqlSqlString(sql) {
+  return JSON.stringify(sql.replace(/\s+/g, ' ').trim());
+}
+
+function sanitizeUuid(value) {
+  return String(value || '').replace(/[^a-f0-9\-]/gi, '');
+}
+
+function parsePollOptions(options) {
+  if (Array.isArray(options)) return options;
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizePollOptions(options) {
+  if (!Array.isArray(options)) return [];
+  const seen = new Set();
+  return options
+    .map(option => String(option).trim())
+    .filter(Boolean)
+    .filter(option => {
+      const key = option.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function isDuplicateVoteError(err) {
+  const errMsg = String(err && err.message ? err.message : '').toLowerCase();
+  const errCode = String(err && (err.code || err.sqlState) ? (err.code || err.sqlState) : '');
+  const constraint = String(err && (err.constraint || err.constraint_name) ? (err.constraint || err.constraint_name) : '').toLowerCase();
+
+  return (
+    errCode === '23505' ||
+    errCode === 'UNIQUE_VIOLATION' ||
+    constraint.includes('uq_vote_poll_user') ||
+    (constraint.includes('vote') && constraint.includes('poll') && constraint.includes('user')) ||
+    errMsg.includes('uq_vote_poll_user') ||
+    errMsg.includes('duplicate') ||
+    errMsg.includes('already exists') ||
+    (errMsg.includes('unique') && errMsg.includes('vote')) ||
+    (errMsg.includes('unique constraint') && errMsg.includes('vote'))
+  );
+}
+
+/**
+ * SCRUM-193: Aggregation helper — counts votes grouped by selectedOption.
+ * Returns: [{ option: String, count: Number }, ...]
+ */
+async function aggregateVotes(pollId) {
+  // Sanitise to UUID format only (prevent injection)
+  const safeId = sanitizeUuid(pollId);
+  const sql = `SELECT selected_option AS "option", CAST(COUNT(*) AS INT) AS "count" FROM "vote" WHERE poll_id = '${safeId}' GROUP BY selected_option`;
+  const query = `
+    query AggregateVotes {
+      _select(sql: ${graphqlSqlString(sql)})
+    }
+  `;
   try {
+    const result = await sqlConnect.executeGraphqlRead(query);
+    return (result.data && result.data._select) || [];
+  } catch (err) {
+    console.warn('[Polls] aggregateVotes error:', err.message);
+    return [];
+  }
+}
+
+// ----------------------------------------------------------
+// SCRUM-191: POST /api/polls — Admin-only poll creation
+// ----------------------------------------------------------
+app.post('/api/polls', adminProtect, async (req, res) => {
+  // Only admins can create polls; employees/financial_officers can vote but not create
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Forbidden: Only administrators can create polls.'
+    });
+  }
+
+  const { title, description, options, closesAt } = req.body;
+
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    return res.status(400).json({ error: 'Poll title is required.' });
+  }
+  const normalizedOptions = normalizePollOptions(options);
+  if (normalizedOptions.length < 2) {
+    return res.status(400).json({ error: 'At least two poll options are required.' });
+  }
+
+  const pollId = crypto.randomUUID();
+  const optionsJson = JSON.stringify(normalizedOptions);
+  let closesAtValue = 'NULL';
+  let closesAtIso = null;
+
+  if (closesAt) {
+    const closesAtDate = new Date(closesAt);
+    if (Number.isNaN(closesAtDate.getTime())) {
+      return res.status(400).json({ error: 'closesAt must be a valid date.' });
+    }
+    closesAtIso = closesAtDate.toISOString();
+    closesAtValue = `'${escapeSqlLiteral(closesAtIso)}'`;
+  }
+
+  const safeTitle = escapeSqlLiteral(title.trim());
+  const safeDesc = escapeSqlLiteral((description || '').trim());
+
+  const insertSql = `INSERT INTO "poll" (id, title, description, options, status, created_at, closes_at) VALUES ('${pollId}', '${safeTitle}', '${safeDesc}', '${escapeSqlLiteral(optionsJson)}', 'open', CURRENT_TIMESTAMP, ${closesAtValue})`;
+  const insertMutation = `
+    mutation InsertPoll {
+      _execute(sql: ${graphqlSqlString(insertSql)})
+    }
+  `;
+
+  try {
+    await sqlConnect.executeGraphql(insertMutation);
+    res.status(201).json({
+      message: 'Poll created successfully.',
+      poll: {
+        id: pollId,
+        title: title.trim(),
+        description: (description || '').trim(),
+        options: normalizedOptions,
+        status: 'open',
+        closesAt: closesAtIso
+      }
+    });
+  } catch (err) {
+    console.error('[Polls] Error creating poll:', err.message);
+    res.status(500).json({ error: 'Failed to create poll.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: GET /api/polls/active — Retrieve all open polls
+// Accessible to: admin, employee, financial_officer (via adminProtect)
+// Customers get 403 from adminProtect middleware
+// ----------------------------------------------------------
+app.get('/api/polls/active', adminProtect, async (req, res) => {
+  const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE status = 'open' AND (closes_at IS NULL OR closes_at > CURRENT_TIMESTAMP) ORDER BY created_at DESC`;
+  const query = `
+    query GetActivePolls {
+      _select(sql: ${graphqlSqlString(sql)})
+    }
+  `;
+
+  try {
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const polls = (result.data && result.data._select) || [];
+
+    // Attach vote aggregation and check if current user voted
     const userId = req.user.id;
-    const query = `
-      query GetNotifications($userId: UUID!) {
-        notifications(where: { userId: { eq: $userId } }, orderBy: { createdAt: DESC }) {
-          id
-          userId
-          type
-          message
-          isRead
-          createdAt
+    const enriched = await Promise.all(polls.map(async (poll) => {
+      const voteCounts = await aggregateVotes(poll.id);
+
+      // Check if this user already voted
+      const safeUserId = sanitizeUuid(userId);
+      const safePollId = sanitizeUuid(poll.id);
+      let userVote = null;
+      try {
+        const voteSql = `SELECT selected_option AS "selectedOption" FROM "vote" WHERE poll_id = '${safePollId}' AND user_id = '${safeUserId}' LIMIT 1`;
+        const voteCheck = await sqlConnect.executeGraphqlRead(`
+          query CheckUserVote {
+            _select(sql: ${graphqlSqlString(voteSql)})
+          }
+        `);
+        const voteRows = (voteCheck.data && voteCheck.data._select) || [];
+        if (voteRows.length > 0) {
+          userVote = voteRows[0].selectedOption;
         }
+      } catch (e) {
+        console.warn('[Polls] Could not check user vote:', e.message);
       }
-    `;
-    const result = await sqlConnect.executeGraphqlRead(query, { variables: { userId } });
-    const notifications = result.data && result.data.notifications ? result.data.notifications : [];
-    res.json(notifications);
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+
+      const parsedOptions = parsePollOptions(poll.options);
+
+      return {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        options: parsedOptions,
+        status: poll.status,
+        createdAt: poll.createdAt,
+        closesAt: poll.closesAt,
+        voteCounts,
+        userVote
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('[Polls] Error fetching active polls:', err.message);
+    res.status(500).json({ error: 'Failed to fetch active polls.' });
   }
 });
 
-// ---------------------------------------------------------
-// API: Mark a notification as read (SCRUM-200)
-// ---------------------------------------------------------
-app.put('/api/notifications/:id/read', authenticateJWT, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const mutation = `
-      mutation MarkAsRead($id: UUID!) {
-        notification_update(id: $id, data: { isRead: true })
-      }
-    `;
-    const result = await sqlConnect.executeGraphql(mutation, { variables: { id } });
-    res.json({ success: true, notification: result.data.notification_update });
-  } catch (error) {
-    console.error('Error marking notification as read:', error);
-    res.status(500).json({ error: 'Failed to mark notification as read' });
-  }
-});
+// ----------------------------------------------------------
+// SCRUM-191: POST /api/polls/:id/vote — Submit a vote
+// Returns 409 if user already voted (UNIQUE constraint violation)
+// ----------------------------------------------------------
+app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
+  const pollId = req.params.id;
+  const userId = req.user.id;
+  const { selectedOption } = req.body;
 
-// ---------------------------------------------------------
-// API: Broadcast notification to users by role (Admin only)
-// ---------------------------------------------------------
-app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
+  if (!selectedOption || typeof selectedOption !== 'string' || selectedOption.trim() === '') {
+    return res.status(400).json({ error: 'selectedOption is required.' });
+  }
+
+  const safePollId = sanitizeUuid(pollId);
+  const safeUserId = sanitizeUuid(userId);
+
+  // Verify poll exists and is open
   try {
-    const { message, type, roles } = req.body;
-    const allowedRoles = ['admin', 'financial_officer', 'employee'];
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Only admins can broadcast notifications' });
+    const pollCheckSql = `SELECT id, status, closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollCheck = await sqlConnect.executeGraphqlRead(`
+      query CheckPoll {
+        _select(sql: ${graphqlSqlString(pollCheckSql)})
+      }
+    `);
+    const polls = (pollCheck.data && pollCheck.data._select) || [];
+    if (polls.length === 0) {
+      return res.status(404).json({ error: 'Poll not found.' });
+    }
+    const poll = polls[0];
+    if (poll.status !== 'open') {
+      return res.status(409).json({ error: 'This poll is no longer accepting votes.' });
+    }
+    if (poll.closesAt && new Date(poll.closesAt) < new Date()) {
+      return res.status(409).json({ error: 'This poll has already closed.' });
     }
 
-    // Get all users with the specified roles
+    // Verify the selected option is valid for this poll
+    const optionsSql = `SELECT options FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const optQuery = await sqlConnect.executeGraphqlRead(`
+      query GetPollOptions {
+        _select(sql: ${graphqlSqlString(optionsSql)})
+      }
+    `);
+    const optRows = (optQuery.data && optQuery.data._select) || [];
+    let pollOptions = [];
+    if (optRows.length > 0) {
+      pollOptions = parsePollOptions(optRows[0].options);
+    }
+    if (pollOptions.length > 0 && !pollOptions.includes(selectedOption.trim())) {
+      return res.status(400).json({ error: 'Invalid option selected.' });
+    }
+  } catch (err) {
+    console.error('[Polls] Error validating poll for vote:', err.message);
+    return res.status(500).json({ error: 'Failed to validate poll.' });
+  }
+
+  // Insert vote
+  const voteId = crypto.randomUUID();
+  const safeOption = escapeSqlLiteral(selectedOption.trim());
+
+  const insertVoteSql = `INSERT INTO "vote" (id, poll_id, user_id, selected_option, created_at) VALUES ('${voteId}', '${safePollId}', '${safeUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
+  const insertVote = `
+    mutation InsertVote {
+      _execute(sql: ${graphqlSqlString(insertVoteSql)})
+    }
+  `;
+
+  try {
+    await sqlConnect.executeGraphql(insertVote);
+
+    // Return updated vote counts
+    const updatedCounts = await aggregateVotes(safePollId);
+    res.status(201).json({
+      message: 'Vote submitted successfully.',
+      voteId,
+      selectedOption: selectedOption.trim(),
+      voteCounts: updatedCounts
+    });
+  } catch (err) {
+    // SCRUM-194: Detect UNIQUE constraint violation (duplicate vote).
+    if (isDuplicateVoteError(err)) {
+      return res.status(409).json({
+        error: 'Conflict: You have already voted on this poll.',
+        code: 'DUPLICATE_VOTE'
+      });
+    }
+
+    console.error('[Polls] Error submitting vote:', err && err.message ? err.message : err);
+    res.status(500).json({ error: 'Failed to submit vote.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-193: GET /api/polls/:id/results — Get vote aggregation
+// ----------------------------------------------------------
+app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
+  const pollId = req.params.id;
+  const safePollId = sanitizeUuid(pollId);
+
+  try {
+    // Get poll metadata
+    const pollSql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollResult = await sqlConnect.executeGraphqlRead(`
+      query GetPollForResults {
+        _select(sql: ${graphqlSqlString(pollSql)})
+      }
+    `);
+    const polls = (pollResult.data && pollResult.data._select) || [];
+    if (polls.length === 0) {
+      return res.status(404).json({ error: 'Poll not found.' });
+    }
+    const poll = polls[0];
+    const parsedOptions = parsePollOptions(poll.options);
+
+    // Get total vote count
+    const totalSql = `SELECT CAST(COUNT(*) AS INT) AS "total" FROM "vote" WHERE poll_id = '${safePollId}'`;
+    const totalResult = await sqlConnect.executeGraphqlRead(`
+      query GetTotalVotes {
+        _select(sql: ${graphqlSqlString(totalSql)})
+      }
+    `);
+    const totalRows = (totalResult.data && totalResult.data._select) || [];
+    const totalVotes = totalRows.length > 0 ? Number(totalRows[0].total || 0) : 0;
+
+    // Get per-option counts
+    const voteCounts = await aggregateVotes(safePollId);
+
+    // Build results with percentage
+    const results = parsedOptions.map(option => {
+      const match = voteCounts.find(v => v.option === option);
+      const count = match ? Number(match.count || 0) : 0;
+      const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      return { option, count, percentage };
+    });
+
+    res.json({
+      poll: {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        options: parsedOptions,
+        status: poll.status,
+        createdAt: poll.createdAt,
+        closesAt: poll.closesAt
+      },
+      totalVotes,
+      results
+    });
+  } catch (err) {
+    console.error('[Polls] Error fetching poll results:', err.message);
+    res.status(500).json({ error: 'Failed to fetch poll results.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: GET /api/polls — List all polls (admin only)
+// ----------------------------------------------------------
+app.get('/api/polls', adminProtect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+  }
+  try {
+    const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" ORDER BY created_at DESC`;
     const query = `
-      query GetUsersByRoles {
-        users {
-          id
-          role
-        }
+      query GetAllPolls {
+        _select(sql: ${graphqlSqlString(sql)})
       }
     `;
     const result = await sqlConnect.executeGraphqlRead(query);
-    const users = result.data && result.data.users ? result.data.users : [];
-    const targetUsers = users.filter(u => roles.includes(u.role));
+    const polls = (result.data && result.data._select) || [];
+    const enriched = await Promise.all(polls.map(async (poll) => {
+      const voteCounts = await aggregateVotes(poll.id);
+      const parsedOptions = parsePollOptions(poll.options);
+      return { ...poll, options: parsedOptions, voteCounts };
+    }));
+    res.json(enriched);
+  } catch (err) {
+    console.error('[Polls] Error listing all polls:', err.message);
+    res.status(500).json({ error: 'Failed to list polls.' });
+  }
+});
 
-    // Insert notification for each target user
-    const mutation = `
-      mutation CreateNotification($userId: UUID!, $type: String!, $message: String!) {
-        notification_insert(data: {
-          user: { id: $userId },
-          type: $type,
-          message: $message,
-          isRead: false
-        })
+// ----------------------------------------------------------
+// SCRUM-191: PATCH /api/polls/:id/close — Close a poll (admin only)
+// ----------------------------------------------------------
+app.patch('/api/polls/:id/close', adminProtect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Only administrators can close polls.' });
+  }
+  const safePollId = sanitizeUuid(req.params.id);
+  try {
+    const closeSql = `UPDATE "poll" SET status = 'closed' WHERE id = '${safePollId}'`;
+    await sqlConnect.executeGraphql(`
+      mutation ClosePoll {
+        _execute(sql: ${graphqlSqlString(closeSql)})
       }
-    `;
-
-    for (const user of targetUsers) {
-      const res = await sqlConnect.executeGraphql(mutation, {
-        variables: { userId: user.id, type, message }
-      });
-      const notifId = res.data.notification_insert.id;
-
-      const notificationObj = {
-        id: notifId,
-        userId: user.id,
-        type,
-        message,
-        isRead: false,
-        createdAt: new Date().toISOString()
-      };
-
-      const wsPayload = JSON.stringify({
-        type: 'new_notification',
-        notification: notificationObj
-      });
-
-      if (wss) {
-        wss.clients.forEach(client => {
-          if (client.readyState === 1 && client.user && client.user.id === user.id) {
-            client.send(wsPayload);
-          }
-        });
-      }
-    }
-
-    res.json({ success: true, sent: targetUsers.length });
-  } catch (error) {
-    console.error('Error broadcasting notification:', error);
-    res.status(500).json({ error: 'Failed to broadcast notification' });
+    `);
+    res.json({ message: 'Poll closed successfully.' });
+  } catch (err) {
+    console.error('[Polls] Error closing poll:', err.message);
+    res.status(500).json({ error: 'Failed to close poll.' });
   }
 });
 
@@ -1414,5 +1715,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server };
-
+module.exports = { app, server, aggregateVotes };

@@ -33,10 +33,7 @@
       </div>
 
       <div class="topbar-right">
-        <div id="notification-bell" class="notification-bell">
-          <button class="bell-btn icon-btn" id="bell-btn">&#x1F514;<span class="notif-badge" id="notif-badge">0</span></button>
-          <div class="notif-dropdown" id="notif-dropdown"></div>
-        </div>
+        <button class="icon-btn">&#x1F514;</button> <!-- Notification -->
         <div class="profile-pic" title="Profile">&#x1F464;</div>
         <button id="logout-btn" class="icon-btn" title="Log Out">&#x21AA;</button>
       </div>
@@ -119,15 +116,21 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
           </a>
-          <!-- Notification Icon -->
-          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications" onclick="event.preventDefault(); document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display='none'); document.getElementById('notifications-manager').style.display='flex';">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </a>
           <!-- Shield Icon -->
           <a href="#" class="sidebar-icon" title="Security">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            </svg>
+          </a>
+          <!-- Polls Icon (Ballot Box) -->
+          <a href="#" id="btn-polls-manager" class="sidebar-icon" title="Polls & Voting">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="12" x2="15" y2="12"></line>
+              <line x1="9" y1="15" x2="13" y2="15"></line>
             </svg>
           </a>
         </div>
@@ -505,57 +508,6 @@
             </section>
 </div>
 
-        <!-- Notifications Manager (Hidden by default) -->
-        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
-          <div class="db-viewer-header">
-            <h1 class="dashboard-title">Notification Manager</h1>
-          </div>
-
-          <!-- Create Notification Widget -->
-          <div class="db-viewer-content" style="margin-top: 24px;">
-            <div class="db-viewer-inner table-widget" style="padding: 32px; background: white;">
-              <h3 style="margin-top: 0; color: #1a1f36;">Create Notification</h3>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Message:</label>
-                <input type="text" id="notif-message-input" placeholder="Enter notification message..." style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; outline: none;" />
-              </div>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Type:</label>
-                <select id="notif-type-select" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none;">
-                  <option value="system">System</option>
-                  <option value="order">Order</option>
-                  <option value="meeting">Meeting</option>
-                  <option value="poll">Poll</option>
-                </select>
-              </div>
-
-              <div style="margin-bottom: 24px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Send To:</label>
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-admin" value="admin" checked /> Admin
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-employee" value="employee" checked /> Employee
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-financial" value="financial_officer" checked /> Financial Officer
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-customer" value="customer" /> Customer
-                  </label>
-                </div>
-              </div>
-
-              <button id="send-notif-btn" style="background: #1a1f36; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
-                Send Notification
-              </button>
-              <span id="notif-status" style="margin-left: 16px; font-size: 0.85rem; color: #4f566b;"></span>
-            </div>
-          </div>
-        </div> <!-- /#notifications-manager -->
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">
           <div class="db-viewer-header">
@@ -861,15 +813,87 @@
           </div>
         </dialog>
 
+        <!-- Polls Manager View (SCRUM-192) — Hidden by default -->
+        <div id="polls-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">Polls &amp; Voting</h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="polls-status-badge" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; background: #d1fae5; color: #065f46; font-weight: 600;"></span>
+              <button id="polls-refresh-btn" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+
+            <!-- Left: Create Poll Form (Admin only) -->
+            <div id="create-poll-panel" class="widget" style="width: 320px; flex-shrink: 0; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Create Poll</h2>
+                <span style="font-size: 1.2rem;">📊</span>
+              </div>
+              <form id="create-poll-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Poll Title *</label>
+                  <input type="text" id="poll-title" required placeholder="e.g. Q3 Strategy Vote" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Description</label>
+                  <textarea id="poll-description" rows="3" placeholder="What is this poll about?" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical; transition: border-color 0.2s;"></textarea>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Options * (min. 2)</label>
+                  <div id="poll-options-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option A" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option B" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                  </div>
+                  <button type="button" id="add-poll-option-btn" style="background: none; border: 1px dashed #c4c9d4; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #697386; cursor: pointer; transition: all 0.2s; text-align: center;">
+                    + Add Option
+                  </button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Closes At (optional)</label>
+                  <input type="datetime-local" id="poll-closes-at" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit;" />
+                </div>
+                <div id="create-poll-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                  🗳️ Create Poll
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Active Polls List -->
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="polls-loading" style="text-align: center; padding: 48px; color: #697386; font-size: 0.95rem;">
+                Loading polls...
+              </div>
+              <div id="polls-empty" style="display: none; text-align: center; padding: 64px 32px;">
+                <div style="font-size: 3rem; margin-bottom: 16px;">🗳️</div>
+                <h3 style="margin: 0 0 8px 0; color: #1a1f36;">No active polls</h3>
+                <p style="color: #697386; margin: 0;">Create a poll using the form on the left to get started.</p>
+              </div>
+              <div id="polls-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
+            </div>
+
+          </div>
+        </div>
+
       </div> <!-- /.admin-content-wrapper -->
+
     </div> <!-- /.admin-layout-container -->
   </div>
 
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script type="module" src='js/admin.js'></script>
-  <script src="js/notifications.js"></script>
+  <script type="module" src='/js/admin.js'></script>
   <script src="js/finance-reporting.js"></script>
 </body>
 

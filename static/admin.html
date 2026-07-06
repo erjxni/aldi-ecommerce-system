@@ -33,7 +33,10 @@
       </div>
 
       <div class="topbar-right">
-        <button class="icon-btn">&#x1F514;</button> <!-- Notification -->
+        <div id="notification-bell" class="notification-bell">
+          <button class="bell-btn icon-btn" id="bell-btn">&#x1F514;<span class="notif-badge" id="notif-badge">0</span></button>
+          <div class="notif-dropdown" id="notif-dropdown"></div>
+        </div>
         <div class="profile-pic" title="Profile">&#x1F464;</div>
         <button id="logout-btn" class="icon-btn" title="Log Out">&#x21AA;</button>
       </div>
@@ -131,6 +134,13 @@
               <line x1="9" y1="9" x2="15" y2="9"></line>
               <line x1="9" y1="12" x2="15" y2="12"></line>
               <line x1="9" y1="15" x2="13" y2="15"></line>
+            </svg>
+          </a>
+          <!-- Notifications Manager Icon -->
+          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications Manager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
           </a>
         </div>
@@ -885,6 +895,69 @@
           </div>
         </div>
 
+        <!-- Notifications Manager View -->
+        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
+          <div class="dashboard-header">
+            <h1 class="dashboard-title">
+              Broadcast Center
+              <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">📢</span>
+            </h1>
+          </div>
+          
+          <div class="widget-grid" style="grid-template-columns: 1fr;">
+            <!-- Broadcast Card -->
+            <div class="glass-card" style="padding: 24px;">
+              <h2 style="font-size: 1.1rem; color: #1a1f36; margin: 0 0 16px 0;">New Broadcast</h2>
+              
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Target Roles -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Target Roles</label>
+                  <div style="display: flex; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="employee" checked> Employee
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="financial_officer"> Finance
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="admin"> Admin
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Notification Type -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Type</label>
+                  <select id="notifType" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white;">
+                    <option value="info">ℹ️ Information</option>
+                    <option value="alert">⚠️ Alert</option>
+                    <option value="success">✅ Success</option>
+                  </select>
+                </div>
+
+                <!-- Message -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Message</label>
+                  <textarea id="notifMessage" rows="4" placeholder="Enter the broadcast message..." style="width: 100%; padding: 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span id="notifStatus" style="font-size: 0.9rem; font-weight: 500; transition: opacity 0.3s;"></span>
+                  <button id="sendNotifBtn" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send Broadcast
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div> <!-- /.admin-content-wrapper -->
 
     </div> <!-- /.admin-layout-container -->
@@ -894,6 +967,7 @@
 
   <!-- WebSocket Connection & Role-Based UI Script -->
   <script type="module" src='/js/admin.js'></script>
+  <script src="js/notifications.js"></script>
   <script src="js/finance-reporting.js"></script>
 </body>
 

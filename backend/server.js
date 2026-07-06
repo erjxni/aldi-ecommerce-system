@@ -1637,6 +1637,125 @@ app.patch('/api/polls/:id/close', adminProtect, async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------
+// API: Get notifications for the logged-in user
+// ---------------------------------------------------------
+app.get('/api/notifications', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const query = `
+      query GetNotifications($userId: UUID!) {
+        notifications(where: { userId: { eq: $userId } }, orderBy: { createdAt: DESC }) {
+          id
+          userId
+          type
+          message
+          isRead
+          createdAt
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, { variables: { userId } });
+    const notifications = result.data && result.data.notifications ? result.data.notifications : [];
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Mark a notification as read (SCRUM-200)
+// ---------------------------------------------------------
+app.put('/api/notifications/:id/read', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mutation = `
+      mutation MarkAsRead($id: UUID!) {
+        notification_update(id: $id, data: { isRead: true })
+      }
+    `;
+    const result = await sqlConnect.executeGraphql(mutation, { variables: { id } });
+    res.json({ success: true, notification: result.data.notification_update });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Broadcast notification to users by role (Admin only)
+// ---------------------------------------------------------
+app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
+  try {
+    const { message, type, roles } = req.body;
+    const allowedRoles = ['admin', 'financial_officer', 'employee'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admins can broadcast notifications' });
+    }
+
+    // Get all users with the specified roles
+    const query = `
+      query GetUsersByRoles {
+        users {
+          id
+          role
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const users = result.data && result.data.users ? result.data.users : [];
+    const targetUsers = users.filter(u => roles.includes(u.role));
+
+    // Insert notification for each target user
+    const mutation = `
+      mutation CreateNotification($userId: UUID!, $type: String!, $message: String!) {
+        notification_insert(data: {
+          user: { id: $userId },
+          type: $type,
+          message: $message,
+          isRead: false
+        })
+      }
+    `;
+
+    for (const user of targetUsers) {
+      const res = await sqlConnect.executeGraphql(mutation, {
+        variables: { userId: user.id, type, message }
+      });
+      const notifId = res.data.notification_insert.id;
+
+      const notificationObj = {
+        id: notifId,
+        userId: user.id,
+        type,
+        message,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+
+      const wsPayload = JSON.stringify({
+        type: 'new_notification',
+        notification: notificationObj
+      });
+
+      // send each client the notification received live
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1 && client.user && client.user.id === user.id) {
+            client.send(wsPayload);
+          }
+        });
+      }
+    }
+
+    res.json({ success: true, sent: targetUsers.length });
+  } catch (error) {
+    console.error('Error broadcasting notification:', error);
+    res.status(500).json({ error: 'Failed to broadcast notification' });
+  }
+});
+
 // Fallback routing: handle undefined routes
 // ---------------------------------------------------------
 // API fallback: return JSON 404

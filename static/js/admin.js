@@ -33,12 +33,21 @@
       .then(res => res.json())
       .then(users => {
         const me = users.find(u => u.email === userEmail);
-        if (me && me.photoUrl) {
-          localStorage.setItem('userPhoto', me.photoUrl);
-          window.updateTopbarProfilePic();
+        if (me) {
+          if (me.photoUrl) {
+            localStorage.setItem('userPhoto', me.photoUrl);
+            window.updateTopbarProfilePic();
+          }
+          if (me.displayName) {
+            localStorage.setItem('userName', me.displayName);
+            const emailDisplay = document.getElementById('user-email-display');
+            if (emailDisplay) {
+              emailDisplay.textContent = `Hello, ${me.displayName}`;
+            }
+          }
         }
       })
-      .catch(err => console.error('Failed to sync topbar profile photo:', err));
+      .catch(err => console.error('Failed to sync user profile:', err));
   }
 
   // --- Logout Button ---
@@ -260,12 +269,14 @@
   const filesBtn = document.getElementById('btn-files-manager');
   const financialsBtn = document.getElementById('btn-financials');
   const pollsBtn = document.getElementById('btn-polls-manager');
+  const notifsBtn = document.getElementById('btn-notifications-manager');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
   const filesViewer = document.getElementById('files-manager-view');
   const financialsViewer = document.getElementById('financials-view');
   const pollsViewer = document.getElementById('polls-manager-view');
+  const notifsViewer = document.getElementById('notifications-manager');
 
   // Helper to hide all main views
   function hideAllViews() {
@@ -275,6 +286,7 @@
     if (filesViewer) filesViewer.style.display = 'none';
     if (financialsViewer) financialsViewer.style.display = 'none';
     if (pollsViewer) pollsViewer.style.display = 'none';
+    if (notifsViewer) notifsViewer.style.display = 'none';
   }
   function clearSidebarActive() {
     document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -294,103 +306,45 @@
 ) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dbViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (dbViewer) dbViewer.style.display = 'flex';
+      clearSidebarActive();
       dbBtn.classList.add('active');
-
-      // Load default tab
       const activeTab = document.querySelector('.db-tab.active');
       if (activeTab) loadTableData(activeTab.dataset.table);
-    });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
     });
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dashboardView.style.display = 'block';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (dashboardView) dashboardView.style.display = 'block';
+      clearSidebarActive();
       homeBtn.classList.add('active');
     });
+
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
+      hideAllViews();
+      if (financialsViewer) financialsViewer.style.display = 'flex';
+      clearSidebarActive();
       financialsBtn.classList.add('active');
     });
 
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      usersViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (usersViewer) usersViewer.style.display = 'flex';
+      clearSidebarActive();
       usersBtn.classList.add('active');
-
       loadUsersManagerData();
     });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-    document
-      .querySelectorAll('.admin-sidebar .sidebar-icon')
-      .forEach((i) => i.classList.remove('active'));
-
-    financialsBtn.classList.add('active');
-  });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'flex';
-      financialsViewer.style.display = 'none';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+      hideAllViews();
+      if (filesViewer) filesViewer.style.display = 'flex';
+      clearSidebarActive();
       filesBtn.classList.add('active');
-
       loadFilesManagerData();
     });
 
@@ -404,6 +358,17 @@
         pollsBtn.classList.add('active');
         // Load polls when navigating to the view
         if (typeof window.loadPolls === 'function') window.loadPolls();
+      });
+    }
+
+    // Notifications Manager button
+    if (notifsBtn) {
+      notifsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        hideAllViews();
+        if (notifsViewer) notifsViewer.style.display = 'flex';
+        clearSidebarActive();
+        notifsBtn.classList.add('active');
       });
     }
   }
@@ -1582,4 +1547,75 @@
       createPollStatus.style.display = 'block';
     }
   }
+
+  // --- Notifications Manager Logic ---
+  const sendNotifBtn = document.getElementById('sendNotifBtn');
+  const notifType = document.getElementById('notifType');
+  const notifMessage = document.getElementById('notifMessage');
+  const notifStatus = document.getElementById('notifStatus');
+
+  if (sendNotifBtn) {
+    sendNotifBtn.addEventListener('click', async () => {
+      // Get selected roles
+      const roleCheckboxes = document.querySelectorAll('.notif-role-checkbox:checked');
+      const roles = Array.from(roleCheckboxes).map(cb => cb.value);
+
+      if (roles.length === 0) {
+        showNotifStatus('Please select at least one target role.', '#991b1b');
+        return;
+      }
+
+      const message = notifMessage.value.trim();
+      if (!message) {
+        showNotifStatus('Please enter a message to broadcast.', '#991b1b');
+        return;
+      }
+
+      sendNotifBtn.disabled = true;
+      sendNotifBtn.style.opacity = '0.7';
+      showNotifStatus('Sending broadcast...', '#2b58f9');
+
+      try {
+        const userToken = localStorage.getItem('userToken');
+        const res = await fetch('/api/notifications/broadcast', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: JSON.stringify({
+            roles,
+            type: notifType.value,
+            message
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showNotifStatus(`✅ Broadcast sent to ${data.sent} users.`, '#10b981');
+          notifMessage.value = '';
+          setTimeout(() => {
+            if (notifStatus) notifStatus.style.opacity = '0';
+          }, 3000);
+        } else {
+          showNotifStatus(data.error || 'Failed to send broadcast.', '#991b1b');
+        }
+      } catch (error) {
+        console.error('Broadcast error:', error);
+        showNotifStatus('Network error occurred.', '#991b1b');
+      } finally {
+        sendNotifBtn.disabled = false;
+        sendNotifBtn.style.opacity = '1';
+      }
+    });
+
+    function showNotifStatus(text, color) {
+      if (!notifStatus) return;
+      notifStatus.textContent = text;
+      notifStatus.style.color = color;
+      notifStatus.style.opacity = '1';
+    }
+  }
+
 })();

@@ -500,32 +500,47 @@
       const token = localStorage.getItem('userToken');
       if (!token) return;
 
-      // Use last 30 days as default for the revenue card
-      const endDate = new Date();
-      const startDate = new Date();
-      startDate.setDate(endDate.getDate() - 30);
       const fmt = (d) => d.toISOString().split('T')[0];
 
+      // Current month: 1st of this month → today
+      const now = new Date();
+      const currStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const currEnd   = now;
+
+      // Previous month: 1st → last day of last month
+      const prevEnd   = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+      const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1);
+
+      const headers = { 'Authorization': `Bearer ${token}` };
+
       try {
-        const res = await fetch(`/api/finance/summary?startDate=${fmt(startDate)}&endDate=${fmt(endDate)}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (!res.ok) return; // silently skip if not finance role
+        const [currRes, prevRes] = await Promise.all([
+          fetch(`/api/finance/summary?startDate=${fmt(currStart)}&endDate=${fmt(currEnd)}`, { headers }),
+          fetch(`/api/finance/summary?startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}`, { headers })
+        ]);
 
-        const data = await res.json();
-        const groups = data.summary?.groupedByType || [];
+        if (!currRes.ok) return; // silently skip if not finance role
 
-        const online = groups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
-        const subs   = groups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
-        // In-Store = anything that's not ecommerce, membership, or operational costs
-        const instore = groups
-          .filter(g => !['ecommerce_sale','membership_due','operational_cost'].includes(g.transactionType))
+        const currData  = await currRes.json();
+        const currGroups = currData.summary?.groupedByType || [];
+
+        // Extract this month's revenue sources
+        const revenueTypes = ['ecommerce_sale', 'membership_due'];
+        const online  = currGroups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
+        const subs    = currGroups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
+        const instore = currGroups
+          .filter(g => !['ecommerce_sale', 'membership_due', 'operational_cost'].includes(g.transactionType))
           .reduce((sum, g) => sum + g.totalAmount, 0);
 
-        const total = online + subs + instore;
-        const pct = (val) => total > 0 ? Math.round((val / total) * 100) : 0;
-        const fmt2 = (v) => `€${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const currTotal = online + subs + instore;
 
+        // Update total revenue display
+        const fmt2 = (v) => `€${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const totalEl = document.getElementById('total-revenue-amount');
+        if (totalEl) totalEl.textContent = fmt2(currTotal);
+
+        // Update progress bars (% share of current month total)
+        const pct = (val) => currTotal > 0 ? Math.round((val / currTotal) * 100) : 0;
         const onlineBar  = document.getElementById('rev-online-bar');
         const subsBar    = document.getElementById('rev-subscriptions-bar');
         const instoreBar = document.getElementById('rev-instore-bar');
@@ -533,12 +548,53 @@
         const subsVal    = document.getElementById('rev-subscriptions-val');
         const instoreVal = document.getElementById('rev-instore-val');
 
-        if (onlineBar)  { onlineBar.style.width  = pct(online)  + '%'; }
-        if (subsBar)    { subsBar.style.width    = pct(subs)    + '%'; }
-        if (instoreBar) { instoreBar.style.width = pct(instore) + '%'; }
-        if (onlineVal)  { onlineVal.textContent  = fmt2(online); }
-        if (subsVal)    { subsVal.textContent    = fmt2(subs); }
-        if (instoreVal) { instoreVal.textContent = fmt2(instore); }
+        if (onlineBar)  onlineBar.style.width  = pct(online)  + '%';
+        if (subsBar)    subsBar.style.width     = pct(subs)    + '%';
+        if (instoreBar) instoreBar.style.width  = pct(instore) + '%';
+        if (onlineVal)  onlineVal.textContent   = fmt2(online);
+        if (subsVal)    subsVal.textContent     = fmt2(subs);
+        if (instoreVal) instoreVal.textContent  = fmt2(instore);
+
+        // --- MoM badge update ---
+        const badge = document.getElementById('revenue-change-badge');
+        if (!badge) return;
+
+        let prevTotal = 0;
+        if (prevRes.ok) {
+          const prevData   = await prevRes.json();
+          const prevGroups = prevData.summary?.groupedByType || [];
+          const prevOnline  = prevGroups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
+          const prevSubs    = prevGroups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
+          const prevInstore = prevGroups
+            .filter(g => !['ecommerce_sale', 'membership_due', 'operational_cost'].includes(g.transactionType))
+            .reduce((sum, g) => sum + g.totalAmount, 0);
+          prevTotal = prevOnline + prevSubs + prevInstore;
+        }
+
+        // Calculate percentage change vs previous month
+        let changeLabel, changeClass;
+        if (prevTotal === 0 && currTotal === 0) {
+          changeLabel = '— 0%';
+          changeClass = 'neutral';
+        } else if (prevTotal === 0) {
+          changeLabel = '▲ 100%';
+          changeClass = 'positive';
+        } else {
+          const diffPct = ((currTotal - prevTotal) / prevTotal) * 100;
+          if (Math.abs(diffPct) < 0.05) {
+            changeLabel = '— 0%';
+            changeClass = 'neutral';
+          } else if (diffPct > 0) {
+            changeLabel = `▲ ${diffPct.toFixed(1)}%`;
+            changeClass = 'positive';
+          } else {
+            changeLabel = `▼ ${Math.abs(diffPct).toFixed(1)}%`;
+            changeClass = 'negative';
+          }
+        }
+
+        badge.textContent = changeLabel;
+        badge.className = `metric-change ${changeClass}`;
 
       } catch (err) {
         console.warn('Revenue breakdown unavailable:', err.message);

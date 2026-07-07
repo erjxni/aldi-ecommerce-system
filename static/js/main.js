@@ -21,15 +21,32 @@ document.addEventListener('DOMContentLoaded', () => {
       const avatarHtml = `<img src="${finalPhoto}" class="user-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1);" />`;
 
       navAuthSection.innerHTML = `
-        <div class="user-profile" id="user-profile-btn" style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Edit Profile">
+        <div class="user-profile" style="display: flex; align-items: center; gap: 4px;">
           ${avatarHtml}
-          <span class="user-email" id="user-email-display">Hello, ${displayName}</span>
+          <span class="user-email user-email-animated" id="user-email-display">Hello, ${displayName}</span>
         </div>
         <button id="logout-btn" class="btn-logout" title="Log Out">
           <span class="logout-icon">&#x21AA;</span>
           <span class="logout-text">Logout</span>
         </button>
       `;
+
+      // Dynamically append the settings gear button to the far right of .nav-right
+      const navRight = document.querySelector('.nav-right');
+      if (navRight && !document.getElementById('profile-settings-btn')) {
+        const settingsBtn = document.createElement('button');
+        settingsBtn.id = 'profile-settings-btn';
+        settingsBtn.className = 'nav-settings-btn';
+        settingsBtn.title = 'Profile Settings';
+        settingsBtn.style.cssText = 'background: none; border: none; padding: 4px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center;';
+        settingsBtn.innerHTML = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" class="settings-svg" style="transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s;">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        `;
+        navRight.appendChild(settingsBtn);
+      }
 
       // Bind logout button action
       const logoutBtn = document.getElementById('logout-btn');
@@ -41,6 +58,8 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.removeItem('userName');
           localStorage.removeItem('userPhoto');
           localStorage.removeItem('userId');
+          const settingsBtn = document.getElementById('profile-settings-btn');
+          if (settingsBtn) settingsBtn.remove();
           // Clear HttpOnly cookie via server
           fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
             window.location.href = '/index.html';
@@ -106,6 +125,55 @@ document.addEventListener('DOMContentLoaded', () => {
         #profile-settings-modal button:hover {
           opacity: 0.9;
         }
+
+        /* Smooth Entrance & Hover Animations for User Greeting */
+        @keyframes fadeInSlideRight {
+          from {
+            opacity: 0;
+            transform: translateX(-8px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .user-email-animated {
+          animation: fadeInSlideRight 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          display: inline-block;
+          position: relative;
+          transition: color 0.3s ease;
+        }
+        .user-email-animated:hover {
+          color: #60a5fa !important;
+        }
+        .user-email-animated::after {
+          content: '';
+          position: absolute;
+          width: 100%;
+          transform: scaleX(0);
+          height: 2px;
+          bottom: -2px;
+          left: 0;
+          background-color: #60a5fa;
+          transform-origin: bottom right;
+          transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .user-email-animated:hover::after {
+          transform: scaleX(1);
+          transform-origin: bottom left;
+        }
+
+        /* Hover animation for profile settings gear button */
+        #profile-settings-btn {
+          transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+        }
+        #profile-settings-btn:hover {
+          transform: scale(1.1);
+        }
+        #profile-settings-btn:hover .settings-svg {
+          transform: rotate(90deg);
+          color: #60a5fa;
+        }
       `;
       document.head.appendChild(styleEl);
 
@@ -153,7 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.appendChild(profileModal);
 
       // Event Listeners for Profile modal
-      const profileBtn = document.getElementById('user-profile-btn');
+      const profileBtn = document.getElementById('profile-settings-btn');
       const profileForm = document.getElementById('profile-settings-form');
       const cancelProfileBtn = document.getElementById('cancel-profile-btn');
       const profileError = document.getElementById('profile-settings-error');

@@ -494,6 +494,58 @@
 
     // Initialize losses widget on load
     initDailyLossesWidget();
+
+    // --- Revenue Breakdown Progress Bars ---
+    async function loadRevenueBreakdown() {
+      const token = localStorage.getItem('userToken');
+      if (!token) return;
+
+      // Use last 30 days as default for the revenue card
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(endDate.getDate() - 30);
+      const fmt = (d) => d.toISOString().split('T')[0];
+
+      try {
+        const res = await fetch(`/api/finance/summary?startDate=${fmt(startDate)}&endDate=${fmt(endDate)}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) return; // silently skip if not finance role
+
+        const data = await res.json();
+        const groups = data.summary?.groupedByType || [];
+
+        const online = groups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
+        const subs   = groups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
+        // In-Store = anything that's not ecommerce, membership, or operational costs
+        const instore = groups
+          .filter(g => !['ecommerce_sale','membership_due','operational_cost'].includes(g.transactionType))
+          .reduce((sum, g) => sum + g.totalAmount, 0);
+
+        const total = online + subs + instore;
+        const pct = (val) => total > 0 ? Math.round((val / total) * 100) : 0;
+        const fmt2 = (v) => `€${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+        const onlineBar  = document.getElementById('rev-online-bar');
+        const subsBar    = document.getElementById('rev-subscriptions-bar');
+        const instoreBar = document.getElementById('rev-instore-bar');
+        const onlineVal  = document.getElementById('rev-online-val');
+        const subsVal    = document.getElementById('rev-subscriptions-val');
+        const instoreVal = document.getElementById('rev-instore-val');
+
+        if (onlineBar)  { onlineBar.style.width  = pct(online)  + '%'; }
+        if (subsBar)    { subsBar.style.width    = pct(subs)    + '%'; }
+        if (instoreBar) { instoreBar.style.width = pct(instore) + '%'; }
+        if (onlineVal)  { onlineVal.textContent  = fmt2(online); }
+        if (subsVal)    { subsVal.textContent    = fmt2(subs); }
+        if (instoreVal) { instoreVal.textContent = fmt2(instore); }
+
+      } catch (err) {
+        console.warn('Revenue breakdown unavailable:', err.message);
+      }
+    }
+
+    loadRevenueBreakdown();
   }
 
   // --- Tab and Data Fetching Logic ---

@@ -552,7 +552,8 @@
       'cart': 'Cart',
       'cartitem': 'CartItem',
       'processedby': 'User',
-      'customer': 'User'
+      'customer': 'User',
+      'poll': 'Poll'
     };
     return map[col.toLowerCase()] || col;
   }

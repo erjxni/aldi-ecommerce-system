@@ -429,6 +429,98 @@ app.post('/api/admin/users/upload-photo', adminProtect, upload.single('photo'), 
 });
 
 // ---------------------------------------------------------
+// API: Profile Settings (Any authenticated user)
+// ---------------------------------------------------------
+app.get('/api/profile/me', authenticateJWT, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const query = `
+      query GetUserProfile($id: UUID!) {
+        users(where: { id: { eq: $id } }) {
+          id
+          email
+          displayName
+          phoneNumber
+          address
+          photoUrl
+          role
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: { id: userId }
+    });
+    if (!result.data || !result.data.users || result.data.users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(result.data.users[0]);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile.' });
+  }
+});
+
+app.post('/api/profile/upload-photo', authenticateJWT, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
+
+    const bucket = storage.bucket();
+    const uniqueFileName = `profiles/${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    
+    const file = bucket.file(uniqueFileName);
+    await file.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+      }
+    });
+
+    await file.makePublic();
+    const photoUrl = file.publicUrl();
+
+    res.json({ photoUrl });
+  } catch (error) {
+    console.error('Error uploading photo to Firebase Storage:', error);
+    res.status(500).json({ error: 'Failed to upload photo to storage.' });
+  }
+});
+
+app.put('/api/profile/update', authenticateJWT, async (req, res) => {
+  const { displayName, phoneNumber, address, photoUrl } = req.body;
+  const userId = req.user.id;
+  
+  if (!displayName || displayName.trim() === '') {
+    return res.status(400).json({ error: 'Display name is required' });
+  }
+
+  try {
+    const updateMutation = `
+      mutation UpdateUserProfile($id: UUID!, $displayName: String!, $phoneNumber: String, $address: String, $photoUrl: String) {
+        user_update(id: $id, data: { displayName: $displayName, phoneNumber: $phoneNumber, address: $address, photoUrl: $photoUrl })
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphql(updateMutation, {
+      variables: {
+        id: userId,
+        displayName: displayName.trim(),
+        phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+        address: address ? address.trim() : null,
+        photoUrl: photoUrl || null
+      }
+    });
+
+    if (result.errors) {
+      return res.status(400).json({ error: result.errors[0].message });
+    }
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Failed to update profile.' });
+  }
+});
+
+// ---------------------------------------------------------
 // API: Document Management — Upload Document (Admin/Employee only)
 // ---------------------------------------------------------
 app.post('/api/documents/upload', adminProtect, upload.single('file'), async (req, res) => {

@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const avatarHtml = `<img src="${finalPhoto}" class="user-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1);" />`;
 
       navAuthSection.innerHTML = `
-        <div class="user-profile">
+        <div class="user-profile" id="user-profile-btn" style="cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Edit Profile">
           ${avatarHtml}
           <span class="user-email" id="user-email-display">Hello, ${displayName}</span>
         </div>
@@ -70,6 +70,236 @@ document.addEventListener('DOMContentLoaded', () => {
         heroLoginBtn.href = staffRoles.includes(userRole) ? "/admin.html" : "/products.html";
         heroLoginBtn.classList.remove("btn-login-nav");
         heroLoginBtn.classList.add("btn-shop-now");
+      }
+
+      // --- Dynamic Profile Settings Modal & Logic ---
+      const styleEl = document.createElement('style');
+      styleEl.textContent = `
+        #profile-settings-modal {
+          margin: auto !important;
+        }
+        #profile-settings-modal::backdrop {
+          background: rgba(0,0,0,0.4);
+          backdrop-filter: blur(4px);
+        }
+        #profile-settings-modal input[type="text"]:focus {
+          border-color: #2b58f9;
+          box-shadow: 0 0 0 3px rgba(43, 88, 249, 0.15);
+        }
+        #profile-settings-modal input[type="file"]::file-selector-button {
+          background-color: #f4f5f7;
+          border: 1px solid #e3e8ee;
+          border-radius: 6px;
+          padding: 6px 12px;
+          font-size: 0.8rem;
+          font-weight: 500;
+          color: #4f566b;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-right: 8px;
+        }
+        #profile-settings-modal input[type="file"]::file-selector-button:hover {
+          background-color: #eef2ff;
+          border-color: #2b58f9;
+          color: #2b58f9;
+        }
+        #profile-settings-modal button:hover {
+          opacity: 0.9;
+        }
+      `;
+      document.head.appendChild(styleEl);
+
+      const modalHtml = `
+        <dialog id="profile-settings-modal" style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 90%; font-family: 'Poppins', sans-serif; box-sizing: border-box; background: white;">
+          <h2 style="margin-top: 0; color: #1a1f36; font-size: 1.5rem; font-weight: 600; margin-bottom: 20px;">Profile Settings</h2>
+          <form id="profile-settings-form" style="display: flex; flex-direction: column; gap: 16px;">
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.85rem; color: #4f566b; margin-bottom: 6px;">Display Name</label>
+              <input type="text" id="profile-display-name" required style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" placeholder="Your Name" />
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.85rem; color: #4f566b; margin-bottom: 6px;">Phone Number</label>
+              <input type="text" id="profile-phone" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" placeholder="e.g. (555) 123-4567" />
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.85rem; color: #4f566b; margin-bottom: 6px;">Address</label>
+              <input type="text" id="profile-address" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: inherit; font-size: 0.9rem; outline: none; transition: border-color 0.2s;" placeholder="e.g. 123 Main St, City" />
+            </div>
+            <div>
+              <label style="display: block; font-weight: 500; font-size: 0.85rem; color: #4f566b; margin-bottom: 6px;">Profile Photo</label>
+              <input type="file" id="profile-photo-input" accept="image/*" style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: inherit; font-size: 0.9rem;" />
+              <div id="profile-photo-preview-container" style="display: none; margin-top: 12px; align-items: center; gap: 12px;">
+                <img id="profile-photo-preview-img" src="" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; border: 1px solid #e3e8ee;">
+                <button type="button" id="profile-clear-photo-btn" style="background: white; border: 1px solid #e3e8ee; padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; cursor: pointer; color: #4f566b; transition: background 0.2s;">Remove</button>
+              </div>
+              <div id="profile-upload-progress-container" style="display: none; margin-top: 12px;">
+                <div style="font-size: 0.8rem; color: #4f566b; margin-bottom: 4px;">Uploading photo...</div>
+                <div style="width: 100%; background: #e3e8ee; border-radius: 4px; overflow: hidden; height: 6px;">
+                  <div id="profile-upload-progress-bar" style="width: 0%; height: 100%; background: #2b58f9; transition: width 0.3s ease;"></div>
+                </div>
+              </div>
+            </div>
+            <div id="profile-settings-error" style="color: #991b1b; font-size: 0.85rem; display: none;"></div>
+            <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 8px;">
+              <button type="button" id="cancel-profile-btn" style="background: white; border: 1px solid #e3e8ee; padding: 10px 20px; border-radius: 8px; font-weight: 500; cursor: pointer; color: #4f566b; transition: background 0.2s; font-family: inherit; font-size: 0.9rem;">Cancel</button>
+              <button type="submit" id="save-profile-btn" style="background: #2b58f9; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-family: inherit; font-size: 0.9rem;">Save Changes</button>
+            </div>
+          </form>
+        </dialog>
+      `;
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = modalHtml;
+      const profileModal = tempDiv.firstElementChild;
+      document.body.appendChild(profileModal);
+
+      // Event Listeners for Profile modal
+      const profileBtn = document.getElementById('user-profile-btn');
+      const profileForm = document.getElementById('profile-settings-form');
+      const cancelProfileBtn = document.getElementById('cancel-profile-btn');
+      const profileError = document.getElementById('profile-settings-error');
+      const profilePhotoInput = document.getElementById('profile-photo-input');
+      const profilePreviewContainer = document.getElementById('profile-photo-preview-container');
+      const profilePreviewImg = document.getElementById('profile-photo-preview-img');
+      const profileClearPhotoBtn = document.getElementById('profile-clear-photo-btn');
+
+      if (profileBtn && profileModal) {
+        profileBtn.addEventListener('click', async () => {
+          profileForm.reset();
+          profileError.style.display = 'none';
+          profilePreviewContainer.style.display = 'none';
+          profilePreviewImg.src = '';
+          profilePreviewImg.dataset.originalUrl = '';
+
+          try {
+            const res = await fetch('/api/profile/me', {
+              headers: { 'Authorization': `Bearer ${userToken}` }
+            });
+            if (res.ok) {
+              const user = await res.json();
+              document.getElementById('profile-display-name').value = user.displayName || '';
+              document.getElementById('profile-phone').value = user.phoneNumber || '';
+              document.getElementById('profile-address').value = user.address || '';
+              
+              if (user.photoUrl && user.photoUrl !== '/assets/images/default-photo.jpg') {
+                profilePreviewImg.src = user.photoUrl;
+                profilePreviewContainer.style.display = 'flex';
+                profilePreviewImg.dataset.originalUrl = user.photoUrl;
+              }
+            }
+          } catch (err) {
+            console.error('Failed to load profile settings:', err);
+          }
+
+          profileModal.showModal();
+        });
+      }
+
+      if (cancelProfileBtn && profileModal) {
+        cancelProfileBtn.addEventListener('click', () => {
+          profileModal.close();
+        });
+      }
+
+      if (profileClearPhotoBtn && profilePreviewImg && profilePreviewContainer) {
+        profileClearPhotoBtn.addEventListener('click', () => {
+          profilePreviewImg.src = '';
+          profilePreviewImg.dataset.originalUrl = '';
+          profilePreviewContainer.style.display = 'none';
+          profilePhotoInput.value = '';
+        });
+      }
+
+      if (profilePhotoInput && profilePreviewImg && profilePreviewContainer) {
+        profilePhotoInput.addEventListener('change', () => {
+          const file = profilePhotoInput.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              profilePreviewImg.src = e.target.result;
+              profilePreviewContainer.style.display = 'flex';
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      }
+
+      if (profileForm) {
+        profileForm.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const displayName = document.getElementById('profile-display-name').value.trim();
+          const phoneNumber = document.getElementById('profile-phone').value.trim();
+          const address = document.getElementById('profile-address').value.trim();
+          let photoUrl = profilePreviewImg.dataset.originalUrl || '';
+
+          if (profilePhotoInput && profilePhotoInput.files && profilePhotoInput.files[0]) {
+            try {
+              const file = profilePhotoInput.files[0];
+              const formData = new FormData();
+              formData.append('photo', file);
+
+              const progressContainer = document.getElementById('profile-upload-progress-container');
+              const progressBar = document.getElementById('profile-upload-progress-bar');
+              if (progressContainer) progressContainer.style.display = 'block';
+              if (progressBar) progressBar.style.width = '50%';
+
+              const uploadRes = await fetch('/api/profile/upload-photo', {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${userToken}` },
+                body: formData
+              });
+
+              if (progressBar) progressBar.style.width = '100%';
+
+              if (!uploadRes.ok) throw new Error('Upload failed');
+              const uploadData = await uploadRes.json();
+              photoUrl = uploadData.photoUrl;
+
+              setTimeout(() => { if (progressContainer) progressContainer.style.display = 'none'; }, 500);
+            } catch (err) {
+              console.error('Failed to upload profile photo:', err);
+              profileError.textContent = 'Failed to upload new profile photo.';
+              profileError.style.display = 'block';
+              const progressContainer = document.getElementById('profile-upload-progress-container');
+              if (progressContainer) progressContainer.style.display = 'none';
+              return;
+            }
+          }
+
+          profileError.textContent = 'Saving changes...';
+          profileError.style.display = 'block';
+          profileError.style.color = '#2b58f9';
+
+          try {
+            const res = await fetch('/api/profile/update', {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+              },
+              body: JSON.stringify({
+                displayName,
+                phoneNumber,
+                address,
+                photoUrl: photoUrl || '/assets/images/default-photo.jpg'
+              })
+            });
+
+            if (res.ok) {
+              localStorage.setItem('userName', displayName);
+              localStorage.setItem('userPhoto', photoUrl || '/assets/images/default-photo.jpg');
+              profileModal.close();
+              window.location.reload();
+            } else {
+              const errData = await res.json();
+              profileError.textContent = errData.error || 'Failed to update profile';
+              profileError.style.color = '#991b1b';
+            }
+          } catch (err) {
+            console.error('Failed to update profile settings:', err);
+            profileError.textContent = 'Network error while saving changes.';
+            profileError.style.color = '#991b1b';
+          }
+        });
       }
     } else {
       // User is a guest

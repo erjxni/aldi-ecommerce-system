@@ -37,6 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.removeItem('userEmail');
           localStorage.removeItem('userToken');
           localStorage.removeItem('userRole');
+          localStorage.removeItem('userName');
+          localStorage.removeItem('userPhoto');
+          localStorage.removeItem('userId');
           // Clear HttpOnly cookie via server
           fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
             window.location.href = '/index.html';

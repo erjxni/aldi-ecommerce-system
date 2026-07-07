@@ -1366,7 +1366,12 @@ app.post('/api/polls', adminProtect, async (req, res) => {
     });
   } catch (err) {
     console.error('[Polls] Error creating poll:', err.message);
-    res.status(500).json({ error: 'Failed to create poll.' });
+    console.error('[Polls] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    if (err.httpResponse && err.httpResponse.data) {
+      console.error('[Polls] Data Connect errors:', JSON.stringify(err.httpResponse.data, null, 2));
+    }
+    console.error('[Polls] SQL used:', insertSql);
+    res.status(500).json({ error: 'Failed to create poll.', detail: err.message });
   }
 });
 
@@ -1493,7 +1498,7 @@ app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
   const voteId = crypto.randomUUID();
   const safeOption = escapeSqlLiteral(selectedOption.trim());
 
-  const insertVoteSql = `INSERT INTO "vote" (id, poll_id, user_id, selected_option, created_at) VALUES ('${voteId}', '${safePollId}', '${safeUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
+  const insertVoteSql = `INSERT INTO "vote" (poll_id, user_id, selected_option, created_at) VALUES ('${safePollId}', '${safeUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
   const insertVote = `
     mutation InsertVote {
       _execute(sql: ${graphqlSqlString(insertVoteSql)})
@@ -1803,7 +1808,8 @@ wss.on('connection', (ws, req) => {
 
     // Authenticated and authorized — attach user info
     ws.user = user;
-    console.log(`[WebSocket] Admin client connected: ${user.email} (${user.role})`);
+    const displayRole = user.role.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+    console.log(`[WebSocket] ${displayRole} client connected: ${user.email}`);
 
     ws.on('message', (message) => {
       console.log(`[WebSocket] Message from ${user.email}:`, message.toString());

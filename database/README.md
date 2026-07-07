@@ -80,22 +80,37 @@ type Document @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+type StockBatch @table {
+  product: Product!
+  initialQuantity: Int!
+  currentQuantity: Int!
+  expiryDate: Timestamp!
+  receivedAt: Timestamp! @default(expr: "request.time")
+}
+
+type Notification @table {
+  user: User!
+  type: String!
+  message: String!
+  isRead: Boolean! @default(value: false)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
 type Poll @table {
   title: String!
   description: String! @default(value: "")
-  options: String! @default(value: "[]") # JSON array string in runtime API responses
+  options: String! @default(value: "[]")
   status: String! @default(value: "open")
   createdAt: Timestamp! @default(expr: "request.time")
   closesAt: Timestamp
 }
 
-type Vote @table {
+type Vote @table(key: ["poll", "userId"]) {
   poll: Poll!
   userId: UUID!
   selectedOption: String!
   createdAt: Timestamp! @default(expr: "request.time")
 }
-
 ```
 
 ---
@@ -221,8 +236,6 @@ Stores staff votes and enforces one vote per user per poll.
 | `userId` | `UUID` | Unique with `pollId` | Staff user who voted |
 | `selectedOption` | `String!` | | Chosen poll option |
 | `createdAt` | `Timestamp!` | current timestamp | Vote creation timestamp |
-
-The SQL deployment artifact for these two tables is [polling-schema.sql](polling-schema.sql). The runtime script [create-polls-tables.js](create-polls-tables.js) can attempt deployment, but Firebase Data Connect service-account runtime credentials may not have permission to run DDL. In that case, run the SQL file with a privileged Cloud SQL migration role.
 
 ---
 

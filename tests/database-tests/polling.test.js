@@ -197,12 +197,12 @@ async function runTests() {
   try {
     const constraintRows = await dbSelect(`
       SELECT constraint_name FROM information_schema.table_constraints 
-      WHERE table_name = 'vote' AND constraint_type = 'UNIQUE'
+      WHERE table_name = 'vote' AND constraint_type IN ('UNIQUE', 'PRIMARY KEY')
     `);
     const hasUnique = constraintRows.some(r =>
-      Object.values(r).some(v => String(v).includes('uq_vote_poll_user'))
+      Object.values(r).some(v => String(v).includes('uq_vote_poll_user') || String(v).includes('vote_pkey'))
     );
-    assert(hasUnique, 'T1.3: vote table has UNIQUE (poll_id, user_id) constraint');
+    assert(hasUnique, 'T1.3: vote table has UNIQUE or PRIMARY KEY (poll_id, user_id) constraint');
   } catch (e) {
     assert(false, 'T1.3: UNIQUE constraint exists', e.message);
   }

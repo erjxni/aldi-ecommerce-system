@@ -58,6 +58,7 @@
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userToken');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
       localStorage.removeItem('userPhoto');
       fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
         window.location.href = '/index.html';

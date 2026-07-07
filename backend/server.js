@@ -825,7 +825,7 @@ app.get('/api/admin/database/:table', async (req, res) => {
     'Order': '{ orders { id user { id email } totalAmount status createdAt } }',
     'OrderItem': '{ orderItems { order { id } product { id name } priceAtPurchase quantity } }',
     'FinancialRecord': '{ financialRecords { id transactionId amount transactionType relatedOrder { id } processedBy { id email } description createdAt } }',
-    'StockBatch': '{ stockBatches { id product { id name } initialQuantity currentQuantity expiryDate receivedAt } }',
+    'StockBatch': '{ stockBatches { id product { id name } initialQuantity currentQuantity expiryDate receivedAt piecePrice } }',
     'Notification': '{ notifications { id user { id email } type message isRead createdAt } }',
     'Poll': '{ polls { id title description options status createdAt closesAt } }',
     'Vote': '{ votes { poll { id title } userId selectedOption createdAt } }'

@@ -86,6 +86,7 @@ type StockBatch @table {
   currentQuantity: Int!
   expiryDate: Timestamp!
   receivedAt: Timestamp! @default(expr: "request.time")
+  piecePrice: Float
 }
 
 type Notification @table {

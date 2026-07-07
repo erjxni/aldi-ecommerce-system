@@ -11,6 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin-dashboard.css" />
   <link rel="stylesheet" href="/css/finance-reporting.css" />
+  <style>
+    /* 3D Bar Tooltip */
+    .bar-3d { cursor: pointer; }
+    .bar-3d:hover { filter: brightness(1.15); }
+    .bar-3d::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: -32px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: #1a1f36;
+      color: white;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight: 600;
+      z-index: 10;
+    }
+    .bar-3d:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+  </style>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/public/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/public/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/public/favicon-16x16.png">
@@ -154,12 +182,18 @@
               Overview
               <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
             </h1>
-            <div class="header-actions">
-              <button class="btn-outline">&#x1F4C5; Jan 01 - July 31</button>
-              <span style="color:#697386; font-size:0.8rem; align-self:center;">compared to</span>
-              <button class="btn-outline">&#x1F4C5; Aug 01 - Dec 31</button>
-              <button class="btn-outline">Daily</button>
-              <button class="btn-outline" style="background:#f4f5f7;">Add widget +</button>
+            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+              <select id="overview-range-preset" class="btn-outline" style="padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 6px; outline: none; background: white; cursor: pointer; font-family: inherit;">
+                <option value="this-week">This Week</option>
+                <option value="last-week">Last Week</option>
+                <option value="this-month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div id="overview-custom-dates" style="display: none; align-items: center; gap: 8px;">
+                <input type="date" id="overview-start-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+                <span style="color: #697386; font-size: 0.85rem;">to</span>
+                <input type="date" id="overview-end-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+              </div>
             </div>
           </div>
 
@@ -169,40 +203,12 @@
             <!-- Daily Losses Trend (span 2) -->
             <div class="widget widget-span-2">
               <div class="widget-header">
-                <h2 class="widget-title">Daily Losses Trend</h2>
+                <h2 class="widget-title" id="losses-widget-title">Daily Losses Trend</h2>
                 <button class="widget-icon-btn">&#x22EF;</button>
               </div>
 
-              <div class="bar-chart-container">
-                <!-- Mocking 3D bars -->
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 60%;"></div>
-                  <div class="bar-label">Mon</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 80%;"></div>
-                  <div class="bar-label">Tue</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 50%;"></div>
-                  <div class="bar-label">Wed</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 40%;"></div>
-                  <div class="bar-label">Thu</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 70%;"></div>
-                  <div class="bar-label">Fri</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 90%;"></div>
-                  <div class="bar-label">Sat</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 30%;"></div>
-                  <div class="bar-label">Sun</div>
-                </div>
+              <div class="bar-chart-container" id="losses-chart-container" style="overflow-x: auto; min-width: 0; display: flex; gap: 2%;">
+                <!-- Dynamically populated -->
               </div>
             </div>
 

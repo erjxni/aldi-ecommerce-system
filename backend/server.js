@@ -1321,6 +1321,108 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
         });
     }
 });
+
+app.get('/api/finance/losses', adminProtect, async (req, res) => {
+  let { startDate, endDate } = req.query;
+
+  // Helper to format Date to local YYYY-MM-DD string
+  const toLocalDateString = (date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Default to the current week (Monday to Sunday) if dates are missing
+  if (!startDate || !endDate) {
+    const today = new Date();
+    const day = today.getDay();
+    const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
+    
+    const monday = new Date(today.getFullYear(), today.getMonth(), diffToMon);
+    const sunday = new Date(today.getFullYear(), today.getMonth(), diffToMon + 6);
+
+    startDate = toLocalDateString(monday);
+    endDate = toLocalDateString(sunday);
+  }
+
+  const s = new Date(startDate + 'T00:00:00');
+  const e = new Date(endDate + 'T23:59:59.999');
+
+  try {
+    const query = `
+      query GetExpiredBatches($startDate: Timestamp!, $endDate: Timestamp!) {
+        stockBatches(where: {
+          expiryDate: { ge: $startDate, le: $endDate },
+          currentQuantity: { gt: 0 }
+        }) {
+          id
+          currentQuantity
+          expiryDate
+          piecePrice
+          product {
+            id
+            name
+            price
+          }
+        }
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: { 
+        startDate: s.toISOString(), 
+        endDate: e.toISOString() 
+      }
+    });
+
+    const batches = result.data?.stockBatches || [];
+    const dailyLosses = {};
+    
+    // Initialize dates in the range with 0 loss using local date keys
+    const start = new Date(startDate + 'T00:00:00');
+    const end = new Date(endDate + 'T00:00:00');
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dateKey = toLocalDateString(d);
+      dailyLosses[dateKey] = 0;
+    }
+
+    batches.forEach(b => {
+      const dateKey = toLocalDateString(new Date(b.expiryDate));
+      const cost = b.piecePrice !== null && b.piecePrice !== undefined 
+        ? b.piecePrice 
+        : (b.product?.price ? Number((b.product.price * 0.6).toFixed(2)) : 0);
+      const loss = b.currentQuantity * cost;
+      
+      if (dailyLosses[dateKey] !== undefined) {
+        dailyLosses[dateKey] += loss;
+      } else {
+        dailyLosses[dateKey] = loss;
+      }
+    });
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const formattedLosses = Object.keys(dailyLosses).map(dateStr => {
+      const d = new Date(dateStr + 'T00:00:00');
+      return {
+        date: dateStr,
+        dayName: daysOfWeek[d.getDay()],
+        lossAmount: Number(dailyLosses[dateStr].toFixed(2))
+      };
+    });
+
+    res.json({
+      startDate,
+      endDate,
+      losses: formattedLosses,
+      totalLoss: Number(Object.values(dailyLosses).reduce((sum, val) => sum + val, 0).toFixed(2))
+    });
+
+  } catch (error) {
+    console.error('Failed to load daily losses:', error);
+    res.status(500).json({ error: 'Failed to load losses.' });
+  }
+});
 // ==========================================================
 // POLLING SYSTEM — SCRUM-190 / SCRUM-191 / SCRUM-193
 // ==========================================================

@@ -371,6 +371,129 @@
         notifsBtn.classList.add('active');
       });
     }
+
+    // --- Daily Losses Trend Widget ---
+    function initDailyLossesWidget() {
+      const rangePreset = document.getElementById('overview-range-preset');
+      const customDates = document.getElementById('overview-custom-dates');
+      const startDateInput = document.getElementById('overview-start-date');
+      const endDateInput = document.getElementById('overview-end-date');
+      const chartContainer = document.getElementById('losses-chart-container');
+      const widgetTitle = document.getElementById('losses-widget-title');
+
+      if (!rangePreset || !chartContainer) return;
+
+      const formatDate = (d) => d.toISOString().split('T')[0];
+
+      async function loadLosses(startDate, endDate) {
+        chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #697386; padding: 40px 0;">Loading chart data...</div>';
+        
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        try {
+          const queryParams = new URLSearchParams();
+          if (startDate) queryParams.append('startDate', startDate);
+          if (endDate) queryParams.append('endDate', endDate);
+
+          const res = await fetch(`/api/finance/losses?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch losses');
+          
+          const data = await res.json();
+          
+          if (widgetTitle) {
+            widgetTitle.textContent = `Daily Losses Trend (Total: €${data.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+          }
+
+          chartContainer.innerHTML = '';
+          const lossesList = data.losses || [];
+
+          if (lossesList.length === 0) {
+            chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #697386; padding: 40px 0;">No loss data found.</div>';
+            return;
+          }
+
+          const maxLoss = Math.max(...lossesList.map(l => l.lossAmount), 0);
+
+          lossesList.forEach(item => {
+            const barGroup = document.createElement('div');
+            barGroup.className = 'bar-group';
+            
+            const heightPercent = maxLoss > 0 ? (item.lossAmount / maxLoss) * 85 : 0;
+            const tooltipText = `${item.date} (${item.dayName}): €${item.lossAmount.toFixed(2)}`;
+            
+            barGroup.innerHTML = `
+              <div class="bar-3d" style="height: ${Math.max(heightPercent, 2)}%;" data-tooltip="${tooltipText}"></div>
+              <div class="bar-label">${item.dayName}</div>
+            `;
+            chartContainer.appendChild(barGroup);
+          });
+
+        } catch (err) {
+          console.error('Failed to load daily losses:', err);
+          chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #991b1b; padding: 40px 0;">Error loading chart data.</div>';
+        }
+      }
+
+      function handlePresetChange() {
+        const preset = rangePreset.value;
+        if (preset === 'custom') {
+          if (customDates) customDates.style.display = 'flex';
+          if (startDateInput.value && endDateInput.value) {
+            loadLosses(startDateInput.value, endDateInput.value);
+          }
+        } else {
+          if (customDates) customDates.style.display = 'none';
+          
+          const today = new Date();
+          let startDate, endDate;
+
+          if (preset === 'this-week') {
+            const day = today.getDay();
+            const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(today.setDate(diffToMon));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            startDate = formatDate(monday);
+            endDate = formatDate(sunday);
+          } else if (preset === 'last-week') {
+            const day = today.getDay();
+            const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1) - 7;
+            const monday = new Date(today.setDate(diffToMon));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            startDate = formatDate(monday);
+            endDate = formatDate(sunday);
+          } else if (preset === 'this-month') {
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            startDate = formatDate(startOfMonth);
+            endDate = formatDate(endOfMonth);
+          }
+
+          loadLosses(startDate, endDate);
+        }
+      }
+
+      rangePreset.addEventListener('change', handlePresetChange);
+      if (startDateInput) startDateInput.addEventListener('change', () => {
+        if (rangePreset.value === 'custom' && startDateInput.value && endDateInput.value) {
+          loadLosses(startDateInput.value, endDateInput.value);
+        }
+      });
+      if (endDateInput) endDateInput.addEventListener('change', () => {
+        if (rangePreset.value === 'custom' && startDateInput.value && endDateInput.value) {
+          loadLosses(startDateInput.value, endDateInput.value);
+        }
+      });
+
+      handlePresetChange();
+    }
+
+    // Initialize losses widget on load
+    initDailyLossesWidget();
   }
 
   // --- Tab and Data Fetching Logic ---

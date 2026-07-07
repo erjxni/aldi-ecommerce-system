@@ -714,6 +714,10 @@
     'deleteUser': {
       query: `mutation DeleteUser($id: UUID!) {\n  user_delete(id: $id)\n}`,
       variables: `{\n  "id": "PASTE_USER_ID_HERE"\n}`
+    },
+    'deleteFinancialRecord': {
+      query: `mutation DeleteFinancialRecord($id: UUID!) {\n  financialRecord_delete(id: $id)\n}`,
+      variables: `{\n  "id": "PASTE_FINANCIAL_RECORD_ID_HERE"\n}`
     }
   };
 

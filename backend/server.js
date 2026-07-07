@@ -1291,27 +1291,29 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
     }
 
     try {
-        const recordsSnapshot = await db.collection("FinancialRecord")
-            .where("createdAt", ">=", dateRange.startDate)
-            .where("createdAt", "<=", dateRange.endDate)
-            .get();
+        // Records live in the SQL database — use sqlConnect, NOT Firestore
+        const selectQuery = `
+            query GetFinancialRecords {
+                _select(sql: "SELECT id, transaction_id AS \\"transactionId\\", amount, transaction_type AS \\"transactionType\\", description, created_at AS \\"createdAt\\" FROM \\"financial_record\\" WHERE created_at >= '${dateRange.startDate}' AND created_at <= '${dateRange.endDate}' ORDER BY created_at DESC")
+            }
+        `;
 
-        const records = [];
+        const result = await sqlConnect.executeGraphqlRead(selectQuery);
+        const records = (result.data && result.data._select) || [];
 
-        recordsSnapshot.forEach((doc) => {
-            records.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
+        // Normalise amounts to numbers (SQL may return strings)
+        const normalised = records.map(r => ({
+            ...r,
+            amount: Number(r.amount || 0)
+        }));
 
-        const summary = summarizeFinancialRecords(records);
+        const summary = summarizeFinancialRecords(normalised);
 
         return res.status(200).json({
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
             summary,
-            records
+            records: normalised
         });
     } catch (error) {
         console.error("Failed to load finance summary:", error);

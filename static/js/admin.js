@@ -16,11 +16,10 @@
     const userPhoto = localStorage.getItem('userPhoto');
     const profilePicDiv = document.querySelector('.profile-pic');
     if (profilePicDiv) {
-      if (userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== '') {
-        profilePicDiv.innerHTML = `<img src="${userPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
-      } else {
-        profilePicDiv.innerHTML = '&#x1F464;';
-      }
+      const finalPhoto = userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== ''
+        ? userPhoto
+        : '/assets/images/default-photo.jpg';
+      profilePicDiv.innerHTML = `<img src="${finalPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
     }
   };
   window.updateTopbarProfilePic();
@@ -731,18 +730,11 @@
       addUserError.style.display = 'block';
       addUserError.style.color = '#2b58f9';
 
-      let query, variables;
-      if (photoUrl) {
-        query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
-              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
-            }`;
-        variables = { email, password, role, name, photoUrl };
-      } else {
-        query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
-              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
-            }`;
-        variables = { email, password, role, name };
-      }
+      const finalPhotoUrl = photoUrl || '/assets/images/default-photo.jpg';
+      const query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
+            user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
+          }`;
+      const variables = { email, password, role, name, photoUrl: finalPhotoUrl };
 
       try {
         const res = await fetch('/api/admin/query', {
@@ -954,7 +946,10 @@
       const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
       usersCardContainer.innerHTML = users.map(u => {
-        const avatarHtml = u.photoUrl ? `<img src="${u.photoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />` : `<div style="width: 48px; height: 48px; border-radius: 50%; background: #f4f5f7; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 1.5rem; color: #697386; border: 1px solid #e3e8ee;">&#x1F464;</div>`;
+        const photo = u.photoUrl && u.photoUrl !== 'null' && u.photoUrl !== 'undefined' && u.photoUrl.trim() !== ''
+          ? u.photoUrl
+          : '/assets/images/default-photo.jpg';
+        const avatarHtml = `<img src="${photo}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />`;
         return `
             <div class="user-card">
               <div class="user-card-header" style="align-items: center;">

@@ -15,9 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
       const userPhoto = localStorage.getItem('userPhoto');
       const userName = localStorage.getItem('userName');
       const displayName = userName ? userName : userEmail;
-      const avatarHtml = userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined'
-        ? `<img src="${userPhoto}" class="user-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1);" />`
-        : `<span class="user-avatar">&#x1F464;</span>`;
+      const finalPhoto = userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== ''
+        ? userPhoto
+        : '/assets/images/default-photo.jpg';
+      const avatarHtml = `<img src="${finalPhoto}" class="user-avatar-img" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; vertical-align: middle; margin-right: 8px; border: 1px solid rgba(0,0,0,0.1);" />`;
 
       navAuthSection.innerHTML = `
         <div class="user-profile">

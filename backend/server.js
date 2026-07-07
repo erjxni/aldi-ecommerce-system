@@ -290,12 +290,13 @@ app.post('/api/register', async (req, res) => {
 
     // Insert user
     const insertMutation = `
-      mutation InsertUser($email: String!, $passwordHash: String!, $role: String!, $displayName: String!) {
+      mutation InsertUser($email: String!, $passwordHash: String!, $role: String!, $displayName: String!, $photoUrl: String!) {
         user_insert(data: {
           email: $email,
           passwordHash: $passwordHash,
           role: $role,
-          displayName: $displayName
+          displayName: $displayName,
+          photoUrl: $photoUrl
         })
       }
     `;
@@ -306,7 +307,8 @@ app.post('/api/register', async (req, res) => {
         email,
         passwordHash: password,
         role: 'customer',
-        displayName
+        displayName,
+        photoUrl: '/assets/images/default-photo.jpg'
       }
     });
 

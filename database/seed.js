@@ -1,4 +1,5 @@
 const { sqlConnect } = require('../backend/db');
+const { seedProducts } = require('./seed-products');
 
 // List of mock users to seed
 const mockUsers = [
@@ -81,6 +82,14 @@ const mockUsers = [
     displayName: 'Linda Wilson',
     phoneNumber: '(555) 432-1007',
     address: '707 Walnut Way'
+  },
+  {
+    email: 'test_customer@aldi-mock.com',
+    password: 'customerPassword123',
+    role: 'customer',
+    displayName: 'Taylor Customer',
+    phoneNumber: '(555) 432-1008',
+    address: '808 Spruce Street'
   }
 ];
 
@@ -140,11 +149,27 @@ async function seed() {
       console.log('--------------------------------------------------');
     });
 
-    process.exit(0);
+    console.log('Seeding production product catalog and stock batches...');
+    const productCount = await seedProducts();
+    console.log(`Seeded ${productCount} product records with stock batches.`);
+
+    return {
+      users: mockUsers.length,
+      products: productCount
+    };
   } catch (error) {
     console.error('Error during seeding:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-seed();
+if (require.main === module) {
+  seed()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
+module.exports = {
+  seed,
+  mockUsers
+};

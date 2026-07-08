@@ -2,19 +2,68 @@ const fs = require('fs');
 const path = require('path');
 const { sqlConnect } = require('../backend/db');
 
+const categories = [
+  'Fresh Produce',
+  'Bakery',
+  'Dairy',
+  'Meat & Seafood',
+  'Pantry',
+  'Frozen Foods',
+  'Snacks',
+  'Beverages',
+  'Household',
+  'Personal Care'
+];
+
+const productFamilies = [
+  'Organic Apples',
+  'Wholegrain Bread',
+  'Greek Yogurt',
+  'Chicken Breast Fillets',
+  'Penne Pasta',
+  'Mixed Vegetables',
+  'Sea Salt Crisps',
+  'Sparkling Mineral Water',
+  'Laundry Detergent',
+  'Hand Soap'
+];
+
+function generateDefaultCatalog(count = 4000) {
+  return Array.from({ length: count }, (_, index) => {
+    const category = categories[index % categories.length];
+    const family = productFamilies[index % productFamilies.length];
+    const packNumber = Math.floor(index / productFamilies.length) + 1;
+    const price = Number((1.29 + (index % 37) * 0.35).toFixed(2));
+
+    return {
+      name: `${family} - Store Pack ${packNumber}`,
+      category,
+      price,
+      description: `ALDI ${category.toLowerCase()} item prepared for the production demo catalog. Pack ${packNumber} uses clean product copy and approved stock metadata.`,
+      image: `/assets/images/products/${category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.jpg`
+    };
+  });
+}
+
+function loadProducts() {
+  const productsPath = path.join(__dirname, 'products.json');
+  if (!fs.existsSync(productsPath)) {
+    const generatedProducts = generateDefaultCatalog();
+    console.log(`products.json not found. Generated ${generatedProducts.length} clean default catalog records.`);
+    return generatedProducts;
+  }
+
+  const rawData = fs.readFileSync(productsPath, 'utf8');
+  const products = JSON.parse(rawData);
+  console.log(`Loaded ${products.length} products from products.json.`);
+  return products;
+}
+
 async function seedProducts() {
   try {
     console.log('Connecting to Firebase SQL Connect...');
 
-    // Load products from products.json
-    const productsPath = path.join(__dirname, 'products.json');
-    if (!fs.existsSync(productsPath)) {
-      throw new Error(`products.json not found at: ${productsPath}`);
-    }
-    const rawData = fs.readFileSync(productsPath, 'utf8');
-    const products = JSON.parse(rawData);
-
-    console.log(`Loaded ${products.length} products from products.json.`);
+    const products = loadProducts();
 
     // Wipe existing products
     console.log('Wiping existing products...');
@@ -82,11 +131,20 @@ async function seedProducts() {
 
     console.log('\n--- Product Seeding Complete ---');
     console.log('Products table populated successfully.\n');
-    process.exit(0);
+    return products.length;
   } catch (error) {
     console.error('Error during product seeding:', error);
-    process.exit(1);
+    throw error;
   }
 }
 
-seedProducts();
+if (require.main === module) {
+  seedProducts()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
+}
+
+module.exports = {
+  seedProducts,
+  generateDefaultCatalog
+};

@@ -1031,7 +1031,68 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
       });
       financialRecordId = financialResult.data.financialRecord_insert.id;
 
-      // ---- STEP 6: Broadcast WebSocket event ----
+      // ---- STEP 6: Notify staff and broadcast live dashboard events ----
+      const staffNotification = {
+        type: 'checkout',
+        message: `New checkout ${orderId} recorded for EUR ${roundedTotal.toFixed(2)}.`,
+        createdAt: new Date().toISOString()
+      };
+
+      try {
+        const staffResult = await sqlConnect.executeGraphqlRead(`
+          query GetStaffUsers {
+            users {
+              id
+              role
+            }
+          }
+        `);
+        const staffUsers = (staffResult.data?.users || []).filter(user =>
+          ['admin', 'financial_officer', 'employee'].includes(user.role)
+        );
+
+        const insertNotificationMutation = `
+          mutation CreateCheckoutNotification($userId: UUID!, $type: String!, $message: String!) {
+            notification_insert(data: {
+              user: { id: $userId },
+              type: $type,
+              message: $message,
+              isRead: false
+            })
+          }
+        `;
+
+        for (const staffUser of staffUsers) {
+          const notificationResult = await sqlConnect.executeGraphql(insertNotificationMutation, {
+            variables: {
+              userId: staffUser.id,
+              type: staffNotification.type,
+              message: staffNotification.message
+            }
+          });
+
+          const notificationPayload = JSON.stringify({
+            type: 'new_notification',
+            notification: {
+              id: notificationResult.data.notification_insert.id,
+              userId: staffUser.id,
+              ...staffNotification,
+              isRead: false
+            }
+          });
+
+          if (wss) {
+            wss.clients.forEach(client => {
+              if (client.readyState === 1 && client.user && client.user.id === staffUser.id) {
+                client.send(notificationPayload);
+              }
+            });
+          }
+        }
+      } catch (notificationError) {
+        console.warn('Checkout notification creation failed:', notificationError.message);
+      }
+
       const wsPayload = JSON.stringify({
         type: 'financial_update',
         data: {
@@ -1223,18 +1284,31 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
     }
 
     try {
-        const recordsSnapshot = await db.collection("FinancialRecord")
-            .where("createdAt", ">=", dateRange.startDate)
-            .where("createdAt", "<=", dateRange.endDate)
-            .get();
+        const recordsResult = await sqlConnect.executeGraphqlRead(`
+          query GetFinancialRecordsForSummary {
+            financialRecords {
+              id
+              transactionId
+              amount
+              transactionType
+              description
+              createdAt
+              relatedOrder {
+                id
+              }
+              processedBy {
+                id
+                email
+              }
+            }
+          }
+        `);
 
-        const records = [];
-
-        recordsSnapshot.forEach((doc) => {
-            records.push({
-                id: doc.id,
-                ...doc.data()
-            });
+        const startMs = new Date(dateRange.startDate).getTime();
+        const endMs = new Date(dateRange.endDate).getTime();
+        const records = (recordsResult.data?.financialRecords || []).filter((record) => {
+            const createdAtMs = new Date(record.createdAt).getTime();
+            return createdAtMs >= startMs && createdAtMs <= endMs;
         });
 
         const summary = summarizeFinancialRecords(records);

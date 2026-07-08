@@ -207,23 +207,24 @@ Stores user notifications for order updates, meetings, polls, and system announc
 
 The following Node.js helper scripts are located in the `database/` directory and can be executed via Node.js to manage database records and query statuses:
 
-### 1. Mock Users Seeding
-To populate the SQL database with a set of mock users for login testing, run:
+### 1. Final Production Demo Seeding
+To populate the SQL database with clean demo users, the default production catalog, and stock batches, run:
 ```bash
 node database/seed.js
 ```
-This wipes all existing users and inserts exactly 10 mock users with standardized credentials:
+This wipes all existing users, inserts 11 standardized demo users, then seeds the product catalog. If `database/products.json` is absent, the script generates 4,000 clean ALDI-style catalog records and creates stock batches for each product:
 * **Admin**: `admin@aldi-mock.com` (password: `adminPassword123`)
 * **Financial Officer**: `financial@aldi-mock.com` (password: `financialPassword123`)
 * **Employee**: `employee@aldi-mock.com` (password: `employeePassword123`)
 * **Customers**: `customer_1@aldi-mock.com` through `customer_7@aldi-mock.com` (passwords: `customerPassword1` through `customerPassword7`)
+* **Live Smoke Test Customer**: `test_customer@aldi-mock.com` (password: `customerPassword123`)
 
 ### 2. Product Catalog Seeding
 To wipe the catalog and seed products from the system's product schema, run:
 ```bash
 node database/seed-products.js
 ```
-This script wipes the database product table and populates it with default catalog items.
+This script wipes the database product table and populates it with `database/products.json` when present, or the generated 4,000-record catalog when the JSON file is absent.
 
 ### 3. List Registered Users
 To query the database and quickly print a list of all registered users (showing ID, Email, Role, and Display Name), run:

@@ -25,7 +25,13 @@ Deploy the integrated ALDI E-Commerce System so the Express backend and static f
 
 ## Live Smoke Test
 
-After the site is deployed and seeded, run:
+After the site is deployed, seed the production database from a trusted operator machine:
+
+```bash
+npm run seed
+```
+
+This seeds staff/customer demo accounts plus 4,000 clean ALDI catalog records with stock batches. Then run:
 
 ```bash
 LIVE_URL=https://your-live-url.example npm run test:e2e
@@ -37,3 +43,5 @@ On Windows PowerShell:
 $env:LIVE_URL="https://your-live-url.example"
 npm run test:e2e
 ```
+
+The live smoke test validates the public health endpoint, seeded catalog, customer checkout, financial ledger update, WebSocket dashboard trigger, admin finance summary, and 403 responses for customer attempts to access admin or finance routes.

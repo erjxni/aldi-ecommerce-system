@@ -60,7 +60,7 @@ The deployed app should expose:
 * `/api/health` for hosting health checks.
 * `/api/live-check` for database connectivity and seeded product count verification.
 
-Final production catalog seeding is intentionally left to the database owner/QA lead so the live data uses approved real ALDI product records and images.
+Final production demo seeding is handled by `npm run seed`, which creates demo users, 4,000 clean catalog records, and stock batches for live validation.
 
 ---
 

@@ -1,6 +1,14 @@
 const assert = require('node:assert/strict');
+const WebSocket = require('ws');
 
 const BASE_URL = process.env.LIVE_URL || process.env.BASE_URL || 'http://127.0.0.1:3000';
+
+function getWebSocketUrl(token) {
+  const url = new URL(BASE_URL);
+  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
+  url.searchParams.set('token', token);
+  return url.toString();
+}
 
 async function request(path, options = {}) {
   const response = await fetch(`${BASE_URL}${path}`, {
@@ -34,6 +42,51 @@ async function login(email, password) {
   };
 }
 
+async function loginAny(accounts) {
+  const errors = [];
+  for (const account of accounts) {
+    try {
+      return await login(account.email, account.password);
+    } catch (error) {
+      errors.push(error.message);
+    }
+  }
+  throw new Error(`All login attempts failed: ${errors.join(' | ')}`);
+}
+
+function createFinancialUpdateWatcher(token) {
+  const ws = new WebSocket(getWebSocketUrl(token));
+  let timeout;
+
+  const ready = new Promise((resolve, reject) => {
+    ws.once('open', resolve);
+    ws.once('error', reject);
+  });
+
+  const event = new Promise((resolve, reject) => {
+    timeout = setTimeout(() => {
+      ws.close();
+      reject(new Error('Timed out waiting for financial_update WebSocket event'));
+    }, 10000);
+
+    ws.on('message', message => {
+      const payload = JSON.parse(message.toString());
+      if (payload.type === 'financial_update') {
+        clearTimeout(timeout);
+        ws.close();
+        resolve(payload);
+      }
+    });
+
+    ws.on('error', error => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
+
+  return { ready, event };
+}
+
 async function runFinalLiveDemoTests() {
   console.log(`Running final live demo checks against ${BASE_URL}`);
 
@@ -46,7 +99,11 @@ async function runFinalLiveDemoTests() {
   assert.ok(Array.isArray(products.body), 'Products response must be an array');
   assert.ok(products.body.length > 0, 'Products endpoint must return at least one product');
 
-  const customer = await login('test_customer@aldi-mock.com', 'customerPassword123');
+  const admin = await login('admin@aldi-mock.com', 'adminPassword123');
+  const customer = await loginAny([
+    { email: 'test_customer@aldi-mock.com', password: 'customerPassword123' },
+    { email: 'customer_1@aldi-mock.com', password: 'customerPassword1' }
+  ]);
   const adminAccess = await request('/admin.html', {
     headers: {
       Cookie: customer.cookie,
@@ -54,6 +111,22 @@ async function runFinalLiveDemoTests() {
     }
   });
   assert.equal(adminAccess.response.status, 403, 'Customer must receive 403 for admin portal');
+
+  const adminApiAccess = await request('/api/admin/database/User', {
+    headers: {
+      Cookie: customer.cookie,
+      Authorization: `Bearer ${customer.token}`
+    }
+  });
+  assert.equal(adminApiAccess.response.status, 403, 'Customer must receive 403 for admin API routes');
+
+  const financeAccess = await request('/api/finance/summary', {
+    headers: {
+      Cookie: customer.cookie,
+      Authorization: `Bearer ${customer.token}`
+    }
+  });
+  assert.equal(financeAccess.response.status, 403, 'Customer must receive 403 for finance summary');
 
   const product = products.body.find(item => item.stockQuantity > 0) || products.body[0];
   const cartAdd = await request('/api/cart/add', {
@@ -64,6 +137,8 @@ async function runFinalLiveDemoTests() {
   assert.equal(cartAdd.response.status, 200, 'Customer must be able to add a product to cart');
   assert.ok(cartAdd.body.items.length >= 1, 'Cart must contain at least one item');
 
+  const financialUpdateWatcher = createFinancialUpdateWatcher(admin.token);
+  await financialUpdateWatcher.ready;
   const checkout = await request('/api/checkout', {
     method: 'POST',
     headers: {
@@ -79,6 +154,19 @@ async function runFinalLiveDemoTests() {
   assert.equal(checkout.response.status, 201, `Checkout must succeed: ${JSON.stringify(checkout.body)}`);
   assert.ok(checkout.body.orderId, 'Checkout response must include an order id');
   assert.ok(checkout.body.totalAmount > 0, 'Checkout response must include a positive total');
+
+  const financialUpdate = await financialUpdateWatcher.event;
+  assert.equal(financialUpdate.data.transactionType, 'ecommerce_sale', 'WebSocket must emit ecommerce_sale update');
+  assert.equal(financialUpdate.data.orderId, checkout.body.orderId, 'WebSocket order id must match checkout response');
+
+  const financeSummary = await request('/api/finance/summary', {
+    headers: {
+      Cookie: admin.cookie,
+      Authorization: `Bearer ${admin.token}`
+    }
+  });
+  assert.equal(financeSummary.response.status, 200, `Admin finance summary must return 200: ${JSON.stringify(financeSummary.body)}`);
+  assert.ok(financeSummary.body.summary.totalRevenue >= checkout.body.totalAmount, 'Finance dashboard revenue must include checkout revenue');
 
   console.log('Final live demo checks passed.');
 }

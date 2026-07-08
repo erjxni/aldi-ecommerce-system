@@ -1851,3 +1851,281 @@
   }
 
 })();
+
+// =========================================================
+// Restock Drawer Controller
+// =========================================================
+(function initRestockDrawer() {
+  const drawer    = document.getElementById('restock-drawer');
+  const backdrop  = document.getElementById('restock-backdrop');
+  const openBtn   = document.getElementById('btn-restock-drawer');
+  const closeBtn  = document.getElementById('restock-close-btn');
+  const searchEl  = document.getElementById('restock-product-search');
+  const dropdown  = document.getElementById('restock-product-dropdown');
+  const itemsList = document.getElementById('restock-items-list');
+  const emptyEl   = document.getElementById('restock-empty-state');
+  const badge     = document.getElementById('restock-badge');
+  const countEl   = document.getElementById('restock-item-count');
+  const costEl    = document.getElementById('restock-total-cost');
+  const submitBtn = document.getElementById('restock-submit-btn');
+
+  if (!drawer) return;
+
+  // State
+  let allProducts = [];        // cached from /api/admin/database/Product
+  let cartItems   = [];        // { uid, product, quantity, piecePrice, expiryDate }
+  let uidCounter  = 0;
+
+  // ── Open / Close ──────────────────────────────────────────
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    searchEl.focus();
+    if (allProducts.length === 0) fetchProducts();
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+    dropdown.style.display = 'none';
+  }
+
+  if (openBtn)  openBtn.addEventListener('click', openDrawer);
+  if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+  // ── Product Fetch ─────────────────────────────────────────
+  async function fetchProducts() {
+    try {
+      const token = localStorage.getItem('userToken');
+      const res   = await fetch('/api/admin/database/Product', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      allProducts = await res.json();
+    } catch { /* silently ignore */ }
+  }
+
+  // ── Search / Dropdown ─────────────────────────────────────
+  searchEl.addEventListener('input', () => {
+    const q = searchEl.value.trim().toLowerCase();
+    if (!q) { dropdown.style.display = 'none'; return; }
+
+    const hits = allProducts.filter(p =>
+      p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+    ).slice(0, 8);
+
+    if (hits.length === 0) {
+      dropdown.innerHTML = `<div class="restock-dropdown-no-results">No products found</div>`;
+    } else {
+      dropdown.innerHTML = hits.map(p => `
+        <div class="restock-dropdown-item" data-id="${p.id}">
+          <img class="restock-dropdown-item-img"
+               src="${p.imageUrl || '/assets/products/default-product.jpg'}"
+               alt="${p.name}"
+               onerror="this.src='/assets/products/default-product.jpg'" />
+          <div class="restock-dropdown-item-info">
+            <div class="restock-dropdown-item-name">${p.name}</div>
+            <div class="restock-dropdown-item-cat">${p.category || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.restock-dropdown-item[data-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const prod = allProducts.find(p => p.id === el.dataset.id);
+        if (prod) addCartItem(prod);
+        dropdown.style.display = 'none';
+        searchEl.value = '';
+      });
+    });
+  });
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (!searchEl.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // ── Add Item ──────────────────────────────────────────────
+  function addCartItem(product) {
+    const uid = ++uidCounter;
+    cartItems.push({ uid, product, quantity: 1, piecePrice: 0, expiryDate: '' });
+    renderItems();
+  }
+
+  // ── Remove Item ───────────────────────────────────────────
+  function removeCartItem(uid) {
+    cartItems = cartItems.filter(i => i.uid !== uid);
+    renderItems();
+  }
+
+  // ── Render ────────────────────────────────────────────────
+  function renderItems() {
+    // Remove old cards (keep empty state el)
+    itemsList.querySelectorAll('.restock-item-card').forEach(el => el.remove());
+
+    if (cartItems.length === 0) {
+      emptyEl.style.display = 'flex';
+    } else {
+      emptyEl.style.display = 'none';
+      cartItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'restock-item-card';
+        card.dataset.uid = item.uid;
+        card.innerHTML = `
+          <div class="restock-card-top">
+            <span class="restock-card-name">${item.product.name}</span>
+            <span class="restock-card-cat">${item.product.category || ''}</span>
+            <button class="restock-card-remove" data-remove="${item.uid}" title="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="restock-card-fields">
+            <div class="restock-field">
+              <label>Qty</label>
+              <input type="number" min="1" value="${item.quantity}" data-field="quantity" data-uid="${item.uid}" placeholder="0" />
+            </div>
+            <div class="restock-field">
+              <label>Price/unit (€)</label>
+              <input type="number" min="0" step="0.01" value="${item.piecePrice || ''}" data-field="piecePrice" data-uid="${item.uid}" placeholder="0.00" />
+            </div>
+            <div class="restock-field">
+              <label>Expiry date</label>
+              <input type="date" value="${item.expiryDate}" data-field="expiryDate" data-uid="${item.uid}" />
+            </div>
+          </div>
+        `;
+        itemsList.appendChild(card);
+
+        // Remove button
+        card.querySelector(`[data-remove="${item.uid}"]`).addEventListener('click', () => removeCartItem(item.uid));
+
+        // Field changes
+        card.querySelectorAll('input[data-field]').forEach(inp => {
+          inp.addEventListener('input', () => {
+            const ci = cartItems.find(i => i.uid === parseInt(inp.dataset.uid));
+            if (!ci) return;
+            if (inp.dataset.field === 'quantity')   ci.quantity   = parseInt(inp.value) || 0;
+            if (inp.dataset.field === 'piecePrice') ci.piecePrice = parseFloat(inp.value) || 0;
+            if (inp.dataset.field === 'expiryDate') ci.expiryDate = inp.value;
+            updateFooter();
+          });
+        });
+      });
+    }
+
+    updateFooter();
+  }
+
+  // ── Footer counters ───────────────────────────────────────
+  function updateFooter() {
+    const count = cartItems.length;
+    const total = cartItems.reduce((s, i) => s + (i.quantity * i.piecePrice), 0);
+
+    countEl.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+    costEl.textContent  = `€${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimated cost`;
+    submitBtn.disabled  = count === 0;
+
+    // Sidebar badge
+    if (badge) {
+      if (count > 0) {
+        badge.textContent  = count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  // ── Submit ────────────────────────────────────────────────
+  submitBtn.addEventListener('click', async () => {
+    // Validate
+    let valid = true;
+    cartItems.forEach(item => {
+      const card = itemsList.querySelector(`[data-uid="${item.uid}"]`);
+      card?.querySelectorAll('input').forEach(inp => inp.classList.remove('invalid'));
+      if (!item.quantity || item.quantity <= 0) {
+        card?.querySelector('[data-field="quantity"]')?.classList.add('invalid');
+        valid = false;
+      }
+      if (!item.expiryDate) {
+        card?.querySelector('[data-field="expiryDate"]')?.classList.add('invalid');
+        valid = false;
+      }
+    });
+    if (!valid) { showToast('Please fill in all required fields (Qty & Expiry).', 'error'); return; }
+
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = 'Submitting…';
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const res   = await fetch('/api/admin/restock', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          items: cartItems.map(i => ({
+            productId:  i.product.id,
+            quantity:   i.quantity,
+            piecePrice: i.piecePrice,
+            expiryDate: i.expiryDate
+          }))
+        })
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.inserted > 0) {
+        showToast(`✓ ${data.inserted} batch${data.inserted !== 1 ? 'es' : ''} restocked successfully!`, 'success');
+        cartItems = [];
+        uidCounter = 0;
+        renderItems();
+        // Clear DB viewer cache so StockBatch tab refreshes
+        sessionStorage.removeItem('db_cache_StockBatch');
+        sessionStorage.removeItem('db_cache_Product');
+        setTimeout(closeDrawer, 1200);
+      } else {
+        showToast(data.errors?.[0]?.error || data.error || 'Restock failed.', 'error');
+      }
+    } catch (err) {
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      submitBtn.classList.remove('loading');
+      submitBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Restock Order`;
+      submitBtn.disabled = cartItems.length === 0;
+    }
+  });
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.style.cssText = `
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:${type === 'success' ? '#065f46' : '#991b1b'};
+      color:#fff; padding:12px 22px; border-radius:10px; font-size:0.875rem;
+      font-weight:600; z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.2);
+      animation:fadeInUp 0.25s ease; font-family:'Poppins',sans-serif;
+      max-width:90vw; text-align:center;
+    `;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+})();

@@ -2033,6 +2033,85 @@ wss.on('connection', (ws, req) => {
   });
 });
 
+// ---------------------------------------------------------
+// API: Admin — Restock (create StockBatch rows + sync product stock)
+// Allowed: admin, financial_officer, employee  (all via adminProtect)
+// ---------------------------------------------------------
+app.post('/api/admin/restock', adminProtect, async (req, res) => {
+  const { items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items array is required and must be non-empty.' });
+  }
+
+  const results = [];
+  const errors  = [];
+
+  for (const item of items) {
+    const { productId, quantity, piecePrice, expiryDate } = item;
+
+    if (!productId || !quantity || quantity <= 0 || !expiryDate) {
+      errors.push({ productId, error: 'Missing or invalid fields (productId, quantity, expiryDate are required).' });
+      continue;
+    }
+
+    try {
+      // 1. Insert a new StockBatch
+      const insertMutation = `
+        mutation InsertStockBatch(
+          $productId: UUID!
+          $qty: Int!
+          $price: Float!
+          $expiry: Date!
+        ) {
+          stockBatch_insert(data: {
+            product: { id: $productId }
+            initialQuantity: $qty
+            currentQuantity: $qty
+            piecePrice: $price
+            expiryDate: $expiry
+          })
+        }
+      `;
+
+      const insertResult = await sqlConnect.executeGraphql(insertMutation, {
+        variables: {
+          productId,
+          qty: Number(quantity),
+          price: Number(piecePrice || 0),
+          expiry: expiryDate
+        }
+      });
+
+      const batchId = insertResult.data?.stockBatch_insert?.id;
+
+      // 2. Re-compute total stock across all batches for this product
+      const newTotal = await getProductStock(productId);
+
+      // 3. Update the product's stockQuantity to the new total
+      const updateMutation = `
+        mutation UpdateProductStock($productId: UUID!, $stock: Int!) {
+          product_update(id: $productId, data: { stockQuantity: $stock })
+        }
+      `;
+      await sqlConnect.executeGraphql(updateMutation, {
+        variables: { productId, stock: newTotal }
+      });
+
+      results.push({ productId, batchId, newTotal });
+    } catch (err) {
+      console.error(`[Restock] Failed for product ${productId}:`, err.message);
+      errors.push({ productId, error: err.message });
+    }
+  }
+
+  return res.status(errors.length === items.length ? 500 : 200).json({
+    inserted: results.length,
+    results,
+    errors
+  });
+});
+
 // Start the server
 if (require.main === module) {
   server.listen(PORT, () => {

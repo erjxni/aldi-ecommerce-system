@@ -171,6 +171,15 @@
               <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
             </svg>
           </a>
+          <!-- Restock Cart Icon -->
+          <button id="btn-restock-drawer" class="sidebar-icon restock-cart-btn" title="Restock Order" style="background:none;border:none;cursor:pointer;position:relative;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span class="restock-badge" id="restock-badge" style="display:none;">0</span>
+          </button>
         </div>
       </aside>
 
@@ -441,11 +450,11 @@
           </main>
         </div> <!-- /#dashboard-view -->
         <!-- Financials View -->
-<div
-  id="financials-view"
-  style="display: none; height: 100%; flex-direction: column;"
->
-  <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
+        <div
+          id="financials-view"
+          style="display: none; height: 100%; flex-direction: column;"
+        >
+          <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
               <div class="finance-widget-header">
                 <div>
                   <h2>Financial Reporting</h2>
@@ -521,7 +530,7 @@
                 </table>
               </div>
             </section>
-</div>
+        </div>
 
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">
@@ -974,6 +983,64 @@
 
     </div> <!-- /.admin-layout-container -->
   </div>
+
+  <!-- Restock Drawer Backdrop -->
+  <div id="restock-backdrop" class="restock-backdrop"></div>
+
+  <!-- Restock Drawer Panel -->
+  <aside id="restock-drawer" class="restock-drawer" aria-label="Restock Order Panel">
+    <div class="restock-drawer-header">
+      <h2 class="restock-drawer-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        Restock Order
+      </h2>
+      <button class="restock-close-btn" id="restock-close-btn" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Product Search -->
+    <div class="restock-search-wrapper">
+      <div class="restock-search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="restock-search-icon">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="restock-product-search" class="restock-search-input" placeholder="Search products by name or category..." autocomplete="off" />
+      </div>
+      <div id="restock-product-dropdown" class="restock-product-dropdown" style="display:none;"></div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="restock-items-list" id="restock-items-list">
+      <div class="restock-empty-state" id="restock-empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c0c8d8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <p>Search and add products above to build your restock order.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="restock-drawer-footer">
+      <div class="restock-summary">
+        <span id="restock-item-count">0 items</span>
+        <span id="restock-total-cost">€0.00 estimated cost</span>
+      </div>
+      <button id="restock-submit-btn" class="restock-submit-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Restock Order
+      </button>
+    </div>
+  </aside>
 
   <script type="module" src="/js/main.js"></script>
 

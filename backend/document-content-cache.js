@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 const { storage } = require('./db');
 
 const cacheFilePath = path.join(__dirname, 'document-contents-cache.json');
@@ -74,8 +74,11 @@ async function getDocumentContent(docId, fileUrl) {
     
     if (extension === 'pdf') {
       console.log(`[Content Cache] Parsing PDF content for document: ${docId}...`);
-      const pdfData = await pdfParse(buffer);
+      const parser = new PDFParse({ data: buffer });
+      await parser.load();
+      const pdfData = await parser.getText();
       text = pdfData.text || '';
+      parser.destroy();
     } else if (extension === 'txt' || extension === 'csv' || extension === 'json') {
       text = buffer.toString('utf8');
     } else {

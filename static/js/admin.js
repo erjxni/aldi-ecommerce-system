@@ -1927,9 +1927,9 @@
       dropdown.innerHTML = hits.map(p => `
         <div class="restock-dropdown-item" data-id="${p.id}">
           <img class="restock-dropdown-item-img"
-               src="${p.imageUrl || '/assets/products/default-product.jpg'}"
+               src="${p.imageUrl || '/assets/images/default-photo.jpg'}"
                alt="${p.name}"
-               onerror="this.src='/assets/products/default-product.jpg'" />
+               onerror="this.src='/assets/images/default-photo.jpg'" />
           <div class="restock-dropdown-item-info">
             <div class="restock-dropdown-item-name">${p.name}</div>
             <div class="restock-dropdown-item-cat">${p.category || ''}</div>

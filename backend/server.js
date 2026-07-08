@@ -819,7 +819,7 @@ app.get('/api/admin/customers', async (req, res) => {
 app.get('/api/admin/database/:table', async (req, res) => {
   const allowedTables = {
     'User': '{ users { id email role displayName photoUrl createdAt } }',
-    'Product': '{ products { id name category price updatedAt } }',
+    'Product': '{ products { id name category price imageUrl updatedAt } }',
     'Cart': '{ carts { id user { id email } updatedAt } }',
     'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',
     'Order': '{ orders { id user { id email } totalAmount status createdAt } }',

@@ -25,6 +25,7 @@ const { CartError, createCartService, createFirebaseCartRepository } = require('
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
+const nlpHelper = require('./nlp-helper');
 
 // Helper: compute total stock for a product from StockBatch table
 async function getProductStock(productId) {
@@ -606,6 +607,77 @@ const extractStoragePath = (url, bucketName) => {
   }
   return null;
 };
+
+// ---------------------------------------------------------
+// API: Document Management — Search Documents (Admin/Employee only)
+// ---------------------------------------------------------
+app.get('/api/documents/search', adminProtect, async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.json({
+      query: { q: '', sentiment: { score: 0, label: 'Neutral' }, keywords: [] },
+      documents: []
+    });
+  }
+
+  try {
+    // 1. Analyze query sentiment and keywords
+    const querySentiment = nlpHelper.analyzeSentiment(q);
+    const queryKeywords = nlpHelper.extractKeywords(q);
+
+    // 2. Query documents matching title or category in database
+    const searchVal = `%${q}%`;
+    const searchQuery = `
+      query SearchDocuments($search: String!) {
+        _select(
+          sql: "SELECT d.id, d.title, d.category, d.file_url AS \\"fileUrl\\", d.uploaded_by_id AS \\"uploadedById\\", u.display_name AS \\"uploadedByDisplayName\\", d.created_at AS \\"createdAt\\" FROM \\"document\\" d LEFT JOIN \\"user\\" u ON d.uploaded_by_id = u.id WHERE LOWER(d.title) LIKE LOWER($1) OR LOWER(d.category) LIKE LOWER($1) ORDER BY d.created_at DESC",
+          params: [$search]
+        )
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(searchQuery, {
+      variables: { search: searchVal }
+    });
+    
+    const docs = (result.data && result.data._select) || [];
+    const mappedDocs = docs.map(d => {
+      const originalUrl = d.fileUrl || '';
+      const extension = originalUrl.split('.').pop().split('?')[0].toLowerCase();
+      
+      // 3. Analyze document text (title + category) sentiment & extract keywords
+      const textToAnalyze = `${d.title} ${d.category}`;
+      const docSentiment = nlpHelper.analyzeSentiment(textToAnalyze);
+      const docKeywords = nlpHelper.extractKeywords(textToAnalyze);
+
+      return {
+        id: d.id,
+        title: d.title,
+        category: d.category,
+        fileUrl: `/api/documents/download/${d.id}`,
+        extension,
+        uploadedBy: {
+          id: d.uploadedById,
+          displayName: d.uploadedByDisplayName || 'N/A'
+        },
+        createdAt: d.createdAt,
+        sentiment: docSentiment,
+        keywords: docKeywords
+      };
+    });
+    
+    res.json({
+      query: {
+        q,
+        sentiment: querySentiment,
+        keywords: queryKeywords
+      },
+      documents: mappedDocs
+    });
+  } catch (error) {
+    console.error('Failed to search documents:', error);
+    res.status(500).json({ error: 'Failed to search documents' });
+  }
+});
 
 // ---------------------------------------------------------
 // API: Document Management — Secure Download (Admin/Employee only)

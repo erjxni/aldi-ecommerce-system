@@ -2426,6 +2426,200 @@
     }
   });
 
+  // ── Global Search Modal Wiring ────────────────────────────
+  const searchTrigger = document.getElementById('btn-search-trigger');
+  const searchModal = document.getElementById('search-modal');
+  const searchBackdrop = document.getElementById('search-modal-backdrop');
+  const searchClose = document.getElementById('search-modal-close');
+  const searchInput = document.getElementById('global-search-input');
+  const headingsResults = document.getElementById('search-headings-results');
+  const documentsResults = document.getElementById('search-documents-results');
+
+  const headingMappings = [
+    { name: 'Overview Dashboard', keywords: ['overview', 'home', 'daily losses', 'losses', 'sales', 'losses trend', 'revenue', 'expenses', 'profit'], view: 'home' },
+    { name: 'Document Management (Files)', keywords: ['document', 'documents', 'management', 'upload', 'files', 'compliance', 'reports', 'member records'], view: 'files' },
+    { name: 'Financial Ledger', keywords: ['financial', 'ledger', 'expenses', 'revenue', 'costs', 'transaction', 'transactions'], view: 'financials' },
+    { name: 'Database Viewer (SQL)', keywords: ['database', 'db', 'tables', 'viewer', 'sql', 'connect', 'users table', 'documents table'], view: 'database' },
+    { name: 'User Management', keywords: ['users', 'user', 'staff', 'employees', 'members', 'roles', 'permissions'], view: 'users' },
+    { name: 'Polls & Voting', keywords: ['polls', 'poll', 'voting', 'ballot', 'ballots', 'votes'], view: 'polls' },
+    { name: 'Notifications Manager', keywords: ['notifications', 'broadcast', 'broadcasts', 'alerts', 'announcements'], view: 'notifications' }
+  ];
+
+  function openSearch() {
+    if (searchModal && searchBackdrop) {
+      searchBackdrop.classList.add('open');
+      searchModal.showModal();
+      searchInput.value = '';
+      headingsResults.innerHTML = '<div class="search-no-results">Type keywords to search sections…</div>';
+      documentsResults.innerHTML = '<div class="search-no-results">Type keywords to search documents…</div>';
+      setTimeout(() => searchInput.focus(), 50);
+    }
+  }
+
+  function closeSearch() {
+    if (searchModal && searchBackdrop) {
+      searchBackdrop.classList.remove('open');
+      searchModal.close();
+    }
+  }
+
+  if (searchTrigger) {
+    searchTrigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      openSearch();
+    });
+  }
+  if (searchBackdrop) searchBackdrop.addEventListener('click', closeSearch);
+  if (searchClose) searchClose.addEventListener('click', closeSearch);
+
+  function navigateToView(viewName) {
+    if (viewName === 'home' && homeBtn) homeBtn.click();
+    else if (viewName === 'database' && dbBtn) dbBtn.click();
+    else if (viewName === 'financials' && financialsBtn) financialsBtn.click();
+    else if (viewName === 'users' && usersBtn) usersBtn.click();
+    else if (viewName === 'files' && filesBtn) filesBtn.click();
+    else if (viewName === 'polls' && pollsBtn) pollsBtn.click();
+    else if (viewName === 'notifications' && notifsBtn) notifsBtn.click();
+  }
+
+  let searchTimeout = null;
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) {
+        headingsResults.innerHTML = '<div class="search-no-results">Type keywords to search sections…</div>';
+        documentsResults.innerHTML = '<div class="search-no-results">Type keywords to search documents…</div>';
+        return;
+      }
+
+      // 1. Client-side intent mapping for dashboard sections
+      const matchedHeadings = headingMappings.filter(h => {
+        return h.name.toLowerCase().includes(query) || h.keywords.some(k => k.includes(query));
+      });
+
+      renderHeadingResults(matchedHeadings);
+
+      // 2. API search for documents (with sentiment enrichment)
+      searchTimeout = setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('userToken');
+          const res = await fetch(`/api/documents/search?q=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Search failed');
+          const data = await res.json();
+          
+          // Sentiment-intent mappings returned from API
+          const apiSentiment = data.query?.sentiment || { score: 0, label: 'Neutral' };
+          
+          let additionalHeadings = [];
+          if (apiSentiment.label === 'Positive') {
+            additionalHeadings = headingMappings.filter(h => h.view === 'home' || h.view === 'financials');
+          } else if (apiSentiment.label === 'Negative') {
+            additionalHeadings = headingMappings.filter(h => h.view === 'home');
+          }
+          
+          const merged = [...matchedHeadings];
+          additionalHeadings.forEach(ah => {
+            if (!merged.some(m => m.view === ah.view)) {
+              merged.push(ah);
+            }
+          });
+          renderHeadingResults(merged);
+
+          renderDocumentResults(data.documents || []);
+        } catch (err) {
+          console.error('[Search] Failed to fetch documents:', err);
+          documentsResults.innerHTML = '<div class="search-no-results" style="color:#991b1b;">Error retrieving documents.</div>';
+        }
+      }, 250);
+    });
+  }
+
+  function renderHeadingResults(headings) {
+    if (!headingsResults) return;
+    if (headings.length === 0) {
+      headingsResults.innerHTML = '<div class="search-no-results">No sections found.</div>';
+      return;
+    }
+    
+    headingsResults.innerHTML = headings.map(h => `
+      <div class="search-result-item" data-view="${h.view}">
+        <div class="search-item-info">
+          <svg class="search-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <span class="search-item-text">${h.name}</span>
+        </div>
+        <span class="search-item-meta">Navigate</span>
+      </div>
+    `).join('');
+
+    headingsResults.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const view = item.getAttribute('data-view');
+        navigateToView(view);
+        closeSearch();
+      });
+    });
+  }
+
+  function renderDocumentResults(documents) {
+    if (!documentsResults) return;
+    if (documents.length === 0) {
+      documentsResults.innerHTML = '<div class="search-no-results">No documents found.</div>';
+      return;
+    }
+
+    documentsResults.innerHTML = documents.map(d => {
+      let sentimentColor = '#697386'; 
+      let sentimentBg = '#f4f5f7';
+      if (d.sentiment?.label === 'Positive') {
+        sentimentColor = '#065f46'; 
+        sentimentBg = '#d1fae5';
+      } else if (d.sentiment?.label === 'Negative') {
+        sentimentColor = '#991b1b'; 
+        sentimentBg = '#fee2e2';
+      }
+
+      const keywordBadges = (d.keywords || [])
+        .slice(0, 3)
+        .map(kw => `<span style="font-size:0.7rem; background:#edf2f7; color:#4a5568; padding:2px 6px; border-radius:4px; margin-right:4px;">#${kw}</span>`)
+        .join('');
+
+      return `
+        <div class="search-result-item">
+          <div class="search-item-info" style="align-items: flex-start; flex-direction: column; gap: 4px;">
+            <div style="display:flex; align-items:center; gap:8px; width: 100%;">
+              <svg class="search-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #697386;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span class="search-item-text" style="font-size: 0.9rem; font-weight:600; max-width: 320px; overflow:hidden; text-overflow:ellipsis;">${d.title}</span>
+              <span class="search-item-meta" style="background:#eef2ff; color:#4f46e5; border:1px solid #e0e7ff; font-size: 0.72rem; padding: 1px 6px;">${d.category}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+              <span style="font-size:0.72rem; padding:2px 8px; border-radius:12px; font-weight:600; color:${sentimentColor}; background:${sentimentBg}; display:inline-flex; align-items:center; gap:3px;">
+                ${d.sentiment?.label || 'Neutral'} (${d.sentiment?.score || 0})
+              </span>
+              <div style="display:inline-flex; align-items:center;">
+                ${keywordBadges}
+              </div>
+            </div>
+          </div>
+          <a href="${d.fileUrl}" target="_blank" class="search-item-download-link" title="Download Document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </a>
+        </div>
+      `;
+    }).join('');
+  }
+
   // ── Toast ─────────────────────────────────────────────────
   function showToast(msg, type) {
     const t = document.createElement('div');

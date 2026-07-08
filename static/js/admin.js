@@ -1910,15 +1910,18 @@
   }
 
   // ── Search / Dropdown ─────────────────────────────────────
-  searchEl.addEventListener('input', () => {
+  function showDropdown() {
     const q = searchEl.value.trim().toLowerCase();
-    if (!q) { dropdown.style.display = 'none'; return; }
 
-    const hits = allProducts.filter(p =>
-      p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
-    ).slice(0, 8);
+    const hits = q
+      ? allProducts.filter(p =>
+          p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+        ).slice(0, 10)
+      : allProducts.slice(0, 10);
 
-    if (hits.length === 0) {
+    if (allProducts.length === 0) {
+      dropdown.innerHTML = `<div class="restock-dropdown-no-results">Loading products…</div>`;
+    } else if (hits.length === 0) {
       dropdown.innerHTML = `<div class="restock-dropdown-no-results">No products found</div>`;
     } else {
       dropdown.innerHTML = hits.map(p => `
@@ -1945,7 +1948,10 @@
         searchEl.value = '';
       });
     });
-  });
+  }
+
+  searchEl.addEventListener('input', showDropdown);
+  searchEl.addEventListener('focus', showDropdown);
 
   // Close dropdown on outside click
   document.addEventListener('click', (e) => {

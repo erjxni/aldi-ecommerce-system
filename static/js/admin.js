@@ -2473,13 +2473,59 @@
   if (searchClose) searchClose.addEventListener('click', closeSearch);
 
   function navigateToView(viewName) {
-    if (viewName === 'home' && homeBtn) homeBtn.click();
-    else if (viewName === 'database' && dbBtn) dbBtn.click();
-    else if (viewName === 'financials' && financialsBtn) financialsBtn.click();
-    else if (viewName === 'users' && usersBtn) usersBtn.click();
-    else if (viewName === 'files' && filesBtn) filesBtn.click();
-    else if (viewName === 'polls' && pollsBtn) pollsBtn.click();
-    else if (viewName === 'notifications' && notifsBtn) notifsBtn.click();
+    if (!window.searchDebug) window.searchDebug = [];
+    window.searchDebug.push(`navigateToView called with: ${viewName}`);
+
+    const btnIds = {
+      'home': 'btn-home-dashboard',
+      'database': 'btn-db-viewer',
+      'financials': 'btn-financials',
+      'users': 'btn-users-manager',
+      'files': 'btn-files-manager',
+      'polls': 'btn-polls-manager',
+      'notifications': 'btn-notifications-manager'
+    };
+
+    const targetId = btnIds[viewName];
+    window.searchDebug.push(`Mapped targetId: ${targetId}`);
+    if (targetId) {
+      const btn = document.getElementById(targetId);
+      window.searchDebug.push(`Button element found: ${!!btn}`);
+      if (btn) {
+        window.searchDebug.push(`Triggering btn.click()`);
+        btn.click();
+        
+        // FOOLPROOF BACKUP: Direct view toggle in case click propagation is blocked
+        const viewEl = {
+          'home': document.getElementById('dashboard-view'),
+          'database': document.getElementById('database-viewer'),
+          'financials': document.getElementById('financials-view'),
+          'users': document.getElementById('users-manager-view'),
+          'files': document.getElementById('files-manager-view'),
+          'polls': document.getElementById('polls-manager-view'),
+          'notifications': document.getElementById('notifications-manager')
+        }[viewName];
+        
+        if (viewEl) {
+          window.searchDebug.push(`Direct toggle view backup triggered for: ${viewName}`);
+          hideAllViews();
+          viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
+          clearSidebarActive();
+          btn.classList.add('active');
+          
+          if (viewName === 'database') {
+            const activeTab = document.querySelector('.db-tab.active');
+            if (activeTab && typeof loadTableData === 'function') loadTableData(activeTab.dataset.table);
+          } else if (viewName === 'users' && typeof loadUsersManagerData === 'function') {
+            loadUsersManagerData();
+          } else if (viewName === 'files' && typeof loadFilesManagerData === 'function') {
+            loadFilesManagerData();
+          } else if (viewName === 'polls' && typeof window.loadPolls === 'function') {
+            window.loadPolls();
+          }
+        }
+      }
+    }
   }
 
   let searchTimeout = null;

@@ -86,12 +86,17 @@ const authenticateCartJWT = (req, res, next) => {
 
 // ---------------------------------------------------------
 // Middleware: Protect admin routes (/admin.html, /api/admin/*)
-// Reads JWT from HttpOnly cookie, verifies role
+// Reads JWT from HttpOnly cookie or API token, verifies role
 // ---------------------------------------------------------
 const adminProtect = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const headerToken = authHeader && authHeader.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
+  const xToken = req.headers['x-auth-token'];
+  const queryToken = req.query.token;
   const cookieToken = req.cookies && req.cookies.aldi_jwt;
+  const token = cookieToken || headerToken || xToken || queryToken;
 
-  if (!cookieToken) {
+  if (!token) {
     // No token present → 401 Unauthorized
     if (req.path === '/admin.html') {
       return res.status(401).send(`
@@ -106,7 +111,7 @@ const adminProtect = (req, res, next) => {
     return res.status(401).json({ detail: 'Unauthorized: No valid token present. Please log in.' });
   }
 
-  jwt.verify(cookieToken, JWT_SECRET, (err, user) => {
+  jwt.verify(token, JWT_SECRET, (err, user) => {
     if (err) {
       if (req.path === '/admin.html') {
         return res.status(401).send(`
@@ -285,12 +290,13 @@ app.post('/api/register', async (req, res) => {
 
     // Insert user
     const insertMutation = `
-      mutation InsertUser($email: String!, $passwordHash: String!, $role: String!, $displayName: String!) {
+      mutation InsertUser($email: String!, $passwordHash: String!, $role: String!, $displayName: String!, $photoUrl: String!) {
         user_insert(data: {
           email: $email,
           passwordHash: $passwordHash,
           role: $role,
-          displayName: $displayName
+          displayName: $displayName,
+          photoUrl: $photoUrl
         })
       }
     `;
@@ -301,7 +307,8 @@ app.post('/api/register', async (req, res) => {
         email,
         passwordHash: password,
         role: 'customer',
-        displayName
+        displayName,
+        photoUrl: '/assets/images/default-photo.jpg'
       }
     });
 
@@ -378,7 +385,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ id: user.id, email: user.email, token, displayName: user.displayName, role: user.role, photoUrl: user.photoUrl });
+    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });
@@ -418,6 +425,98 @@ app.post('/api/admin/users/upload-photo', adminProtect, upload.single('photo'), 
   } catch (error) {
     console.error('Error uploading photo to Firebase Storage:', error);
     res.status(500).json({ error: 'Failed to upload photo to storage.' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Profile Settings (Any authenticated user)
+// ---------------------------------------------------------
+app.get('/api/profile/me', authenticateJWT, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const query = `
+      query GetUserProfile($id: UUID!) {
+        users(where: { id: { eq: $id } }) {
+          id
+          email
+          displayName
+          phoneNumber
+          address
+          photoUrl
+          role
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: { id: userId }
+    });
+    if (!result.data || !result.data.users || result.data.users.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+    res.json(result.data.users[0]);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    res.status(500).json({ error: 'Failed to fetch profile.' });
+  }
+});
+
+app.post('/api/profile/upload-photo', authenticateJWT, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No photo uploaded' });
+
+    const bucket = storage.bucket();
+    const uniqueFileName = `profiles/${Date.now()}_${req.file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    
+    const file = bucket.file(uniqueFileName);
+    await file.save(req.file.buffer, {
+      metadata: {
+        contentType: req.file.mimetype,
+      }
+    });
+
+    await file.makePublic();
+    const photoUrl = file.publicUrl();
+
+    res.json({ photoUrl });
+  } catch (error) {
+    console.error('Error uploading photo to Firebase Storage:', error);
+    res.status(500).json({ error: 'Failed to upload photo to storage.' });
+  }
+});
+
+app.put('/api/profile/update', authenticateJWT, async (req, res) => {
+  const { displayName, phoneNumber, address, photoUrl } = req.body;
+  const userId = req.user.id;
+  
+  if (!displayName || displayName.trim() === '') {
+    return res.status(400).json({ error: 'Display name is required' });
+  }
+
+  try {
+    const updateMutation = `
+      mutation UpdateUserProfile($id: UUID!, $displayName: String!, $phoneNumber: String, $address: String, $photoUrl: String) {
+        user_update(id: $id, data: { displayName: $displayName, phoneNumber: $phoneNumber, address: $address, photoUrl: $photoUrl })
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphql(updateMutation, {
+      variables: {
+        id: userId,
+        displayName: displayName.trim(),
+        phoneNumber: phoneNumber ? phoneNumber.trim() : null,
+        address: address ? address.trim() : null,
+        photoUrl: photoUrl || null
+      }
+    });
+
+    if (result.errors) {
+      return res.status(400).json({ error: result.errors[0].message });
+    }
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    res.status(500).json({ error: 'Failed to update profile.' });
   }
 });
 
@@ -720,12 +819,16 @@ app.get('/api/admin/customers', async (req, res) => {
 app.get('/api/admin/database/:table', async (req, res) => {
   const allowedTables = {
     'User': '{ users { id email role displayName photoUrl createdAt } }',
-    'Product': '{ products { id name category price updatedAt } }',
+    'Product': '{ products { id name category price imageUrl updatedAt } }',
     'Cart': '{ carts { id user { id email } updatedAt } }',
     'CartItem': '{ cartItems { cart { id } product { id name } quantity } }',
     'Order': '{ orders { id user { id email } totalAmount status createdAt } }',
     'OrderItem': '{ orderItems { order { id } product { id name } priceAtPurchase quantity } }',
-    'FinancialRecord': '{ financialRecords { id transactionId amount transactionType relatedOrder { id } processedBy { id email } description createdAt } }'
+    'FinancialRecord': '{ financialRecords { id transactionId amount transactionType relatedOrder { id } processedBy { id email } description createdAt } }',
+    'StockBatch': '{ stockBatches { id product { id name } initialQuantity currentQuantity expiryDate receivedAt piecePrice } }',
+    'Notification': '{ notifications { id user { id email } type message isRead createdAt } }',
+    'Poll': '{ polls { id title description options status createdAt closesAt } }',
+    'Vote': '{ votes { poll { id title } userId selectedOption createdAt } }'
   };
 
   const table = req.params.table;
@@ -1188,27 +1291,29 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
     }
 
     try {
-        const recordsSnapshot = await db.collection("FinancialRecord")
-            .where("createdAt", ">=", dateRange.startDate)
-            .where("createdAt", "<=", dateRange.endDate)
-            .get();
+        // Records live in the SQL database — use sqlConnect, NOT Firestore
+        const selectQuery = `
+            query GetFinancialRecords {
+                _select(sql: "SELECT id, transaction_id AS \\"transactionId\\", amount, transaction_type AS \\"transactionType\\", description, related_order_id AS \\"relatedOrderId\\", created_at AS \\"createdAt\\" FROM \\"financial_record\\" WHERE created_at >= '${dateRange.startDate}' AND created_at <= '${dateRange.endDate}' ORDER BY created_at DESC")
+            }
+        `;
 
-        const records = [];
+        const result = await sqlConnect.executeGraphqlRead(selectQuery);
+        const records = (result.data && result.data._select) || [];
 
-        recordsSnapshot.forEach((doc) => {
-            records.push({
-                id: doc.id,
-                ...doc.data()
-            });
-        });
+        // Normalise amounts to numbers (SQL may return strings)
+        const normalised = records.map(r => ({
+            ...r,
+            amount: Number(r.amount || 0)
+        }));
 
-        const summary = summarizeFinancialRecords(records);
+        const summary = summarizeFinancialRecords(normalised);
 
         return res.status(200).json({
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
             summary,
-            records
+            records: normalised
         });
     } catch (error) {
         console.error("Failed to load finance summary:", error);
@@ -1218,6 +1323,695 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
         });
     }
 });
+
+app.get('/api/finance/losses', adminProtect, async (req, res) => {
+  let { startDate, endDate } = req.query;
+
+  // Helper to format Date to local YYYY-MM-DD string
+  const toLocalDateString = (date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Default to the current week (Monday to Sunday) if dates are missing
+  if (!startDate || !endDate) {
+    const today = new Date();
+    const day = today.getDay();
+    const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
+    
+    const monday = new Date(today.getFullYear(), today.getMonth(), diffToMon);
+    const sunday = new Date(today.getFullYear(), today.getMonth(), diffToMon + 6);
+
+    startDate = toLocalDateString(monday);
+    endDate = toLocalDateString(sunday);
+  }
+
+  const s = new Date(startDate + 'T00:00:00');
+  const e = new Date(endDate + 'T23:59:59.999');
+
+  // Calculate the previous period of the same duration for comparison
+  const durationMs = e.getTime() - s.getTime();
+  const prevS = new Date(s.getTime() - durationMs - 1);
+  const prevE = new Date(s.getTime() - 1);
+
+  try {
+    const query = `
+      query GetExpiredBatchesCompare($startDate: Timestamp!, $endDate: Timestamp!) {
+        stockBatches(where: {
+          expiryDate: { ge: $startDate, le: $endDate },
+          currentQuantity: { gt: 0 }
+        }) {
+          id
+          currentQuantity
+          expiryDate
+          piecePrice
+          product {
+            id
+            name
+            price
+          }
+        }
+      }
+    `;
+
+    // Query across both the previous and current periods to save a DB call
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: { 
+        startDate: prevS.toISOString(), 
+        endDate: e.toISOString() 
+      }
+    });
+
+    const batches = result.data?.stockBatches || [];
+    const dailyLosses = {};
+    
+    // Initialize dates in the current range with 0 loss using local date keys
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const dateKey = toLocalDateString(d);
+      dailyLosses[dateKey] = 0;
+    }
+
+    let totalLoss = 0;
+    let previousTotalLoss = 0;
+
+    batches.forEach(b => {
+      const expiry = new Date(b.expiryDate);
+      const cost = b.piecePrice !== null && b.piecePrice !== undefined 
+        ? b.piecePrice 
+        : (b.product?.price ? Number((b.product.price * 0.6).toFixed(2)) : 0);
+      const loss = b.currentQuantity * cost;
+
+      if (expiry >= s && expiry <= e) {
+        totalLoss += loss;
+        const dateKey = toLocalDateString(expiry);
+        if (dailyLosses[dateKey] !== undefined) {
+          dailyLosses[dateKey] += loss;
+        }
+      } else if (expiry >= prevS && expiry <= prevE) {
+        previousTotalLoss += loss;
+      }
+    });
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const formattedLosses = Object.keys(dailyLosses).map(dateStr => {
+      const d = new Date(dateStr + 'T00:00:00');
+      return {
+        date: dateStr,
+        dayName: daysOfWeek[d.getDay()],
+        lossAmount: Number(dailyLosses[dateStr].toFixed(2))
+      };
+    });
+
+    res.json({
+      startDate,
+      endDate,
+      losses: formattedLosses,
+      totalLoss: Number(totalLoss.toFixed(2)),
+      previousTotalLoss: Number(previousTotalLoss.toFixed(2))
+    });
+
+  } catch (error) {
+    console.error('Failed to load daily losses:', error);
+    res.status(500).json({ error: 'Failed to load losses.' });
+  }
+});
+
+app.get('/api/finance/losses-trend-6months', adminProtect, async (req, res) => {
+  const now = new Date();
+  const months = [];
+
+  // Generate last 6 months info (ending with the current month)
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      name: d.toLocaleString('en-US', { month: 'short' }),
+      lossAmount: 0
+    });
+  }
+
+  const s = new Date(months[0].year, months[0].month, 1);
+  const e = new Date(months[5].year, months[5].month + 1, 0, 23, 59, 59, 999);
+
+  try {
+    const query = `
+      query GetExpiredBatchesTrend($startDate: Timestamp!, $endDate: Timestamp!) {
+        stockBatches(where: {
+          expiryDate: { ge: $startDate, le: $endDate },
+          currentQuantity: { gt: 0 }
+        }) {
+          currentQuantity
+          expiryDate
+          piecePrice
+          product {
+            price
+            category
+          }
+        }
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: {
+        startDate: s.toISOString(),
+        endDate: e.toISOString()
+      }
+    });
+
+    const batches = result.data?.stockBatches || [];
+    const categoryLosses = {};
+
+    batches.forEach(b => {
+      const expiry = new Date(b.expiryDate);
+      const cost = b.piecePrice !== null && b.piecePrice !== undefined 
+        ? b.piecePrice 
+        : (b.product?.price ? Number((b.product.price * 0.6).toFixed(2)) : 0);
+      const loss = b.currentQuantity * cost;
+
+      // Add to month trend
+      const mMatch = months.find(m => m.year === expiry.getFullYear() && m.month === expiry.getMonth());
+      if (mMatch) {
+        mMatch.lossAmount += loss;
+      }
+
+      // Add to category grouping
+      const cat = b.product?.category || 'Uncategorized';
+      categoryLosses[cat] = (categoryLosses[cat] || 0) + loss;
+    });
+
+    // Formulate top category info
+    let topCategoryName = 'None';
+    let topCategoryPct = 0;
+    const totalLossSum = Object.values(categoryLosses).reduce((sum, val) => sum + val, 0);
+
+    if (totalLossSum > 0) {
+      let maxLoss = 0;
+      Object.keys(categoryLosses).forEach(cat => {
+        if (categoryLosses[cat] > maxLoss) {
+          maxLoss = categoryLosses[cat];
+          topCategoryName = cat;
+        }
+      });
+      topCategoryPct = Math.round((maxLoss / totalLossSum) * 100);
+    }
+
+    res.json({
+      months: months.map(m => ({ name: m.name, lossAmount: Number(m.lossAmount.toFixed(2)) })),
+      topCategory: {
+        name: topCategoryName,
+        percentage: topCategoryPct
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load losses trend:', error);
+    res.status(500).json({ error: 'Failed to load losses trend.' });
+  }
+});
+
+app.get('/api/finance/customers-stats', adminProtect, async (req, res) => {
+  let { startDate, endDate } = req.query;
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'startDate and endDate query parameters are required.' });
+  }
+
+  const s = new Date(startDate + 'T00:00:00');
+  const e = new Date(endDate + 'T23:59:59.999');
+
+  try {
+    const query = `
+      query GetCustomerUsers {
+        users(where: { role: { eq: "customer" } }) {
+          id
+          createdAt
+        }
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const users = result.data?.users || [];
+
+    const totalCustomers = users.length;
+    let newCustomersCount = 0;
+
+    const dailySignups = {};
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
+      dailySignups[dateKey] = 0;
+    }
+
+    users.forEach(u => {
+      const created = new Date(u.createdAt);
+      if (created >= s && created <= e) {
+        newCustomersCount++;
+        const dateKey = created.toISOString().split('T')[0];
+        if (dailySignups[dateKey] !== undefined) {
+          dailySignups[dateKey]++;
+        }
+      }
+    });
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const formattedSignups = Object.keys(dailySignups).map(dateStr => {
+      const d = new Date(dateStr + 'T00:00:00');
+      return {
+        date: dateStr,
+        dayName: daysOfWeek[d.getDay()],
+        count: dailySignups[dateStr]
+      };
+    });
+
+    res.json({
+      totalCustomers,
+      newCustomersCount,
+      dailySignups: formattedSignups
+    });
+  } catch (error) {
+    console.error('Failed to load customer stats:', error);
+    res.status(500).json({ error: 'Failed to load customer stats.' });
+  }
+});
+// ==========================================================
+// POLLING SYSTEM — SCRUM-190 / SCRUM-191 / SCRUM-193
+// ==========================================================
+
+function escapeSqlLiteral(value) {
+  return String(value).replace(/'/g, "''");
+}
+
+function graphqlSqlString(sql) {
+  return JSON.stringify(sql.replace(/\s+/g, ' ').trim());
+}
+
+function sanitizeUuid(value) {
+  return String(value || '').replace(/[^a-f0-9\-]/gi, '');
+}
+
+function parsePollOptions(options) {
+  if (Array.isArray(options)) return options;
+  if (typeof options === 'string') {
+    try {
+      const parsed = JSON.parse(options);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (_) {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizePollOptions(options) {
+  if (!Array.isArray(options)) return [];
+  const seen = new Set();
+  return options
+    .map(option => String(option).trim())
+    .filter(Boolean)
+    .filter(option => {
+      const key = option.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
+function isDuplicateVoteError(err) {
+  const errMsg = String(err && err.message ? err.message : '').toLowerCase();
+  const errCode = String(err && (err.code || err.sqlState) ? (err.code || err.sqlState) : '');
+  const constraint = String(err && (err.constraint || err.constraint_name) ? (err.constraint || err.constraint_name) : '').toLowerCase();
+
+  return (
+    errCode === '23505' ||
+    errCode === 'UNIQUE_VIOLATION' ||
+    constraint.includes('uq_vote_poll_user') ||
+    (constraint.includes('vote') && constraint.includes('poll') && constraint.includes('user')) ||
+    errMsg.includes('uq_vote_poll_user') ||
+    errMsg.includes('duplicate') ||
+    errMsg.includes('already exists') ||
+    (errMsg.includes('unique') && errMsg.includes('vote')) ||
+    (errMsg.includes('unique constraint') && errMsg.includes('vote'))
+  );
+}
+
+/**
+ * SCRUM-193: Aggregation helper — counts votes grouped by selectedOption.
+ * Returns: [{ option: String, count: Number }, ...]
+ */
+async function aggregateVotes(pollId) {
+  // Sanitise to UUID format only (prevent injection)
+  const safeId = sanitizeUuid(pollId);
+  const sql = `SELECT selected_option AS "option", CAST(COUNT(*) AS INT) AS "count" FROM "vote" WHERE poll_id = '${safeId}' GROUP BY selected_option`;
+  const query = `
+    query AggregateVotes {
+      _select(sql: ${graphqlSqlString(sql)})
+    }
+  `;
+  try {
+    const result = await sqlConnect.executeGraphqlRead(query);
+    return (result.data && result.data._select) || [];
+  } catch (err) {
+    console.warn('[Polls] aggregateVotes error:', err.message);
+    return [];
+  }
+}
+
+// ----------------------------------------------------------
+// SCRUM-191: POST /api/polls — Admin-only poll creation
+// ----------------------------------------------------------
+app.post('/api/polls', adminProtect, async (req, res) => {
+  // Only admins can create polls; employees/financial_officers can vote but not create
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({
+      error: 'Forbidden: Only administrators can create polls.'
+    });
+  }
+
+  const { title, description, options, closesAt } = req.body;
+
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    return res.status(400).json({ error: 'Poll title is required.' });
+  }
+  const normalizedOptions = normalizePollOptions(options);
+  if (normalizedOptions.length < 2) {
+    return res.status(400).json({ error: 'At least two poll options are required.' });
+  }
+
+  const pollId = crypto.randomUUID();
+  const optionsJson = JSON.stringify(normalizedOptions);
+  let closesAtValue = 'NULL';
+  let closesAtIso = null;
+
+  if (closesAt) {
+    const closesAtDate = new Date(closesAt);
+    if (Number.isNaN(closesAtDate.getTime())) {
+      return res.status(400).json({ error: 'closesAt must be a valid date.' });
+    }
+    closesAtIso = closesAtDate.toISOString();
+    closesAtValue = `'${escapeSqlLiteral(closesAtIso)}'`;
+  }
+
+  const safeTitle = escapeSqlLiteral(title.trim());
+  const safeDesc = escapeSqlLiteral((description || '').trim());
+
+  const insertSql = `INSERT INTO "poll" (id, title, description, options, status, created_at, closes_at) VALUES ('${pollId}', '${safeTitle}', '${safeDesc}', '${escapeSqlLiteral(optionsJson)}', 'open', CURRENT_TIMESTAMP, ${closesAtValue})`;
+  const insertMutation = `
+    mutation InsertPoll {
+      _execute(sql: ${graphqlSqlString(insertSql)})
+    }
+  `;
+
+  try {
+    await sqlConnect.executeGraphql(insertMutation);
+    res.status(201).json({
+      message: 'Poll created successfully.',
+      poll: {
+        id: pollId,
+        title: title.trim(),
+        description: (description || '').trim(),
+        options: normalizedOptions,
+        status: 'open',
+        closesAt: closesAtIso
+      }
+    });
+  } catch (err) {
+    console.error('[Polls] Error creating poll:', err.message);
+    console.error('[Polls] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+    if (err.httpResponse && err.httpResponse.data) {
+      console.error('[Polls] Data Connect errors:', JSON.stringify(err.httpResponse.data, null, 2));
+    }
+    console.error('[Polls] SQL used:', insertSql);
+    res.status(500).json({ error: 'Failed to create poll.', detail: err.message });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: GET /api/polls/active — Retrieve all open polls
+// Accessible to: admin, employee, financial_officer (via adminProtect)
+// Customers get 403 from adminProtect middleware
+// ----------------------------------------------------------
+app.get('/api/polls/active', adminProtect, async (req, res) => {
+  const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE status = 'open' AND (closes_at IS NULL OR closes_at > CURRENT_TIMESTAMP) ORDER BY created_at DESC`;
+  const query = `
+    query GetActivePolls {
+      _select(sql: ${graphqlSqlString(sql)})
+    }
+  `;
+
+  try {
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const polls = (result.data && result.data._select) || [];
+
+    // Attach vote aggregation and check if current user voted
+    const userId = req.user.id;
+    const enriched = await Promise.all(polls.map(async (poll) => {
+      const voteCounts = await aggregateVotes(poll.id);
+
+      // Check if this user already voted
+      const safeUserId = sanitizeUuid(userId);
+      const safePollId = sanitizeUuid(poll.id);
+      let userVote = null;
+      try {
+        const voteSql = `SELECT selected_option AS "selectedOption" FROM "vote" WHERE poll_id = '${safePollId}' AND user_id = '${safeUserId}' LIMIT 1`;
+        const voteCheck = await sqlConnect.executeGraphqlRead(`
+          query CheckUserVote {
+            _select(sql: ${graphqlSqlString(voteSql)})
+          }
+        `);
+        const voteRows = (voteCheck.data && voteCheck.data._select) || [];
+        if (voteRows.length > 0) {
+          userVote = voteRows[0].selectedOption;
+        }
+      } catch (e) {
+        console.warn('[Polls] Could not check user vote:', e.message);
+      }
+
+      const parsedOptions = parsePollOptions(poll.options);
+
+      return {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        options: parsedOptions,
+        status: poll.status,
+        createdAt: poll.createdAt,
+        closesAt: poll.closesAt,
+        voteCounts,
+        userVote
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) {
+    console.error('[Polls] Error fetching active polls:', err.message);
+    res.status(500).json({ error: 'Failed to fetch active polls.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: POST /api/polls/:id/vote — Submit a vote
+// Returns 409 if user already voted (UNIQUE constraint violation)
+// ----------------------------------------------------------
+app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
+  const pollId = req.params.id;
+  const userId = req.user.id;
+  const { selectedOption } = req.body;
+
+  if (!selectedOption || typeof selectedOption !== 'string' || selectedOption.trim() === '') {
+    return res.status(400).json({ error: 'selectedOption is required.' });
+  }
+
+  const safePollId = sanitizeUuid(pollId);
+  const safeUserId = sanitizeUuid(userId);
+
+  // Verify poll exists and is open
+  try {
+    const pollCheckSql = `SELECT id, status, closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollCheck = await sqlConnect.executeGraphqlRead(`
+      query CheckPoll {
+        _select(sql: ${graphqlSqlString(pollCheckSql)})
+      }
+    `);
+    const polls = (pollCheck.data && pollCheck.data._select) || [];
+    if (polls.length === 0) {
+      return res.status(404).json({ error: 'Poll not found.' });
+    }
+    const poll = polls[0];
+    if (poll.status !== 'open') {
+      return res.status(409).json({ error: 'This poll is no longer accepting votes.' });
+    }
+    if (poll.closesAt && new Date(poll.closesAt) < new Date()) {
+      return res.status(409).json({ error: 'This poll has already closed.' });
+    }
+
+    // Verify the selected option is valid for this poll
+    const optionsSql = `SELECT options FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const optQuery = await sqlConnect.executeGraphqlRead(`
+      query GetPollOptions {
+        _select(sql: ${graphqlSqlString(optionsSql)})
+      }
+    `);
+    const optRows = (optQuery.data && optQuery.data._select) || [];
+    let pollOptions = [];
+    if (optRows.length > 0) {
+      pollOptions = parsePollOptions(optRows[0].options);
+    }
+    if (pollOptions.length > 0 && !pollOptions.includes(selectedOption.trim())) {
+      return res.status(400).json({ error: 'Invalid option selected.' });
+    }
+  } catch (err) {
+    console.error('[Polls] Error validating poll for vote:', err.message);
+    return res.status(500).json({ error: 'Failed to validate poll.' });
+  }
+
+  // Insert vote
+  const voteId = crypto.randomUUID();
+  const safeOption = escapeSqlLiteral(selectedOption.trim());
+
+  const insertVoteSql = `INSERT INTO "vote" (poll_id, user_id, selected_option, created_at) VALUES ('${safePollId}', '${safeUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
+  const insertVote = `
+    mutation InsertVote {
+      _execute(sql: ${graphqlSqlString(insertVoteSql)})
+    }
+  `;
+
+  try {
+    await sqlConnect.executeGraphql(insertVote);
+
+    // Return updated vote counts
+    const updatedCounts = await aggregateVotes(safePollId);
+    res.status(201).json({
+      message: 'Vote submitted successfully.',
+      voteId,
+      selectedOption: selectedOption.trim(),
+      voteCounts: updatedCounts
+    });
+  } catch (err) {
+    // SCRUM-194: Detect UNIQUE constraint violation (duplicate vote).
+    if (isDuplicateVoteError(err)) {
+      return res.status(409).json({
+        error: 'Conflict: You have already voted on this poll.',
+        code: 'DUPLICATE_VOTE'
+      });
+    }
+
+    console.error('[Polls] Error submitting vote:', err && err.message ? err.message : err);
+    res.status(500).json({ error: 'Failed to submit vote.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-193: GET /api/polls/:id/results — Get vote aggregation
+// ----------------------------------------------------------
+app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
+  const pollId = req.params.id;
+  const safePollId = sanitizeUuid(pollId);
+
+  try {
+    // Get poll metadata
+    const pollSql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollResult = await sqlConnect.executeGraphqlRead(`
+      query GetPollForResults {
+        _select(sql: ${graphqlSqlString(pollSql)})
+      }
+    `);
+    const polls = (pollResult.data && pollResult.data._select) || [];
+    if (polls.length === 0) {
+      return res.status(404).json({ error: 'Poll not found.' });
+    }
+    const poll = polls[0];
+    const parsedOptions = parsePollOptions(poll.options);
+
+    // Get total vote count
+    const totalSql = `SELECT CAST(COUNT(*) AS INT) AS "total" FROM "vote" WHERE poll_id = '${safePollId}'`;
+    const totalResult = await sqlConnect.executeGraphqlRead(`
+      query GetTotalVotes {
+        _select(sql: ${graphqlSqlString(totalSql)})
+      }
+    `);
+    const totalRows = (totalResult.data && totalResult.data._select) || [];
+    const totalVotes = totalRows.length > 0 ? Number(totalRows[0].total || 0) : 0;
+
+    // Get per-option counts
+    const voteCounts = await aggregateVotes(safePollId);
+
+    // Build results with percentage
+    const results = parsedOptions.map(option => {
+      const match = voteCounts.find(v => v.option === option);
+      const count = match ? Number(match.count || 0) : 0;
+      const percentage = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      return { option, count, percentage };
+    });
+
+    res.json({
+      poll: {
+        id: poll.id,
+        title: poll.title,
+        description: poll.description,
+        options: parsedOptions,
+        status: poll.status,
+        createdAt: poll.createdAt,
+        closesAt: poll.closesAt
+      },
+      totalVotes,
+      results
+    });
+  } catch (err) {
+    console.error('[Polls] Error fetching poll results:', err.message);
+    res.status(500).json({ error: 'Failed to fetch poll results.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: GET /api/polls — List all polls (admin only)
+// ----------------------------------------------------------
+app.get('/api/polls', adminProtect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+  }
+  try {
+    const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" ORDER BY created_at DESC`;
+    const query = `
+      query GetAllPolls {
+        _select(sql: ${graphqlSqlString(sql)})
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const polls = (result.data && result.data._select) || [];
+    const enriched = await Promise.all(polls.map(async (poll) => {
+      const voteCounts = await aggregateVotes(poll.id);
+      const parsedOptions = parsePollOptions(poll.options);
+      return { ...poll, options: parsedOptions, voteCounts };
+    }));
+    res.json(enriched);
+  } catch (err) {
+    console.error('[Polls] Error listing all polls:', err.message);
+    res.status(500).json({ error: 'Failed to list polls.' });
+  }
+});
+
+// ----------------------------------------------------------
+// SCRUM-191: PATCH /api/polls/:id/close — Close a poll (admin only)
+// ----------------------------------------------------------
+app.patch('/api/polls/:id/close', adminProtect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Only administrators can close polls.' });
+  }
+  const safePollId = sanitizeUuid(req.params.id);
+  try {
+    const closeSql = `UPDATE "poll" SET status = 'closed' WHERE id = '${safePollId}'`;
+    await sqlConnect.executeGraphql(`
+      mutation ClosePoll {
+        _execute(sql: ${graphqlSqlString(closeSql)})
+      }
+    `);
+    res.json({ message: 'Poll closed successfully.' });
+  } catch (err) {
+    console.error('[Polls] Error closing poll:', err.message);
+    res.status(500).json({ error: 'Failed to close poll.' });
+  }
+});
+
 // ---------------------------------------------------------
 // API: Get notifications for the logged-in user
 // ---------------------------------------------------------
@@ -1320,6 +2114,7 @@ app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
         notification: notificationObj
       });
 
+      // send each client the notification received live
       if (wss) {
         wss.clients.forEach(client => {
           if (client.readyState === 1 && client.user && client.user.id === user.id) {
@@ -1383,7 +2178,8 @@ wss.on('connection', (ws, req) => {
 
     // Authenticated and authorized — attach user info
     ws.user = user;
-    console.log(`[WebSocket] Admin client connected: ${user.email} (${user.role})`);
+    const displayRole = user.role.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+    console.log(`[WebSocket] ${displayRole} client connected: ${user.email}`);
 
     ws.on('message', (message) => {
       console.log(`[WebSocket] Message from ${user.email}:`, message.toString());
@@ -1405,6 +2201,85 @@ wss.on('connection', (ws, req) => {
   });
 });
 
+// ---------------------------------------------------------
+// API: Admin — Restock (create StockBatch rows + sync product stock)
+// Allowed: admin, financial_officer, employee  (all via adminProtect)
+// ---------------------------------------------------------
+app.post('/api/admin/restock', adminProtect, async (req, res) => {
+  const { items } = req.body;
+
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ error: 'items array is required and must be non-empty.' });
+  }
+
+  const results = [];
+  const errors  = [];
+
+  for (const item of items) {
+    const { productId, quantity, piecePrice, expiryDate } = item;
+
+    if (!productId || !quantity || quantity <= 0 || !expiryDate) {
+      errors.push({ productId, error: 'Missing or invalid fields (productId, quantity, expiryDate are required).' });
+      continue;
+    }
+
+    try {
+      // 1. Insert a new StockBatch
+      const insertMutation = `
+        mutation InsertStockBatch(
+          $productId: UUID!
+          $qty: Int!
+          $price: Float!
+          $expiry: Date!
+        ) {
+          stockBatch_insert(data: {
+            product: { id: $productId }
+            initialQuantity: $qty
+            currentQuantity: $qty
+            piecePrice: $price
+            expiryDate: $expiry
+          })
+        }
+      `;
+
+      const insertResult = await sqlConnect.executeGraphql(insertMutation, {
+        variables: {
+          productId,
+          qty: Number(quantity),
+          price: Number(piecePrice || 0),
+          expiry: expiryDate
+        }
+      });
+
+      const batchId = insertResult.data?.stockBatch_insert?.id;
+
+      // 2. Re-compute total stock across all batches for this product
+      const newTotal = await getProductStock(productId);
+
+      // 3. Update the product's stockQuantity to the new total
+      const updateMutation = `
+        mutation UpdateProductStock($productId: UUID!, $stock: Int!) {
+          product_update(id: $productId, data: { stockQuantity: $stock })
+        }
+      `;
+      await sqlConnect.executeGraphql(updateMutation, {
+        variables: { productId, stock: newTotal }
+      });
+
+      results.push({ productId, batchId, newTotal });
+    } catch (err) {
+      console.error(`[Restock] Failed for product ${productId}:`, err.message);
+      errors.push({ productId, error: err.message });
+    }
+  }
+
+  return res.status(errors.length === items.length ? 500 : 200).json({
+    inserted: results.length,
+    results,
+    errors
+  });
+});
+
 // Start the server
 if (require.main === module) {
   server.listen(PORT, () => {
@@ -1414,5 +2289,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = { app, server };
-
+module.exports = { app, server, aggregateVotes };

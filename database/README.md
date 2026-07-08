@@ -11,7 +11,7 @@ We use Firebase Data Connect. The database schema is defined using GraphQL schem
 
 ## Data Schema (Firebase Data Connect)
 
-Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, `Document`, and `Notification`.
+Below is the GraphQL schema representing the core entities: `User`, `Product`, `Cart`, `CartItem`, `Order`, `OrderItem`, `FinancialRecord`, `Document`, `Poll`, and `Vote`.
 
 ```graphql
 type User @table {
@@ -80,11 +80,36 @@ type Document @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+type StockBatch @table {
+  product: Product!
+  initialQuantity: Int!
+  currentQuantity: Int!
+  expiryDate: Timestamp!
+  receivedAt: Timestamp! @default(expr: "request.time")
+  piecePrice: Float
+}
+
 type Notification @table {
   user: User!
   type: String!
   message: String!
   isRead: Boolean! @default(value: false)
+  createdAt: Timestamp! @default(expr: "request.time")
+}
+
+type Poll @table {
+  title: String!
+  description: String! @default(value: "")
+  options: String! @default(value: "[]")
+  status: String! @default(value: "open")
+  createdAt: Timestamp! @default(expr: "request.time")
+  closesAt: Timestamp
+}
+
+type Vote @table(key: ["poll", "userId"]) {
+  poll: Poll!
+  userId: UUID!
+  selectedOption: String!
   createdAt: Timestamp! @default(expr: "request.time")
 }
 ```
@@ -189,17 +214,29 @@ Stores metadata for uploaded corporate and operational documents.
 | `uploadedBy` | `User` | Relation Reference | The user (admin/employee) who uploaded the document |
 | `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Document upload timestamp |
 
-### 9. Notification Table
-Stores user notifications for order updates, meetings, polls, and system announcements.
+### 9. Poll Table
+Stores internal governance and strategy polls for staff users.
 
 | Field | Type | Attributes / Default | Description |
 | :--- | :--- | :--- | :--- |
-| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the notification |
-| `user` | `User!` | Relation Reference | The user receiving the notification |
-| `type` | `String!` | | The type of notification (`'order'`, `'meeting'`, `'poll'`, `'system'`) |
-| `message` | `String!` | | The notification message text |
-| `isRead` | `Boolean!` | `@default(value: false)` | Whether the notification has been read by the user |
-| `createdAt` | `Timestamp!` | `@default(expr: "request.time")` | Creation timestamp |
+| `id` | `UUID` / `ID` | Primary Key | Unique identifier for each poll |
+| `title` | `String!` | | Poll headline shown in the dashboard |
+| `description` | `String!` | `""` | Optional context for voters |
+| `options` | `JSONB` / JSON array string | `[]` | Multiple-choice options |
+| `status` | `String!` | `open` | Poll lifecycle status |
+| `createdAt` | `Timestamp!` | current timestamp | Poll creation timestamp |
+| `closesAt` | `Timestamp` | nullable | Optional vote deadline |
+
+### 10. Vote Table
+Stores staff votes and enforces one vote per user per poll.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key | Unique identifier for each vote |
+| `pollId` | `UUID` | Foreign Key to `Poll` | Poll being voted on |
+| `userId` | `UUID` | Unique with `pollId` | Staff user who voted |
+| `selectedOption` | `String!` | | Chosen poll option |
+| `createdAt` | `Timestamp!` | current timestamp | Vote creation timestamp |
 
 ---
 

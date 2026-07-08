@@ -11,6 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin-dashboard.css" />
   <link rel="stylesheet" href="/css/finance-reporting.css" />
+  <style>
+    /* 3D Bar Tooltip */
+    .bar-3d { cursor: pointer; }
+    .bar-3d:hover { filter: brightness(1.15); }
+    .bar-3d::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: -32px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: #1a1f36;
+      color: white;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight: 600;
+      z-index: 10;
+    }
+    .bar-3d:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+  </style>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/public/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/public/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/public/favicon-16x16.png">
@@ -119,10 +147,6 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
           </a>
-          <!-- Notification Icon -->
-          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications" onclick="event.preventDefault(); document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display='none'); document.getElementById('notifications-manager').style.display='flex';">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </a>
           <!-- Shield Icon -->
           <a href="#" class="sidebar-icon" title="Security">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -130,6 +154,32 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </a>
+          <!-- Polls Icon (Ballot Box) -->
+          <a href="#" id="btn-polls-manager" class="sidebar-icon" title="Polls & Voting">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="12" x2="15" y2="12"></line>
+              <line x1="9" y1="15" x2="13" y2="15"></line>
+            </svg>
+          </a>
+          <!-- Notifications Manager Icon -->
+          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications Manager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </a>
+          <!-- Restock Cart Icon -->
+          <button id="btn-restock-drawer" class="sidebar-icon restock-cart-btn" title="Restock Order" style="background:none;border:none;cursor:pointer;position:relative;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span class="restock-badge" id="restock-badge" style="display:none;">0</span>
+          </button>
         </div>
       </aside>
 
@@ -141,12 +191,18 @@
               Overview
               <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
             </h1>
-            <div class="header-actions">
-              <button class="btn-outline">&#x1F4C5; Jan 01 - July 31</button>
-              <span style="color:#697386; font-size:0.8rem; align-self:center;">compared to</span>
-              <button class="btn-outline">&#x1F4C5; Aug 01 - Dec 31</button>
-              <button class="btn-outline">Daily</button>
-              <button class="btn-outline" style="background:#f4f5f7;">Add widget +</button>
+            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+              <select id="overview-range-preset" class="btn-outline" style="padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 6px; outline: none; background: white; cursor: pointer; font-family: inherit;">
+                <option value="this-week">This Week</option>
+                <option value="last-week">Last Week</option>
+                <option value="this-month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div id="overview-custom-dates" style="display: none; align-items: center; gap: 8px;">
+                <input type="date" id="overview-start-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+                <span style="color: #697386; font-size: 0.85rem;">to</span>
+                <input type="date" id="overview-end-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+              </div>
             </div>
           </div>
 
@@ -156,40 +212,11 @@
             <!-- Daily Losses Trend (span 2) -->
             <div class="widget widget-span-2">
               <div class="widget-header">
-                <h2 class="widget-title">Daily Losses Trend</h2>
-                <button class="widget-icon-btn">&#x22EF;</button>
+                <h2 class="widget-title" id="losses-widget-title">Daily Losses Trend</h2>
               </div>
 
-              <div class="bar-chart-container">
-                <!-- Mocking 3D bars -->
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 60%;"></div>
-                  <div class="bar-label">Mon</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 80%;"></div>
-                  <div class="bar-label">Tue</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 50%;"></div>
-                  <div class="bar-label">Wed</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 40%;"></div>
-                  <div class="bar-label">Thu</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 70%;"></div>
-                  <div class="bar-label">Fri</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 90%;"></div>
-                  <div class="bar-label">Sat</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 30%;"></div>
-                  <div class="bar-label">Sun</div>
-                </div>
+              <div class="bar-chart-container" id="losses-chart-container" style="overflow-x: auto; min-width: 0; display: flex; gap: 2%;">
+                <!-- Dynamically populated -->
               </div>
             </div>
 
@@ -200,34 +227,34 @@
                 <button class="widget-icon-btn">&#x22EF;</button>
               </div>
               <h3 class="metric-value" id="total-revenue-amount">€0.00</h3>
-              <span class="metric-change positive">&#x25B2; 15%</span>
+              <span class="metric-change neutral" id="revenue-change-badge">&#x2014; 0%</span>
 
               <div class="progress-list">
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>Online Payments</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-online-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-green" style="width: 70%;"></div>
+                    <div class="progress-bar-fill pb-green" id="rev-online-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>Subscriptions</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-subscriptions-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-blue" style="width: 45%;"></div>
+                    <div class="progress-bar-fill pb-blue" id="rev-subscriptions-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>In-Store Sales</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-instore-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-pink" style="width: 20%;"></div>
+                    <div class="progress-bar-fill pb-pink" id="rev-instore-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
               </div>
@@ -237,16 +264,14 @@
             <div class="widget">
               <div class="widget-header">
                 <h2 class="widget-title">Loss Categories</h2>
-                <button class="widget-icon-btn">&#x22EF;</button>
               </div>
-              <div class="line-chart-mock">
-                <div
-                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                  42%</div>
+              <div class="line-chart-mock" id="loss-categories-chart-container" style="position:relative; height:160px;">
+                <div id="loss-category-badge"
+                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1); z-index: 2;">
+                  -</div>
               </div>
-              <div
+              <div id="loss-categories-labels-container"
                 style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; color:#697386;">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
               </div>
             </div>
 
@@ -255,68 +280,32 @@
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Sales Losses</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
                   <div class="stat-value" id="total-loss-amount">€0.00</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+€34,002</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="sales-losses-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot"></div>
-                  </div>
+                <div class="dot-chart" id="sales-losses-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
 
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Customers</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
-                  <div class="stat-value" id="customer-table-count-value">1,284</div>
+                  <div class="stat-value" id="customer-table-count-value">-</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+320</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="customers-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
+                <div class="dot-chart" id="customers-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
             </div>
@@ -333,6 +322,12 @@
                 style="position:absolute; bottom:24px; right:24px; background:rgba(255,255,255,0.2); padding:6px 12px; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
                 <div style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
                 <span class="ws-status-text">Connected</span>
+                <button id="ws-refresh-btn" title="Reconnect WebSocket" style="background:none; border:none; padding:0; cursor:pointer; display:flex; align-items:center; color:white; margin-left:2px; transition:transform 0.4s ease; outline:none;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -423,11 +418,11 @@
           </main>
         </div> <!-- /#dashboard-view -->
         <!-- Financials View -->
-<div
-  id="financials-view"
-  style="display: none; height: 100%; flex-direction: column;"
->
-  <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
+        <div
+          id="financials-view"
+          style="display: none; height: 100%; flex-direction: column;"
+        >
+          <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
               <div class="finance-widget-header">
                 <div>
                   <h2>Financial Reporting</h2>
@@ -503,59 +498,8 @@
                 </table>
               </div>
             </section>
-</div>
+        </div>
 
-        <!-- Notifications Manager (Hidden by default) -->
-        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
-          <div class="db-viewer-header">
-            <h1 class="dashboard-title">Notification Manager</h1>
-          </div>
-
-          <!-- Create Notification Widget -->
-          <div class="db-viewer-content" style="margin-top: 24px;">
-            <div class="db-viewer-inner table-widget" style="padding: 32px; background: white;">
-              <h3 style="margin-top: 0; color: #1a1f36;">Create Notification</h3>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Message:</label>
-                <input type="text" id="notif-message-input" placeholder="Enter notification message..." style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; outline: none;" />
-              </div>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Type:</label>
-                <select id="notif-type-select" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none;">
-                  <option value="system">System</option>
-                  <option value="order">Order</option>
-                  <option value="meeting">Meeting</option>
-                  <option value="poll">Poll</option>
-                </select>
-              </div>
-
-              <div style="margin-bottom: 24px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Send To:</label>
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-admin" value="admin" checked /> Admin
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-employee" value="employee" checked /> Employee
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-financial" value="financial_officer" checked /> Financial Officer
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-customer" value="customer" /> Customer
-                  </label>
-                </div>
-              </div>
-
-              <button id="send-notif-btn" style="background: #1a1f36; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
-                Send Notification
-              </button>
-              <span id="notif-status" style="margin-left: 16px; font-size: 0.85rem; color: #4f566b;"></span>
-            </div>
-          </div>
-        </div> <!-- /#notifications-manager -->
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">
           <div class="db-viewer-header">
@@ -569,6 +513,10 @@
               <button class="db-tab" data-table="OrderItem">OrderItem</button>
               <button class="db-tab" data-table="FinancialRecord">FinancialRecord</button>
               <button class="db-tab" data-table="Document">Document</button>
+              <button class="db-tab" data-table="StockBatch">StockBatch</button>
+              <button class="db-tab" data-table="Notification">Notification</button>
+              <button class="db-tab" data-table="Poll">Poll</button>
+              <button class="db-tab" data-table="Vote">Vote</button>
             </div>
           </div>
           <div class="db-viewer-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
@@ -601,6 +549,7 @@
                   <option value="addProduct">Add a new Product</option>
                   <option value="deleteOrder">Delete an Order</option>
                   <option value="deleteUser">Delete a User</option>
+                  <option value="deleteFinancialRecord">Delete a Financial Record</option>
                 </select>
               </div>
               <div style="display: flex; gap: 24px;">
@@ -747,6 +696,7 @@
                 style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
               <select id="new-user-role" required
                 style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="customer">Customer</option>
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
@@ -787,7 +737,7 @@
         <!-- Edit User Modal -->
         <dialog id="edit-user-modal"
           style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
-          <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
+          <h2 style="margin-top: 0; color: #1a1f36;">Edit User</h2>
           <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
             <input type="hidden" id="edit-user-id">
             <div>
@@ -809,6 +759,7 @@
                 style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
               <select id="edit-user-role" required
                 style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="customer">Customer</option>
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
@@ -861,14 +812,208 @@
           </div>
         </dialog>
 
+        <!-- Polls Manager View (SCRUM-192) — Hidden by default -->
+        <div id="polls-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">Polls &amp; Voting</h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="polls-status-badge" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; background: #d1fae5; color: #065f46; font-weight: 600;"></span>
+              <button id="polls-refresh-btn" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+
+            <!-- Left: Create Poll Form (Admin only) -->
+            <div id="create-poll-panel" class="widget" style="width: 320px; flex-shrink: 0; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Create Poll</h2>
+                <span style="font-size: 1.2rem;">📊</span>
+              </div>
+              <form id="create-poll-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Poll Title *</label>
+                  <input type="text" id="poll-title" required placeholder="e.g. Q3 Strategy Vote" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Description</label>
+                  <textarea id="poll-description" rows="3" placeholder="What is this poll about?" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical; transition: border-color 0.2s;"></textarea>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Options * (min. 2)</label>
+                  <div id="poll-options-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option A" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option B" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                  </div>
+                  <button type="button" id="add-poll-option-btn" style="background: none; border: 1px dashed #c4c9d4; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #697386; cursor: pointer; transition: all 0.2s; text-align: center;">
+                    + Add Option
+                  </button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Closes At (optional)</label>
+                  <input type="datetime-local" id="poll-closes-at" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit;" />
+                </div>
+                <div id="create-poll-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                  🗳️ Create Poll
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Active Polls List -->
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="polls-loading" style="text-align: center; padding: 48px; color: #697386; font-size: 0.95rem;">
+                Loading polls...
+              </div>
+              <div id="polls-empty" style="display: none; text-align: center; padding: 64px 32px;">
+                <div style="font-size: 3rem; margin-bottom: 16px;">🗳️</div>
+                <h3 style="margin: 0 0 8px 0; color: #1a1f36;">No active polls</h3>
+                <p style="color: #697386; margin: 0;">Create a poll using the form on the left to get started.</p>
+              </div>
+              <div id="polls-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Notifications Manager View -->
+        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
+          <div class="dashboard-header">
+            <h1 class="dashboard-title">
+              Broadcast Center
+              <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">📢</span>
+            </h1>
+          </div>
+          
+          <div class="widget-grid" style="grid-template-columns: 1fr;">
+            <!-- Broadcast Card -->
+            <div class="glass-card" style="padding: 24px;">
+              <h2 style="font-size: 1.1rem; color: #1a1f36; margin: 0 0 16px 0;">New Broadcast</h2>
+              
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Target Roles -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Target Roles</label>
+                  <div style="display: flex; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="employee" checked> Employee
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="financial_officer"> Finance
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="admin"> Admin
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Notification Type -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Type</label>
+                  <select id="notifType" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white;">
+                    <option value="info">Information</option>
+                    <option value="alert">Alert</option>
+                    <option value="success">Success</option>
+                  </select>
+                </div>
+
+                <!-- Message -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Message</label>
+                  <textarea id="notifMessage" rows="4" placeholder="Enter the broadcast message..." style="width: 100%; padding: 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span id="notifStatus" style="font-size: 0.9rem; font-weight: 500; transition: opacity 0.3s;"></span>
+                  <button id="sendNotifBtn" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send Broadcast
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div> <!-- /.admin-content-wrapper -->
+
     </div> <!-- /.admin-layout-container -->
   </div>
+
+  <!-- Restock Drawer Backdrop -->
+  <div id="restock-backdrop" class="restock-backdrop"></div>
+
+  <!-- Restock Drawer Panel -->
+  <aside id="restock-drawer" class="restock-drawer" aria-label="Restock Order Panel">
+    <div class="restock-drawer-header">
+      <h2 class="restock-drawer-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        Restock Order
+      </h2>
+      <button class="restock-close-btn" id="restock-close-btn" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Product Search -->
+    <div class="restock-search-wrapper">
+      <div class="restock-search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="restock-search-icon">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="restock-product-search" class="restock-search-input" placeholder="Search products by name or category..." autocomplete="off" />
+      </div>
+      <div id="restock-product-dropdown" class="restock-product-dropdown" style="display:none;"></div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="restock-items-list" id="restock-items-list">
+      <div class="restock-empty-state" id="restock-empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c0c8d8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <p>Search and add products above to build your restock order.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="restock-drawer-footer">
+      <div class="restock-summary">
+        <span id="restock-item-count">0 items</span>
+        <span id="restock-total-cost">€0.00 estimated cost</span>
+      </div>
+      <button id="restock-submit-btn" class="restock-submit-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Restock Order
+      </button>
+    </div>
+  </aside>
 
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script type="module" src='js/admin.js'></script>
+  <script type="module" src='/js/admin.js'></script>
   <script src="js/notifications.js"></script>
   <script src="js/finance-reporting.js"></script>
 </body>

@@ -205,6 +205,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 }
 .metric-change.positive { background: #d1fae5; color: #065f46; }
 .metric-change.negative { background: #fee2e2; color: #991b1b; }
+.metric-change.neutral  { background: #dbeafe; color: #1e40af; }
 
 /* Progress Bars */
 .progress-list {
@@ -369,8 +370,6 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 /* Line Chart Mock (Retention style for Loss Categories) */
 .line-chart-mock {
   height: 150px;
-  background: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 400 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,100 L50,80 L100,120 L150,60 L200,90 L250,40 L300,70 L350,20 L400,50" fill="none" stroke="%23ff4d79" stroke-width="3" vector-effect="non-scaling-stroke"/></svg>');
-  background-size: 100% 100%;
   position: relative;
   margin-top: 20px;
 }
@@ -627,7 +626,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
   box-shadow: 0 0 0 3px rgba(43, 88, 249, 0.15);
 }
 
-#files-upload-form input[type="file"] {
+input[type="file"] {
   font-size: 0.85rem;
   color: #4f566b;
   width: 100%;
@@ -635,7 +634,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
   padding: 4px 0;
 }
 
-#files-upload-form input[type="file"]::file-selector-button {
+input[type="file"]::file-selector-button {
   background-color: #f4f5f7;
   border: 1px solid #e3e8ee;
   border-radius: 6px;
@@ -648,7 +647,7 @@ body.admin-body .navbar, body.admin-body .storefront-container {
   margin-right: 8px;
 }
 
-#files-upload-form input[type="file"]::file-selector-button:hover {
+input[type="file"]::file-selector-button:hover {
   background-color: #eef2ff;
   border-color: #2b58f9;
   color: #2b58f9;
@@ -682,7 +681,287 @@ body.admin-body .navbar, body.admin-body .storefront-container {
   flex-direction: column;
 }
 
-/* Notification Bell */
+/* ============================================================
+   POLLS MANAGER — SCRUM-192
+   ============================================================ */
+
+/* Poll Card */
+.poll-card {
+  background: white;
+  border-radius: 14px;
+  border: 1px solid #e3e8ee;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.poll-card:hover {
+  box-shadow: 0 8px 32px rgba(43, 88, 249, 0.10);
+  transform: translateY(-2px);
+}
+
+.poll-card-header {
+  padding: 20px 24px 16px 24px;
+  border-bottom: 1px solid #f0f2f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.poll-card-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1f36;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+}
+
+.poll-card-description {
+  font-size: 0.85rem;
+  color: #697386;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.poll-status-badge {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+.poll-status-open {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.poll-status-closed {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.poll-status-draft {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.poll-card-body {
+  padding: 16px 24px 20px 24px;
+}
+
+/* Vote Options */
+.poll-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.vote-option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #f8f9fc;
+  border: 2px solid #e3e8ee;
+  border-radius: 10px;
+  padding: 12px 16px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  color: #1a1f36;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+}
+
+.vote-option-btn:hover:not(:disabled) {
+  border-color: #2b58f9;
+  background: #eef2ff;
+  color: #1a3ed8;
+  transform: translateX(3px);
+}
+
+.vote-option-btn.voted-option {
+  border-color: #2b58f9;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  color: #1a3ed8;
+  cursor: default;
+}
+
+.vote-option-btn.voted-option::after {
+  content: '✓ Your vote';
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2b58f9;
+  white-space: nowrap;
+}
+
+.vote-option-btn:disabled {
+  cursor: default;
+}
+
+.vote-option-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Vote Result Bars */
+.poll-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.poll-result-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.poll-result-label {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4f566b;
+}
+
+.poll-result-label .result-option-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+.poll-result-count {
+  font-weight: 700;
+  color: #1a1f36;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.poll-result-percentage {
+  color: #697386;
+  font-size: 0.8rem;
+  margin-left: 6px;
+}
+
+.poll-bar-bg {
+  height: 8px;
+  background: #f0f2f5;
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.poll-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  background: linear-gradient(90deg, #2b58f9, #7c3aed);
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
+}
+
+.poll-bar-fill.top-option {
+  background: linear-gradient(90deg, #10b981, #059669);
+}
+
+/* Poll card footer */
+.poll-card-footer {
+  padding: 12px 24px;
+  border-top: 1px solid #f0f2f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.poll-meta {
+  font-size: 0.78rem;
+  color: #a0aec0;
+}
+
+.poll-total-votes {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #697386;
+}
+
+.poll-close-btn {
+  background: none;
+  border: 1px solid #fee2e2;
+  color: #991b1b;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: 'Inter', sans-serif;
+}
+
+.poll-close-btn:hover {
+  background: #fee2e2;
+}
+
+/* Vote toast notification */
+.poll-vote-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  background: white;
+  border: 1px solid #e3e8ee;
+  border-left: 4px solid #10b981;
+  color: #1a1f36;
+  padding: 14px 20px;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  transform: translateY(120%);
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 300px;
+}
+
+.poll-vote-toast.visible {
+  transform: translateY(0);
+}
+
+.poll-vote-toast.error {
+  border-left-color: #f87171;
+}
+
+.poll-vote-toast-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.poll-vote-toast-msg {
+  font-size: 0.82rem;
+  color: #697386;
+}
+
+/* Create poll form — hide entirely for non-admins */
+.non-admin-create-hide {
+  display: none !important;
+}
+
+/* Section divider inside poll card */
+.poll-divider {
+  height: 1px;
+  background: #f0f2f5;
+  margin: 14px 0;
+}
+
+/* ============================================================
+   NOTIFICATION BELL
+   ============================================================ */
+
 .notification-bell {
   position: relative;
   display: inline-block;
@@ -762,4 +1041,353 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 .notif-dropdown:empty {
   border: none;
   box-shadow: none;
+}
+
+/* =========================================================
+   Restock Drawer
+   ========================================================= */
+
+/* Sidebar cart button badge */
+.restock-cart-btn {
+  position: relative;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.restock-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+  border: 2px solid #f8fafd;
+}
+
+/* Backdrop */
+.restock-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 31, 54, 0.35);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+.restock-backdrop.open {
+  opacity: 1;
+  pointer-events: all;
+}
+
+/* Drawer panel */
+.restock-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 440px;
+  max-width: 100vw;
+  height: 100vh;
+  background: #fff;
+  box-shadow: -8px 0 40px rgba(26, 31, 54, 0.14);
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+.restock-drawer.open {
+  transform: translateX(0);
+}
+
+/* Drawer header */
+.restock-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 22px 24px 20px;
+  border-bottom: 1px solid #e3e8ee;
+  flex-shrink: 0;
+}
+.restock-drawer-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a1f36;
+  display: flex;
+  align-items: center;
+}
+.restock-close-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #697386;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.restock-close-btn:hover { background: #f4f5f7; color: #1a1f36; }
+
+/* Search area */
+.restock-search-wrapper {
+  padding: 16px 24px 0;
+  flex-shrink: 0;
+  position: relative;
+}
+.restock-search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1.5px solid #e3e8ee;
+  border-radius: 10px;
+  padding: 10px 14px;
+  background: #f8fafd;
+  transition: border-color 0.2s;
+}
+.restock-search-box:focus-within {
+  border-color: #635bff;
+  background: #fff;
+}
+.restock-search-icon { color: #a0aec0; flex-shrink: 0; }
+.restock-search-input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.875rem;
+  color: #1a1f36;
+  width: 100%;
+}
+.restock-search-input::placeholder { color: #a0aec0; }
+
+/* Product dropdown */
+.restock-product-dropdown {
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: calc(100% + 4px);
+  background: #fff;
+  border: 1.5px solid #e3e8ee;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(26,31,54,0.12);
+  z-index: 10;
+  max-height: 220px;
+  overflow-y: auto;
+}
+.restock-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid #f4f5f7;
+}
+.restock-dropdown-item:last-child { border-bottom: none; }
+.restock-dropdown-item:hover { background: #f4f5f7; }
+.restock-dropdown-item-img {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  object-fit: cover;
+  background: #e3e8ee;
+  flex-shrink: 0;
+}
+.restock-dropdown-item-info { flex: 1; min-width: 0; }
+.restock-dropdown-item-name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #1a1f36;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.restock-dropdown-item-cat {
+  font-size: 0.75rem;
+  color: #697386;
+  margin-top: 1px;
+}
+.restock-dropdown-no-results {
+  padding: 14px 16px;
+  color: #a0aec0;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+/* Items list */
+.restock-items-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+/* Empty state */
+.restock-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px 16px;
+  color: #a0aec0;
+  text-align: center;
+  flex: 1;
+}
+.restock-empty-state p {
+  font-size: 0.85rem;
+  color: #a0aec0;
+  margin: 0;
+  max-width: 220px;
+  line-height: 1.5;
+}
+
+/* Line item card */
+.restock-item-card {
+  background: #f8fafd;
+  border: 1.5px solid #e3e8ee;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: slideInCard 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes slideInCard {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.restock-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.restock-card-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1a1f36;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.restock-card-cat {
+  font-size: 0.72rem;
+  color: #697386;
+  background: #e3e8ee;
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+.restock-card-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #a0aec0;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+.restock-card-remove:hover { background: #fee2e2; color: #ef4444; }
+
+.restock-card-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+}
+.restock-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.restock-field label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #697386;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.restock-field input {
+  border: 1.5px solid #e3e8ee;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.82rem;
+  color: #1a1f36;
+  background: #fff;
+  outline: none;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+.restock-field input:focus { border-color: #635bff; }
+.restock-field input.invalid { border-color: #ef4444; }
+
+/* Footer */
+.restock-drawer-footer {
+  flex-shrink: 0;
+  padding: 16px 24px 24px;
+  border-top: 1px solid #e3e8ee;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.restock-summary {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: #697386;
+  font-weight: 500;
+}
+.restock-submit-btn {
+  background: linear-gradient(135deg, #635bff 0%, #0070f3 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px 20px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 4px 14px rgba(99, 91, 255, 0.35);
+}
+.restock-submit-btn:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.restock-submit-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.restock-submit-btn.loading {
+  pointer-events: none;
+  opacity: 0.7;
 }

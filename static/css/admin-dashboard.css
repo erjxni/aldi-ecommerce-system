@@ -370,8 +370,6 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 /* Line Chart Mock (Retention style for Loss Categories) */
 .line-chart-mock {
   height: 150px;
-  background: url('data:image/svg+xml;utf8,<svg width="100%" height="100%" viewBox="0 0 400 150" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><path d="M0,100 L50,80 L100,120 L150,60 L200,90 L250,40 L300,70 L350,20 L400,50" fill="none" stroke="%23ff4d79" stroke-width="3" vector-effect="non-scaling-stroke"/></svg>');
-  background-size: 100% 100%;
   position: relative;
   margin-top: 20px;
 }

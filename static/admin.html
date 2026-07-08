@@ -264,16 +264,14 @@
             <div class="widget">
               <div class="widget-header">
                 <h2 class="widget-title">Loss Categories</h2>
-                <button class="widget-icon-btn">&#x22EF;</button>
               </div>
-              <div class="line-chart-mock">
-                <div
-                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                  42%</div>
+              <div class="line-chart-mock" id="loss-categories-chart-container" style="position:relative; height:160px;">
+                <div id="loss-category-badge"
+                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1); z-index: 2;">
+                  -</div>
               </div>
-              <div
+              <div id="loss-categories-labels-container"
                 style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; color:#697386;">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
               </div>
             </div>
 
@@ -282,68 +280,32 @@
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Sales Losses</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
                   <div class="stat-value" id="total-loss-amount">€0.00</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+€34,002</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="sales-losses-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot"></div>
-                  </div>
+                <div class="dot-chart" id="sales-losses-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
 
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Customers</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
-                  <div class="stat-value" id="customer-table-count-value">1,284</div>
+                  <div class="stat-value" id="customer-table-count-value">-</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+320</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="customers-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
+                <div class="dot-chart" id="customers-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
             </div>

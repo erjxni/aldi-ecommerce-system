@@ -372,7 +372,7 @@
       });
     }
 
-    // --- Daily Losses Trend Widget ---
+    // --- Daily Losses, Sales Losses & Customers Widgets ---
     function initDailyLossesWidget() {
       const rangePreset = document.getElementById('overview-range-preset');
       const customDates = document.getElementById('overview-custom-dates');
@@ -391,6 +391,9 @@
         const token = localStorage.getItem('userToken');
         if (!token) return;
 
+        // Trigger loading customer stats in parallel
+        loadCustomers(startDate, endDate);
+
         try {
           const queryParams = new URLSearchParams();
           if (startDate) queryParams.append('startDate', startDate);
@@ -407,9 +410,55 @@
             widgetTitle.textContent = `Daily Losses Trend (Total: €${data.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
           }
 
-          chartContainer.innerHTML = '';
+          // 1. Update Sales Losses main figure
+          const totalLossAmountEl = document.getElementById('total-loss-amount');
+          if (totalLossAmountEl) {
+            totalLossAmountEl.textContent = `€${data.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+
+          // 2. Update Sales Losses Comparison Badge
+          const salesLossesChangeEl = document.getElementById('sales-losses-change-value');
+          if (salesLossesChangeEl) {
+            const diff = data.totalLoss - data.previousTotalLoss;
+            const prefix = diff >= 0 ? '+' : '';
+            salesLossesChangeEl.textContent = `${prefix}€${diff.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            // Loss increase is bad (red), loss decrease is good (green), zero change is neutral (gray)
+            salesLossesChangeEl.style.color = diff > 0 ? '#ef4444' : (diff < 0 ? '#10b981' : '#697386');
+          }
+
+          // 3. Render Sales Losses dot chart (Daily loss distribution)
+          const salesLossesDotChart = document.getElementById('sales-losses-dot-chart');
           const lossesList = data.losses || [];
 
+          if (salesLossesDotChart) {
+            salesLossesDotChart.innerHTML = '';
+            if (lossesList.length > 0) {
+              const maxDailyLoss = Math.max(...lossesList.map(l => l.lossAmount), 0);
+              
+              lossesList.forEach(l => {
+                const col = document.createElement('div');
+                col.className = 'dot-col';
+                col.style.height = '100%';
+                col.style.justifyContent = 'flex-end';
+                
+                const activeDots = maxDailyLoss > 0 ? Math.round((l.lossAmount / maxDailyLoss) * 4) : 0;
+                
+                // Draw 4 rows of dots (active on bottom)
+                for (let i = 3; i >= 0; i--) {
+                  const dot = document.createElement('div');
+                  dot.className = 'dot' + (i < activeDots ? ' active-green' : '');
+                  col.appendChild(dot);
+                }
+                
+                // Set tooltip description
+                col.title = `${l.date} (${l.dayName}): €${l.lossAmount.toFixed(2)}`;
+                salesLossesDotChart.appendChild(col);
+              });
+            }
+          }
+
+          // 4. Render main 3D Bar chart
+          chartContainer.innerHTML = '';
           if (lossesList.length === 0) {
             chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #697386; padding: 40px 0;">No loss data found.</div>';
             return;
@@ -434,6 +483,64 @@
         } catch (err) {
           console.error('Failed to load daily losses:', err);
           chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #991b1b; padding: 40px 0;">Error loading chart data.</div>';
+        }
+      }
+
+      async function loadCustomers(startDate, endDate) {
+        const totalCustomersEl = document.getElementById('customer-table-count-value');
+        const customersChangeEl = document.getElementById('customers-change-value');
+        const customersDotChart = document.getElementById('customers-dot-chart');
+
+        if (!totalCustomersEl) return;
+
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        try {
+          const res = await fetch(`/api/finance/customers-stats?startDate=${startDate}&endDate=${endDate}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch customer stats');
+          const data = await res.json();
+
+          // 1. Update Customers count
+          totalCustomersEl.textContent = data.totalCustomers.toLocaleString();
+
+          // 2. Update Customers Comparison Badge
+          if (customersChangeEl) {
+            const count = data.newCustomersCount;
+            customersChangeEl.textContent = `+${count}`;
+            customersChangeEl.style.color = count > 0 ? '#10b981' : '#697386';
+          }
+
+          // 3. Render Customers dot chart (Daily signup distribution)
+          if (customersDotChart) {
+            customersDotChart.innerHTML = '';
+            const signups = data.dailySignups || [];
+            if (signups.length > 0) {
+              const maxSignups = Math.max(...signups.map(s => s.count), 0);
+
+              signups.forEach(s => {
+                const col = document.createElement('div');
+                col.className = 'dot-col';
+                col.style.height = '100%';
+                col.style.justifyContent = 'flex-end';
+
+                const activeDots = maxSignups > 0 ? Math.round((s.count / maxSignups) * 4) : 0;
+
+                for (let i = 3; i >= 0; i--) {
+                  const dot = document.createElement('div');
+                  dot.className = 'dot' + (i < activeDots ? ' active-blue' : '');
+                  col.appendChild(dot);
+                }
+
+                col.title = `${s.date} (${s.dayName}): ${s.count} new customer${s.count !== 1 ? 's' : ''}`;
+                customersDotChart.appendChild(col);
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load customer stats:', err);
         }
       }
 
@@ -492,8 +599,136 @@
       handlePresetChange();
     }
 
-    // Initialize losses widget on load
+    // --- Loss Categories 6-Month Trend SVG Chart ---
+    async function initLossCategoriesWidget() {
+      const container = document.getElementById('loss-categories-chart-container');
+      const labelsContainer = document.getElementById('loss-categories-labels-container');
+      const badge = document.getElementById('loss-category-badge');
+
+      if (!container || !labelsContainer) return;
+
+      const token = localStorage.getItem('userToken');
+      if (!token) return;
+
+      try {
+        const res = await fetch('/api/finance/losses-trend-6months', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch losses trend');
+        const data = await res.json();
+
+        // 1. Update Category percentage badge
+        if (badge) {
+          if (data.topCategory && data.topCategory.name !== 'None') {
+            badge.textContent = `${data.topCategory.name}: ${data.topCategory.percentage}% of losses`;
+          } else {
+            badge.textContent = 'No losses recorded';
+          }
+        }
+
+        // 2. Render SVG Line Chart
+        const monthsList = data.months || [];
+        if (monthsList.length === 0) return;
+
+        // Clear pre-existing SVGs from container (keep the badge)
+        container.querySelectorAll('svg').forEach(el => el.remove());
+        labelsContainer.innerHTML = '';
+
+        const maxTrendLoss = Math.max(...monthsList.map(m => m.lossAmount), 0);
+
+        // Map coordinates: X spreads across 340 width, Y scales 20 (max loss) to 100 (zero loss)
+        const points = monthsList.map((m, idx) => {
+          const x = 30 + idx * 56;
+          const y = maxTrendLoss > 0 ? 100 - (m.lossAmount / maxTrendLoss) * 80 : 100;
+          return { x, y, name: m.name, loss: m.lossAmount };
+        });
+
+        const pathD = 'M ' + points.map(p => `${p.x} ${p.y}`).join(' L ');
+        const areaD = `M 30 110 L ` + points.map(p => `${p.x} ${p.y}`).join(' L ') + ` L 310 110 Z`;
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", "0 0 340 120");
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.style.overflow = "visible";
+
+        const defs = document.createElementNS(svgNS, "defs");
+        defs.innerHTML = `
+          <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#ef4444" />
+            <stop offset="100%" stop-color="#ec4899" />
+          </linearGradient>
+          <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+          </linearGradient>
+        `;
+        svg.appendChild(defs);
+
+        // Render Area
+        const areaPath = document.createElementNS(svgNS, "path");
+        areaPath.setAttribute("d", areaD);
+        areaPath.setAttribute("fill", "url(#area-grad)");
+        svg.appendChild(areaPath);
+
+        // Render Line
+        const linePath = document.createElementNS(svgNS, "path");
+        linePath.setAttribute("d", pathD);
+        linePath.setAttribute("fill", "none");
+        linePath.setAttribute("stroke", "url(#line-grad)");
+        linePath.setAttribute("stroke-width", "3");
+        linePath.setAttribute("stroke-linecap", "round");
+        linePath.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(linePath);
+
+        // Render Circle Node points
+        points.forEach(p => {
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", p.x);
+          circle.setAttribute("cy", p.y);
+          circle.setAttribute("r", "5");
+          circle.setAttribute("fill", "#fff");
+          circle.setAttribute("stroke", "#ef4444");
+          circle.setAttribute("stroke-width", "3");
+          circle.style.cursor = "pointer";
+          circle.style.transition = "all 0.15s ease";
+
+          const title = document.createElementNS(svgNS, "title");
+          title.textContent = `${p.name}: €${p.loss.toFixed(2)}`;
+          circle.appendChild(title);
+
+          circle.addEventListener('mouseenter', () => {
+            circle.setAttribute("r", "7");
+            circle.setAttribute("fill", "#ef4444");
+            circle.setAttribute("stroke", "#fff");
+          });
+          circle.addEventListener('mouseleave', () => {
+            circle.setAttribute("r", "5");
+            circle.setAttribute("fill", "#fff");
+            circle.setAttribute("stroke", "#ef4444");
+          });
+
+          svg.appendChild(circle);
+        });
+
+        container.appendChild(svg);
+
+        // 3. Render Month label elements
+        monthsList.forEach(m => {
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = m.name;
+          labelsContainer.appendChild(labelSpan);
+        });
+
+      } catch (err) {
+        console.error('Failed to load category losses trend:', err);
+      }
+    }
+
+    // Initialize widgets on load
     initDailyLossesWidget();
+    initLossCategoriesWidget();
 
     // --- Revenue Breakdown Progress Bars ---
     async function loadRevenueBreakdown() {

@@ -1351,9 +1351,14 @@ app.get('/api/finance/losses', adminProtect, async (req, res) => {
   const s = new Date(startDate + 'T00:00:00');
   const e = new Date(endDate + 'T23:59:59.999');
 
+  // Calculate the previous period of the same duration for comparison
+  const durationMs = e.getTime() - s.getTime();
+  const prevS = new Date(s.getTime() - durationMs - 1);
+  const prevE = new Date(s.getTime() - 1);
+
   try {
     const query = `
-      query GetExpiredBatches($startDate: Timestamp!, $endDate: Timestamp!) {
+      query GetExpiredBatchesCompare($startDate: Timestamp!, $endDate: Timestamp!) {
         stockBatches(where: {
           expiryDate: { ge: $startDate, le: $endDate },
           currentQuantity: { gt: 0 }
@@ -1371,9 +1376,10 @@ app.get('/api/finance/losses', adminProtect, async (req, res) => {
       }
     `;
 
+    // Query across both the previous and current periods to save a DB call
     const result = await sqlConnect.executeGraphqlRead(query, {
       variables: { 
-        startDate: s.toISOString(), 
+        startDate: prevS.toISOString(), 
         endDate: e.toISOString() 
       }
     });
@@ -1381,25 +1387,30 @@ app.get('/api/finance/losses', adminProtect, async (req, res) => {
     const batches = result.data?.stockBatches || [];
     const dailyLosses = {};
     
-    // Initialize dates in the range with 0 loss using local date keys
-    const start = new Date(startDate + 'T00:00:00');
-    const end = new Date(endDate + 'T00:00:00');
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    // Initialize dates in the current range with 0 loss using local date keys
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
       const dateKey = toLocalDateString(d);
       dailyLosses[dateKey] = 0;
     }
 
+    let totalLoss = 0;
+    let previousTotalLoss = 0;
+
     batches.forEach(b => {
-      const dateKey = toLocalDateString(new Date(b.expiryDate));
+      const expiry = new Date(b.expiryDate);
       const cost = b.piecePrice !== null && b.piecePrice !== undefined 
         ? b.piecePrice 
         : (b.product?.price ? Number((b.product.price * 0.6).toFixed(2)) : 0);
       const loss = b.currentQuantity * cost;
-      
-      if (dailyLosses[dateKey] !== undefined) {
-        dailyLosses[dateKey] += loss;
-      } else {
-        dailyLosses[dateKey] = loss;
+
+      if (expiry >= s && expiry <= e) {
+        totalLoss += loss;
+        const dateKey = toLocalDateString(expiry);
+        if (dailyLosses[dateKey] !== undefined) {
+          dailyLosses[dateKey] += loss;
+        }
+      } else if (expiry >= prevS && expiry <= prevE) {
+        previousTotalLoss += loss;
       }
     });
 
@@ -1417,12 +1428,169 @@ app.get('/api/finance/losses', adminProtect, async (req, res) => {
       startDate,
       endDate,
       losses: formattedLosses,
-      totalLoss: Number(Object.values(dailyLosses).reduce((sum, val) => sum + val, 0).toFixed(2))
+      totalLoss: Number(totalLoss.toFixed(2)),
+      previousTotalLoss: Number(previousTotalLoss.toFixed(2))
     });
 
   } catch (error) {
     console.error('Failed to load daily losses:', error);
     res.status(500).json({ error: 'Failed to load losses.' });
+  }
+});
+
+app.get('/api/finance/losses-trend-6months', adminProtect, async (req, res) => {
+  const now = new Date();
+  const months = [];
+
+  // Generate last 6 months info (ending with the current month)
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({
+      year: d.getFullYear(),
+      month: d.getMonth(),
+      name: d.toLocaleString('en-US', { month: 'short' }),
+      lossAmount: 0
+    });
+  }
+
+  const s = new Date(months[0].year, months[0].month, 1);
+  const e = new Date(months[5].year, months[5].month + 1, 0, 23, 59, 59, 999);
+
+  try {
+    const query = `
+      query GetExpiredBatchesTrend($startDate: Timestamp!, $endDate: Timestamp!) {
+        stockBatches(where: {
+          expiryDate: { ge: $startDate, le: $endDate },
+          currentQuantity: { gt: 0 }
+        }) {
+          currentQuantity
+          expiryDate
+          piecePrice
+          product {
+            price
+            category
+          }
+        }
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphqlRead(query, {
+      variables: {
+        startDate: s.toISOString(),
+        endDate: e.toISOString()
+      }
+    });
+
+    const batches = result.data?.stockBatches || [];
+    const categoryLosses = {};
+
+    batches.forEach(b => {
+      const expiry = new Date(b.expiryDate);
+      const cost = b.piecePrice !== null && b.piecePrice !== undefined 
+        ? b.piecePrice 
+        : (b.product?.price ? Number((b.product.price * 0.6).toFixed(2)) : 0);
+      const loss = b.currentQuantity * cost;
+
+      // Add to month trend
+      const mMatch = months.find(m => m.year === expiry.getFullYear() && m.month === expiry.getMonth());
+      if (mMatch) {
+        mMatch.lossAmount += loss;
+      }
+
+      // Add to category grouping
+      const cat = b.product?.category || 'Uncategorized';
+      categoryLosses[cat] = (categoryLosses[cat] || 0) + loss;
+    });
+
+    // Formulate top category info
+    let topCategoryName = 'None';
+    let topCategoryPct = 0;
+    const totalLossSum = Object.values(categoryLosses).reduce((sum, val) => sum + val, 0);
+
+    if (totalLossSum > 0) {
+      let maxLoss = 0;
+      Object.keys(categoryLosses).forEach(cat => {
+        if (categoryLosses[cat] > maxLoss) {
+          maxLoss = categoryLosses[cat];
+          topCategoryName = cat;
+        }
+      });
+      topCategoryPct = Math.round((maxLoss / totalLossSum) * 100);
+    }
+
+    res.json({
+      months: months.map(m => ({ name: m.name, lossAmount: Number(m.lossAmount.toFixed(2)) })),
+      topCategory: {
+        name: topCategoryName,
+        percentage: topCategoryPct
+      }
+    });
+  } catch (error) {
+    console.error('Failed to load losses trend:', error);
+    res.status(500).json({ error: 'Failed to load losses trend.' });
+  }
+});
+
+app.get('/api/finance/customers-stats', adminProtect, async (req, res) => {
+  let { startDate, endDate } = req.query;
+  if (!startDate || !endDate) {
+    return res.status(400).json({ error: 'startDate and endDate query parameters are required.' });
+  }
+
+  const s = new Date(startDate + 'T00:00:00');
+  const e = new Date(endDate + 'T23:59:59.999');
+
+  try {
+    const query = `
+      query GetCustomerUsers {
+        users(where: { role: { eq: "customer" } }) {
+          id
+          createdAt
+        }
+      }
+    `;
+
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const users = result.data?.users || [];
+
+    const totalCustomers = users.length;
+    let newCustomersCount = 0;
+
+    const dailySignups = {};
+    for (let d = new Date(s); d <= e; d.setDate(d.getDate() + 1)) {
+      const dateKey = d.toISOString().split('T')[0];
+      dailySignups[dateKey] = 0;
+    }
+
+    users.forEach(u => {
+      const created = new Date(u.createdAt);
+      if (created >= s && created <= e) {
+        newCustomersCount++;
+        const dateKey = created.toISOString().split('T')[0];
+        if (dailySignups[dateKey] !== undefined) {
+          dailySignups[dateKey]++;
+        }
+      }
+    });
+
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const formattedSignups = Object.keys(dailySignups).map(dateStr => {
+      const d = new Date(dateStr + 'T00:00:00');
+      return {
+        date: dateStr,
+        dayName: daysOfWeek[d.getDay()],
+        count: dailySignups[dateStr]
+      };
+    });
+
+    res.json({
+      totalCustomers,
+      newCustomersCount,
+      dailySignups: formattedSignups
+    });
+  } catch (error) {
+    console.error('Failed to load customer stats:', error);
+    res.status(500).json({ error: 'Failed to load customer stats.' });
   }
 });
 // ==========================================================

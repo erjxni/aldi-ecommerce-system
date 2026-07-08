@@ -1294,7 +1294,7 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
         // Records live in the SQL database — use sqlConnect, NOT Firestore
         const selectQuery = `
             query GetFinancialRecords {
-                _select(sql: "SELECT id, transaction_id AS \\"transactionId\\", amount, transaction_type AS \\"transactionType\\", description, created_at AS \\"createdAt\\" FROM \\"financial_record\\" WHERE created_at >= '${dateRange.startDate}' AND created_at <= '${dateRange.endDate}' ORDER BY created_at DESC")
+                _select(sql: "SELECT id, transaction_id AS \\"transactionId\\", amount, transaction_type AS \\"transactionType\\", description, related_order_id AS \\"relatedOrderId\\", created_at AS \\"createdAt\\" FROM \\"financial_record\\" WHERE created_at >= '${dateRange.startDate}' AND created_at <= '${dateRange.endDate}' ORDER BY created_at DESC")
             }
         `;
 

@@ -416,6 +416,7 @@
 
         // Trigger loading customer stats in parallel
         loadCustomers(startDate, endDate);
+        loadDashboardLedger(startDate, endDate);
 
         try {
           const queryParams = new URLSearchParams();
@@ -564,6 +565,54 @@
           }
         } catch (err) {
           console.error('Failed to load customer stats:', err);
+        }
+      }
+
+      async function loadDashboardLedger(startDate, endDate) {
+        if (!ledgerBody) return;
+
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        try {
+          const res = await fetch(`/api/finance/summary?startDate=${startDate}&endDate=${endDate}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch finance summary');
+          const data = await res.json();
+          
+          const records = data.records || [];
+          if (records.length === 0) {
+            ledgerBody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align:center; padding: 24px; color: #697386;" class="ledger-empty">
+                  No financial records found for the selected range.</td>
+              </tr>
+            `;
+            return;
+          }
+
+          ledgerBody.innerHTML = records.map(r => {
+            const timestamp = new Date(r.createdAt).toLocaleString('en-AU', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const isCost = r.transactionType === 'operational_cost' || r.transactionType === 'cost';
+            const typeClass = isCost ? 'status-warning' : 'status-success';
+            const typeName = isCost ? 'Expense' : 'Sale';
+
+            return `
+              <tr>
+                <td style="font-family:monospace;">${r.transactionId || 'N/A'}</td>
+                <td><span class="status-pill ${typeClass}">${typeName}</span></td>
+                <td style="font-weight:600;">€${Number(r.amount || 0).toFixed(2)}</td>
+                <td style="font-family:monospace;">${(r.relatedOrderId || r.orderId || 'N/A').substring(0, 8) + '...'}</td>
+                <td>${timestamp}</td>
+              </tr>
+            `;
+          }).join('');
+
+        } catch (err) {
+          console.error('Failed to load dashboard ledger:', err);
         }
       }
 

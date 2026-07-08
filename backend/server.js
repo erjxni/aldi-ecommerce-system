@@ -413,7 +413,7 @@ app.post('/api/login', async (req, res) => {
       path: '/'
     });
 
-    res.json({ id: user.id, email: user.email, token, first_name: user.displayName, role: user.role, photoUrl: user.photoUrl });
+    res.json({ id: user.id, email: user.email, token, displayName: user.displayName, role: user.role, photoUrl: user.photoUrl });
   } catch (err) {
     console.error('Error during login:', err);
     return res.status(500).json({ detail: 'Database error' });
@@ -1124,6 +1124,253 @@ app.post('/api/checkout', authenticateJWT, async (req, res) => {
 });
 
 // ---------------------------------------------------------
+function getAuthenticatedUserRole(req) {
+    return (
+        req.user?.role ||
+        req.user?.userRole ||
+        req.user?.accountRole ||
+        req.user?.claims?.role ||
+        ""
+    );
+}
+
+function requireFinanceAccess(req, res, next) {
+    const role = getAuthenticatedUserRole(req);
+
+    const allowedRoles = ["admin", "financial_officer"];
+
+    if (!allowedRoles.includes(role)) {
+        return res.status(403).json({
+            error: "Forbidden: finance summary is only available to admin or financial officer users."
+        });
+    }
+
+    return next();
+}
+
+function getDateRangeFromQuery(query) {
+    const now = new Date();
+
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(now.getDate() - 30);
+
+    const startDate = query.startDate
+        ? new Date(query.startDate)
+        : defaultStartDate;
+
+    const endDate = query.endDate
+        ? new Date(query.endDate)
+        : now;
+
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+        return null;
+    }
+
+    return {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+    };
+}
+
+function summarizeFinancialRecords(records) {
+    let totalRevenue = 0;
+    let totalExpenses = 0;
+
+    const groupedByType = {};
+
+    records.forEach((record) => {
+        const amount = Number(record.amount || 0);
+        const transactionType = record.transactionType || "unknown";
+
+        if (!groupedByType[transactionType]) {
+            groupedByType[transactionType] = {
+                transactionType,
+                totalAmount: 0,
+                recordCount: 0
+            };
+        }
+
+        groupedByType[transactionType].totalAmount += amount;
+        groupedByType[transactionType].recordCount += 1;
+
+        if (transactionType === "ecommerce_sale") {
+            totalRevenue += amount;
+        }
+
+        if (transactionType === "operational_cost") {
+            totalExpenses += amount;
+        }
+    });
+
+    return {
+        totalRevenue: Number(totalRevenue.toFixed(2)),
+        totalExpenses: Number(totalExpenses.toFixed(2)),
+        totalProfit: Number((totalRevenue - totalExpenses).toFixed(2)),
+        groupedByType: Object.values(groupedByType).map((group) => ({
+            ...group,
+            totalAmount: Number(group.totalAmount.toFixed(2))
+        }))
+    };
+}
+
+app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (req, res) => {
+    const dateRange = getDateRangeFromQuery(req.query);
+
+    if (!dateRange) {
+        return res.status(400).json({
+            error: "Invalid startDate or endDate query parameter."
+        });
+    }
+
+    try {
+        const recordsSnapshot = await db.collection("FinancialRecord")
+            .where("createdAt", ">=", dateRange.startDate)
+            .where("createdAt", "<=", dateRange.endDate)
+            .get();
+
+        const records = [];
+
+        recordsSnapshot.forEach((doc) => {
+            records.push({
+                id: doc.id,
+                ...doc.data()
+            });
+        });
+
+        const summary = summarizeFinancialRecords(records);
+
+        return res.status(200).json({
+            startDate: dateRange.startDate,
+            endDate: dateRange.endDate,
+            summary,
+            records
+        });
+    } catch (error) {
+        console.error("Failed to load finance summary:", error);
+
+        return res.status(500).json({
+            error: "Failed to load finance summary."
+        });
+    }
+});
+// ---------------------------------------------------------
+// API: Get notifications for the logged-in user
+// ---------------------------------------------------------
+app.get('/api/notifications', authenticateJWT, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const query = `
+      query GetNotifications($userId: UUID!) {
+        notifications(where: { userId: { eq: $userId } }, orderBy: { createdAt: DESC }) {
+          id
+          userId
+          type
+          message
+          isRead
+          createdAt
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query, { variables: { userId } });
+    const notifications = result.data && result.data.notifications ? result.data.notifications : [];
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Mark a notification as read (SCRUM-200)
+// ---------------------------------------------------------
+app.put('/api/notifications/:id/read', authenticateJWT, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const mutation = `
+      mutation MarkAsRead($id: UUID!) {
+        notification_update(id: $id, data: { isRead: true })
+      }
+    `;
+    const result = await sqlConnect.executeGraphql(mutation, { variables: { id } });
+    res.json({ success: true, notification: result.data.notification_update });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    res.status(500).json({ error: 'Failed to mark notification as read' });
+  }
+});
+
+// ---------------------------------------------------------
+// API: Broadcast notification to users by role (Admin only)
+// ---------------------------------------------------------
+app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
+  try {
+    const { message, type, roles } = req.body;
+    const allowedRoles = ['admin', 'financial_officer', 'employee'];
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({ error: 'Only admins can broadcast notifications' });
+    }
+
+    // Get all users with the specified roles
+    const query = `
+      query GetUsersByRoles {
+        users {
+          id
+          role
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const users = result.data && result.data.users ? result.data.users : [];
+    const targetUsers = users.filter(u => roles.includes(u.role));
+
+    // Insert notification for each target user
+    const mutation = `
+      mutation CreateNotification($userId: UUID!, $type: String!, $message: String!) {
+        notification_insert(data: {
+          user: { id: $userId },
+          type: $type,
+          message: $message,
+          isRead: false
+        })
+      }
+    `;
+
+    for (const user of targetUsers) {
+      const res = await sqlConnect.executeGraphql(mutation, {
+        variables: { userId: user.id, type, message }
+      });
+      const notifId = res.data.notification_insert.id;
+
+      const notificationObj = {
+        id: notifId,
+        userId: user.id,
+        type,
+        message,
+        isRead: false,
+        createdAt: new Date().toISOString()
+      };
+
+      const wsPayload = JSON.stringify({
+        type: 'new_notification',
+        notification: notificationObj
+      });
+
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1 && client.user && client.user.id === user.id) {
+            client.send(wsPayload);
+          }
+        });
+      }
+    }
+
+    res.json({ success: true, sent: targetUsers.length });
+  } catch (error) {
+    console.error('Error broadcasting notification:', error);
+    res.status(500).json({ error: 'Failed to broadcast notification' });
+  }
+});
+
 // Fallback routing: handle undefined routes
 // ---------------------------------------------------------
 // API fallback: return JSON 404
@@ -1203,3 +1450,4 @@ if (require.main === module) {
 }
 
 module.exports = { app, server };
+

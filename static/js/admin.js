@@ -195,6 +195,29 @@
     };
   }
 
+  // Bind reconnect action to status button
+  const wsRefreshBtn = document.getElementById('ws-refresh-btn');
+  if (wsRefreshBtn) {
+    wsRefreshBtn.addEventListener('click', () => {
+      // Premium micro-animation: spin 360deg
+      wsRefreshBtn.style.transform = 'rotate(360deg)';
+      setTimeout(() => { wsRefreshBtn.style.transform = 'none'; }, 400);
+
+      // Force reconnect
+      if (ws) {
+        // Prevent auto-reconnection loop in onclose handler temporarily
+        ws.onclose = () => {};
+        ws.close();
+      }
+      reconnectAttempts = 0;
+      if (wsStatusText) wsStatusText.textContent = 'Connecting…';
+      if (wsStatusDot) wsStatusDot.style.background = '#f59e0b'; // amber
+      connectWebSocket();
+    });
+  }
+
+  connectWebSocket();
+
   // --- Document Upload Widget ---
   const uploadForm = document.getElementById('doc-upload-form');
   const uploadStatus = document.getElementById('upload-status');

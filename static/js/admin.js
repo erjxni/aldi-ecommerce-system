@@ -2559,8 +2559,10 @@
     headingsResults.querySelectorAll('.search-result-item').forEach(item => {
       item.addEventListener('click', () => {
         const view = item.getAttribute('data-view');
-        navigateToView(view);
         closeSearch();
+        setTimeout(() => {
+          navigateToView(view);
+        }, 10);
       });
     });
   }

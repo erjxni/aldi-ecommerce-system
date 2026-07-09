@@ -2735,7 +2735,7 @@
       });
 
       if (res.status === 403) {
-        meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">⛔ Access denied. Meetings are for internal staff only.</div>';
+        meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">Access denied. Meetings are for internal staff only.</div>';
         return;
       }
 
@@ -2819,11 +2819,10 @@
       <div class="meeting-card-body">
         <div class="meeting-meta-row">
           <div class="meeting-meta-item">
-            <span>📅</span>
+            <span>Date:</span>
             <span>${formattedDate}</span>
           </div>
           <div class="meeting-meta-item">
-            <span>📎</span>
             <span>Minutes Document: <strong>${escapeHtml(documentTitle)}</strong></span>
           </div>
         </div>
@@ -2835,7 +2834,7 @@
           </select>
           <button class="meeting-btn btn-link-doc" data-meeting-id="${m.id}">Link Document</button>
           <button class="meeting-btn meeting-btn-primary btn-toggle-editor" data-meeting-id="${m.id}">
-            ${isLinked ? '📝 Edit Minutes' : '📝 Write Minutes'}
+            ${isLinked ? 'Edit Minutes' : 'Write Minutes'}
           </button>
         </div>
 

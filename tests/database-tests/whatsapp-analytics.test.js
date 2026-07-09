@@ -409,7 +409,20 @@ async function testWhatsAppAnalytics() {
         throw new Error('Response did not contain average calculations');
       }
 
-      console.log('[Test 6] PASS: Stats returned complete user activity and frequency calculations.');
+      // Verify message types
+      if (!data.messageTypes || typeof data.messageTypes.text !== 'number' || typeof data.messageTypes.media !== 'number') {
+        throw new Error('Response did not contain valid messageTypes count breakdown');
+      }
+
+      // Verify sentiment distribution
+      if (!data.sentimentDistribution || typeof data.sentimentDistribution.positive !== 'number' || typeof data.sentimentDistribution.neutral !== 'number' || typeof data.sentimentDistribution.negative !== 'number') {
+        throw new Error('Response did not contain valid sentimentDistribution category breakdown');
+      }
+      if (typeof data.averageSentiment !== 'number') {
+        throw new Error('Response did not contain averageSentiment score');
+      }
+
+      console.log('[Test 6] PASS: Stats returned complete user activity, type composition, sentiment profile, and frequency calculations.');
       passed++;
     } catch (err) {
       console.error('[Test 6] FAIL:', err.message);

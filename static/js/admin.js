@@ -94,7 +94,7 @@
       if (!res.ok) throw new Error('Failed to fetch WhatsApp analytics stats');
 
       const data = await res.json();
-      const { peakHours, topicClusters, mostActiveUsers, leastActiveUsers, frequency, averages, selectedDocument, isLiveDatabase } = data;
+      const { peakHours, topicClusters, mostActiveUsers, leastActiveUsers, frequency, averages, messageTypes, sentimentDistribution, averageSentiment, selectedDocument, isLiveDatabase } = data;
 
       // Sync dropdown selections
       if (historySelect) {
@@ -183,7 +183,7 @@
               div.style.justifyContent = 'space-between';
               div.style.padding = '4px 0';
               div.style.borderBottom = '1px dashed #e2e8f0';
-              div.innerHTML = `<span><strong>${u.name}</strong></span><span style="color: #10b981; font-weight: 600;">${u.count} messages</span>`;
+              div.innerHTML = `<span style="font-weight: 500; color: #1a1f36;">${u.name}</span><span style="color: #10b981; font-weight: 500;">${u.count} messages</span>`;
               mostActiveDiv.appendChild(div);
             });
           }
@@ -200,7 +200,7 @@
               div.style.justifyContent = 'space-between';
               div.style.padding = '4px 0';
               div.style.borderBottom = '1px dashed #e2e8f0';
-              div.innerHTML = `<span><strong>${u.name}</strong></span><span style="color: #697386;">${u.count} message${u.count !== 1 ? 's' : ''}</span>`;
+              div.innerHTML = `<span style="color: #4f566b;">${u.name}</span><span style="color: #697386;">${u.count} message${u.count !== 1 ? 's' : ''}</span>`;
               leastActiveDiv.appendChild(div);
             });
           }
@@ -215,6 +215,66 @@
       if (dailySpan) dailySpan.textContent = averages.daily > 0 ? `${averages.daily} msg / day avg` : '-';
       if (weeklySpan) weeklySpan.textContent = averages.weekly > 0 ? `${averages.weekly} msg / week avg` : '-';
       if (monthlySpan) monthlySpan.textContent = averages.monthly > 0 ? `${averages.monthly} msg / month avg` : '-';
+
+      // 5. Render Message Composition
+      const typeTextVal = document.getElementById('whatsapp-type-text-val');
+      const typeTextBar = document.getElementById('whatsapp-type-text-bar');
+      const typeMediaVal = document.getElementById('whatsapp-type-media-val');
+      const typeMediaBar = document.getElementById('whatsapp-type-media-bar');
+
+      if (messageTypes) {
+        const totalTypes = (messageTypes.text || 0) + (messageTypes.media || 0) || 1;
+        const textPct = Math.round(((messageTypes.text || 0) / totalTypes) * 100);
+        const mediaPct = Math.round(((messageTypes.media || 0) / totalTypes) * 100);
+
+        if (typeTextVal) typeTextVal.textContent = `${messageTypes.text || 0} (${textPct}%)`;
+        if (typeTextBar) typeTextBar.style.width = `${textPct}%`;
+        if (typeMediaVal) typeMediaVal.textContent = `${messageTypes.media || 0} (${mediaPct}%)`;
+        if (typeMediaBar) typeMediaBar.style.width = `${mediaPct}%`;
+      } else {
+        if (typeTextVal) typeTextVal.textContent = '-';
+        if (typeTextBar) typeTextBar.style.width = '0%';
+        if (typeMediaVal) typeMediaVal.textContent = '-';
+        if (typeMediaBar) typeMediaBar.style.width = '0%';
+      }
+
+      // 6. Render Sentiment Profile
+      const sentimentAvgSpan = document.getElementById('whatsapp-sentiment-avg');
+      const sentimentPosSpan = document.getElementById('whatsapp-sentiment-pos');
+      const sentimentNeuSpan = document.getElementById('whatsapp-sentiment-neu');
+      const sentimentNegSpan = document.getElementById('whatsapp-sentiment-neg');
+
+      if (sentimentDistribution) {
+        const totalSentiment = (sentimentDistribution.positive || 0) + (sentimentDistribution.neutral || 0) + (sentimentDistribution.negative || 0) || 1;
+        const posPct = Math.round(((sentimentDistribution.positive || 0) / totalSentiment) * 100);
+        const neuPct = Math.round(((sentimentDistribution.neutral || 0) / totalSentiment) * 100);
+        const negPct = Math.round(((sentimentDistribution.negative || 0) / totalSentiment) * 100);
+
+        if (sentimentAvgSpan) {
+          const score = averageSentiment || 0;
+          sentimentAvgSpan.textContent = (score > 0 ? '+' : '') + score.toFixed(2);
+          
+          if (score > 0.05) {
+            sentimentAvgSpan.style.color = '#10b981';
+          } else if (score < -0.05) {
+            sentimentAvgSpan.style.color = '#ef4444';
+          } else {
+            sentimentAvgSpan.style.color = '#64748b';
+          }
+        }
+
+        if (sentimentPosSpan) sentimentPosSpan.textContent = `${sentimentDistribution.positive || 0} (${posPct}%)`;
+        if (sentimentNeuSpan) sentimentNeuSpan.textContent = `${sentimentDistribution.neutral || 0} (${neuPct}%)`;
+        if (sentimentNegSpan) sentimentNegSpan.textContent = `${sentimentDistribution.negative || 0} (${negPct}%)`;
+      } else {
+        if (sentimentAvgSpan) {
+          sentimentAvgSpan.textContent = '0.00';
+          sentimentAvgSpan.style.color = '#64748b';
+        }
+        if (sentimentPosSpan) sentimentPosSpan.textContent = '-';
+        if (sentimentNeuSpan) sentimentNeuSpan.textContent = '-';
+        if (sentimentNegSpan) sentimentNegSpan.textContent = '-';
+      }
 
     } catch (err) {
       console.error('Error loading WhatsApp analytics:', err);

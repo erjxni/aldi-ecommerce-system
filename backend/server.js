@@ -3025,6 +3025,12 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
     const dailyMap = {};
     const weeklyMap = {};
     const monthlyMap = {};
+    let textCount = 0;
+    let mediaCount = 0;
+    let positiveSentiment = 0;
+    let negativeSentiment = 0;
+    let neutralSentiment = 0;
+    let totalSentimentScore = 0;
 
     parsedMessages.forEach(msg => {
       // Hour aggregation
@@ -3066,7 +3072,27 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
       if (msg.sender) {
         senderMap[msg.sender] = (senderMap[msg.sender] || 0) + 1;
       }
+
+      // Message Type classification
+      if (!isLiveDatabase && msg.text && /<media omitted>/i.test(msg.text)) {
+        mediaCount++;
+      } else {
+        textCount++;
+      }
+
+      // Sentiment Classification
+      const score = msg.sentimentScore || 0;
+      totalSentimentScore += score;
+      if (score > 0) {
+        positiveSentiment++;
+      } else if (score < 0) {
+        negativeSentiment++;
+      } else {
+        neutralSentiment++;
+      }
     });
+
+    const averageSentiment = parsedMessages.length > 0 ? Number((totalSentimentScore / parsedMessages.length).toFixed(2)) : 0;
 
     // Format Topic Clusters
     const topicClusters = Object.entries(topicMap).map(([topicCluster, count]) => ({
@@ -3111,6 +3137,16 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
         monthly: monthlyFrequency
       },
       averages,
+      messageTypes: {
+        text: textCount,
+        media: mediaCount
+      },
+      sentimentDistribution: {
+        positive: positiveSentiment,
+        negative: negativeSentiment,
+        neutral: neutralSentiment
+      },
+      averageSentiment,
       isLiveDatabase,
       selectedDocument: targetDocId && targetDocId !== 'live' ? { id: targetDocId, title: targetDocTitle } : { id: 'live', title: 'Live Database Logs (Anonymized)' }
     });

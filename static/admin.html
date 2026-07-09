@@ -1167,6 +1167,58 @@
                     </div>
                   </div>
                 </div>
+
+                <!-- Message Composition -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Message Composition</h3>
+                  <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: #4f566b;">
+                        <span>Text Messages</span>
+                        <span id="whatsapp-type-text-val" style="font-weight: 500; color: #1a1f36;">-</span>
+                      </div>
+                      <div style="background: #e3e8ee; border-radius: 10px; height: 8px; width: 100%; overflow: hidden;">
+                        <div id="whatsapp-type-text-bar" style="background: #2b58f9; height: 100%; width: 0%; border-radius: 10px; transition: width 0.3s;"></div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: #4f566b;">
+                        <span>Media Attachments</span>
+                        <span id="whatsapp-type-media-val" style="font-weight: 500; color: #1a1f36;">-</span>
+                      </div>
+                      <div style="background: #e3e8ee; border-radius: 10px; height: 8px; width: 100%; overflow: hidden;">
+                        <div id="whatsapp-type-media-bar" style="background: #f59e0b; height: 100%; width: 0%; border-radius: 10px; transition: width 0.3s;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sentiment Profiling -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Sentiment Profile</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; margin-bottom: 4px;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Sentiment Score</span>
+                      <span id="whatsapp-sentiment-avg" style="font-weight: 600; font-size: 0.95rem; color: #0f172a;">0.00</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem;">
+                      <div style="display: flex; justify-content: space-between; color: #10b981;">
+                        <span>Positive 😊</span>
+                        <span id="whatsapp-sentiment-pos" style="font-weight: 500;">-</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; color: #64748b;">
+                        <span>Neutral 😐</span>
+                        <span id="whatsapp-sentiment-neu" style="font-weight: 500;">-</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; color: #ef4444;">
+                        <span>Negative 😞</span>
+                        <span id="whatsapp-sentiment-neg" style="font-weight: 500;">-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 

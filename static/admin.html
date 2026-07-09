@@ -75,7 +75,7 @@
       <aside class="admin-sidebar">
         <div style="flex-grow: 0; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
           <!-- Search Icon -->
-          <a href="#" class="sidebar-icon" title="Search">
+          <a href="#" id="btn-search-trigger" class="sidebar-icon" title="Search">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -1009,6 +1009,43 @@
       </button>
     </div>
   </aside>
+
+  <!-- Global Navigation & Document Search Modal -->
+  <div id="search-modal-backdrop" class="search-backdrop"></div>
+  <dialog id="search-modal" class="search-modal-dialog">
+    <div class="search-modal-header">
+      <div class="search-input-wrapper">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="search-bar-icon">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="global-search-input" placeholder="Search pages (e.g. Ledger, Polls) or documents..." autocomplete="off" />
+      </div>
+      <button id="search-modal-close" class="search-close-btn" title="Close Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="search-modal-body">
+      <!-- Section: Dashboard Pages -->
+      <div class="search-results-section" id="search-headings-section">
+        <h4 class="search-section-title">Dashboard Sections</h4>
+        <div class="search-results-list" id="search-headings-results">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      
+      <!-- Section: Documents -->
+      <div class="search-results-section" id="search-documents-section">
+        <h4 class="search-section-title">Documents</h4>
+        <div class="search-results-list" id="search-documents-results">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
 
   <script type="module" src="/js/main.js"></script>
 

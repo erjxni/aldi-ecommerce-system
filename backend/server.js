@@ -25,6 +25,8 @@ const { CartError, createCartService, createFirebaseCartRepository } = require('
 const jwt = require('jsonwebtoken');
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const cartService = createCartService(createFirebaseCartRepository(sqlConnect));
+const nlpHelper = require('./nlp-helper');
+const docCache = require('./document-content-cache');
 
 // Helper: compute total stock for a product from StockBatch table
 async function getProductStock(productId) {
@@ -606,6 +608,85 @@ const extractStoragePath = (url, bucketName) => {
   }
   return null;
 };
+
+// ---------------------------------------------------------
+// API: Document Management — Search Documents (Admin/Employee only)
+// ---------------------------------------------------------
+app.get('/api/documents/search', adminProtect, async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res.json({
+      query: { q: '', sentiment: { score: 0, label: 'Neutral' }, keywords: [] },
+      documents: []
+    });
+  }
+
+  try {
+    // 1. Analyze query sentiment and keywords
+    const querySentiment = nlpHelper.analyzeSentiment(q);
+    const queryKeywords = nlpHelper.extractKeywords(q);
+
+    // 2. Fetch all documents from the database
+    const selectQuery = `
+      query SearchDocuments {
+        _select(
+          sql: "SELECT d.id, d.title, d.category, d.file_url AS \\"fileUrl\\", d.uploaded_by_id AS \\"uploadedById\\", u.display_name AS \\"uploadedByDisplayName\\", d.created_at AS \\"createdAt\\" FROM \\"document\\" d LEFT JOIN \\"user\\" u ON d.uploaded_by_id = u.id ORDER BY d.created_at DESC"
+        )
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(selectQuery);
+    const docs = (result.data && result.data._select) || [];
+
+    const matchingDocs = [];
+    const queryLower = q.toLowerCase();
+
+    for (const d of docs) {
+      // 3. Retrieve parsed PDF/document text content (lazy downloaded & locally cached)
+      const content = await docCache.getDocumentContent(d.id, d.fileUrl);
+
+      const titleMatch = d.title && d.title.toLowerCase().includes(queryLower);
+      const categoryMatch = d.category && d.category.toLowerCase().includes(queryLower);
+      const contentMatch = content && content.toLowerCase().includes(queryLower);
+
+      if (titleMatch || categoryMatch || contentMatch) {
+        const originalUrl = d.fileUrl || '';
+        const extension = originalUrl.split('.').pop().split('?')[0].toLowerCase();
+        
+        // Analyze combined text (title, category, and content snippet)
+        const textToAnalyze = `${d.title} ${d.category} ${content.substring(0, 500)}`;
+        const docSentiment = nlpHelper.analyzeSentiment(textToAnalyze);
+        const docKeywords = nlpHelper.extractKeywords(textToAnalyze);
+
+        matchingDocs.push({
+          id: d.id,
+          title: d.title,
+          category: d.category,
+          fileUrl: `/api/documents/download/${d.id}`,
+          extension,
+          uploadedBy: {
+            id: d.uploadedById,
+            displayName: d.uploadedByDisplayName || 'N/A'
+          },
+          createdAt: d.createdAt,
+          sentiment: docSentiment,
+          keywords: docKeywords
+        });
+      }
+    }
+    
+    res.json({
+      query: {
+        q,
+        sentiment: querySentiment,
+        keywords: queryKeywords
+      },
+      documents: matchingDocs
+    });
+  } catch (error) {
+    console.error('Failed to search documents:', error);
+    res.status(500).json({ error: 'Failed to search documents' });
+  }
+});
 
 // ---------------------------------------------------------
 // API: Document Management — Secure Download (Admin/Employee only)

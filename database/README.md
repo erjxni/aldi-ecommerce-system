@@ -97,6 +97,12 @@ type Notification @table {
   createdAt: Timestamp! @default(expr: "request.time")
 }
 
+type WhatsAppLog @table {
+  timestamp: Timestamp! @default(expr: "request.time")
+  topicCluster: String!
+  sentimentScore: Float!
+}
+
 type Poll @table {
   title: String!
   description: String! @default(value: "")
@@ -257,6 +263,16 @@ Stores scheduled organizational meetings and sprint reviews.
 | `date` | `Timestamp!` | | Scheduled date and time |
 | `minutesDocumentId` | `UUID` | Foreign Key to `Document` (Nullable) | Links to the uploaded minutes document |
 | `createdAt` | `Timestamp!` | current timestamp | Record creation timestamp |
+
+### 10. WhatsAppLog Table
+Stores anonymized interaction metadata from the WhatsApp Business API.
+
+| Field | Type | Attributes / Default | Description |
+| :--- | :--- | :--- | :--- |
+| `id` | `UUID` / `ID` | Primary Key (auto-generated) | Unique identifier for the log entry |
+| `timestamp` | `Timestamp!` | `@default(expr: "request.time")` | Ingestion timestamp |
+| `topicCluster` | `String!` | | Classification category (e.g. `'Order Issue'`, `'Product Inquiry'`) |
+| `sentimentScore` | `Float!` | | Evaluated sentiment score from `-1.0` (negative) to `1.0` (positive) |
 
 ---
 

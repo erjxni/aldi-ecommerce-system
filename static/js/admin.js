@@ -11,6 +11,12 @@
     if (revenueCard) revenueCard.classList.add('section-hidden');
   }
 
+  // Hide WhatsApp Analytics button if the user is not admin or employee
+  if (userRole !== 'admin' && userRole !== 'employee') {
+    const whatsappBtn = document.getElementById('btn-whatsapp-analytics');
+    if (whatsappBtn) whatsappBtn.style.display = 'none';
+  }
+
   // --- Update Topbar Profile Pic ---
   window.updateTopbarProfilePic = function () {
     const userPhoto = localStorage.getItem('userPhoto');
@@ -23,6 +29,90 @@
     }
   };
   window.updateTopbarProfilePic();
+
+  // --- WhatsApp Analytics Loader (User Story 13) ---
+  async function loadWhatsAppAnalytics() {
+    if (userRole !== 'admin' && userRole !== 'employee') return;
+
+    const hoursChart = document.getElementById('whatsapp-hours-chart');
+    const topicsList = document.getElementById('whatsapp-topics-list');
+
+    if (!hoursChart || !topicsList) return;
+
+    try {
+      const res = await fetch('/api/analytics/whatsapp/stats', {
+        headers: {
+          'Authorization': `Bearer ${userToken}`
+        }
+      });
+      if (!res.ok) throw new Error('Failed to fetch WhatsApp analytics stats');
+
+      const data = await res.json();
+      const { peakHours, topicClusters } = data;
+
+      // Update badge
+      const totalCount = topicClusters.reduce((sum, t) => sum + t.count, 0);
+      const statusBadge = document.getElementById('whatsapp-status-badge');
+      if (statusBadge) {
+        statusBadge.style.display = 'inline-block';
+        statusBadge.textContent = `${totalCount} Messages`;
+      }
+
+      // 1. Render Peak Hours Chart (24 vertical bars)
+      hoursChart.innerHTML = '';
+      const maxCount = Math.max(...peakHours.map(h => h.count), 1);
+
+      peakHours.forEach(h => {
+        const percent = (h.count / maxCount) * 100;
+        const barGroup = document.createElement('div');
+        barGroup.className = 'bar-group';
+        barGroup.style.height = '100%';
+        barGroup.style.position = 'relative';
+
+        const labelHour = h.hour === 0 ? '12 AM' : h.hour === 12 ? '12 PM' : h.hour > 12 ? `${h.hour - 12} PM` : `${h.hour} AM`;
+
+        barGroup.innerHTML = `
+          <div class="bar-3d" style="height: ${percent}%; width: 50%; background: linear-gradient(180deg, #10b981 0%, rgba(16, 185, 129, 0.1) 100%);" title="${labelHour}: ${h.count} messages">
+            <div style="position: absolute; top: -4px; left: 0; width: 100%; height: 8px; background: #059669; border-radius: 50%;"></div>
+          </div>
+        `;
+        hoursChart.appendChild(barGroup);
+      });
+
+      // 2. Render Topics List (Common Interaction Clusters)
+      topicsList.innerHTML = '';
+      if (!topicClusters || topicClusters.length === 0) {
+        topicsList.innerHTML = '<div style="color: #697386; font-size: 0.9rem; text-align: center; padding-top: 24px;">No analytics data ingested yet.</div>';
+      } else {
+        const totalTopicCounts = topicClusters.reduce((sum, t) => sum + t.count, 0) || 1;
+        topicClusters.forEach(t => {
+          const percent = Math.round((t.count / totalTopicCounts) * 100);
+          
+          const topicItem = document.createElement('div');
+          topicItem.style.display = 'flex';
+          topicItem.style.flexDirection = 'column';
+          topicItem.style.gap = '4px';
+
+          topicItem.innerHTML = `
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #1a1f36;">
+              <span>${t.topicCluster}</span>
+              <span style="color: #697386;">${t.count} (${percent}%)</span>
+            </div>
+            <div style="background: #e3e8ee; border-radius: 10px; height: 6px; width: 100%; overflow: hidden;">
+              <div style="background: #10b981; height: 100%; width: ${percent}%; border-radius: 10px;"></div>
+            </div>
+          `;
+          topicsList.appendChild(topicItem);
+        });
+      }
+    } catch (err) {
+      console.error('Error loading WhatsApp analytics:', err);
+      hoursChart.innerHTML = `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e53935; font-size: 0.85rem; width: 100%; text-align: center;">Failed to load analytics data</div>`;
+      topicsList.innerHTML = `<div style="color: #e53935; font-size: 0.85rem; text-align: center; padding-top: 24px;">Failed to load topics</div>`;
+    }
+  }
+  window.loadWhatsAppAnalytics = loadWhatsAppAnalytics;
+  loadWhatsAppAnalytics();
 
   // Sync user profile photo from db if not cached locally
   if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
@@ -294,6 +384,7 @@
   const pollsBtn = document.getElementById('btn-polls-manager');
   const notifsBtn = document.getElementById('btn-notifications-manager');
   const meetingsBtn = document.getElementById('btn-meetings-manager');
+  const whatsappBtn = document.getElementById('btn-whatsapp-analytics');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
@@ -302,6 +393,7 @@
   const pollsViewer = document.getElementById('polls-manager-view');
   const notifsViewer = document.getElementById('notifications-manager');
   const meetingsViewer = document.getElementById('meetings-manager-view');
+  const whatsappViewer = document.getElementById('whatsapp-analytics-view');
 
   // Helper to hide all main views
   function hideAllViews() {
@@ -313,29 +405,39 @@
     if (pollsViewer) pollsViewer.style.display = 'none';
     if (notifsViewer) notifsViewer.style.display = 'none';
     if (meetingsViewer) meetingsViewer.style.display = 'none';
+    if (whatsappViewer) whatsappViewer.style.display = 'none';
   }
 
   // Helper to transition views with a glassmorphism loading buffer
   function triggerLoadingBuffer(callback) {
     const overlay = document.getElementById('global-loading-overlay');
     if (!overlay) {
-      if (typeof callback === 'function') callback();
+      if (typeof callback === 'function') {
+        try { callback(); } catch (e) { console.error('[LoadingBuffer] callback error:', e); }
+      }
       return;
     }
     overlay.style.display = 'flex';
     // force reflow
     overlay.offsetHeight;
     overlay.style.opacity = '1';
+
+    // Always schedule the dismiss independently so overlay never gets stuck
+    const dismissOverlay = () => {
+      overlay.style.opacity = '0';
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 250);
+    };
     
     setTimeout(() => {
-      if (typeof callback === 'function') callback();
+      try {
+        if (typeof callback === 'function') callback();
+      } catch (e) {
+        console.error('[LoadingBuffer] callback error:', e);
+      }
       
-      setTimeout(() => {
-        overlay.style.opacity = '0';
-        setTimeout(() => {
-          overlay.style.display = 'none';
-        }, 250);
-      }, 300); // 300ms loading visual hold
+      setTimeout(dismissOverlay, 300); // 300ms loading visual hold
     }, 150); // 150ms delay to complete fade-in before action
   }
   function clearSidebarActive() {
@@ -354,6 +456,19 @@
   filesViewer &&
   financialsViewer
 ) {
+    if (whatsappBtn && whatsappViewer) {
+      whatsappBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'whatsapp');
+          hideAllViews();
+          if (whatsappViewer) whatsappViewer.style.display = 'flex';
+          clearSidebarActive();
+          whatsappBtn.classList.add('active');
+          if (typeof window.loadWhatsAppAnalytics === 'function') window.loadWhatsAppAnalytics();
+        });
+      });
+    }
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
       triggerLoadingBuffer(() => {
@@ -1207,7 +1322,10 @@
           tdClass = 'col-id';
         }
 
-        if (typeof val === 'object' && val !== null) {
+        if ((col.toLowerCase() === 'fileurl' || col.toLowerCase() === 'file_url') && val) {
+          const urlVal = val;
+          val = `<a href="${urlVal}" target="_blank" class="btn-outline" style="padding: 4px 10px; font-size: 0.8rem; border: 1px solid #10b981; color: white; background: #10b981; cursor: pointer; border-radius: 6px; text-decoration: none; display: inline-block; font-weight: 500; transition: opacity 0.2s;">&#128190; Download</a>`;
+        } else if (typeof val === 'object' && val !== null) {
           if (val.id) {
             const targetTable = getTableNameFromCol(col);
             val = `<button class="fk-link btn-outline" data-target-table="${targetTable}" data-target-id="${val.id}" style="padding: 2px 8px; font-size: 0.75rem; border: 1px solid #2b58f9; color: #2b58f9; background: transparent; cursor: pointer; border-radius: 4px;">&#128279; ${truncateStr(val.id)}</button>`;
@@ -2585,51 +2703,52 @@
       'files': 'btn-files-manager',
       'polls': 'btn-polls-manager',
       'notifications': 'btn-notifications-manager',
-      'meetings': 'btn-meetings-manager'
+      'meetings': 'btn-meetings-manager',
+      'whatsapp': 'btn-whatsapp-analytics'
     };
 
     const targetId = btnIds[viewName];
     window.searchDebug.push(`Mapped targetId: ${targetId}`);
-    if (targetId) {
-      const btn = document.getElementById(targetId);
-      window.searchDebug.push(`Button element found: ${!!btn}`);
-      if (btn) {
-        window.searchDebug.push(`Triggering btn.click()`);
-        btn.click();
-        
-        // FOOLPROOF BACKUP: Direct view toggle in case click propagation is blocked
-        const viewEl = {
-          'home': document.getElementById('dashboard-view'),
-          'database': document.getElementById('database-viewer'),
-          'financials': document.getElementById('financials-view'),
-          'users': document.getElementById('users-manager-view'),
-          'files': document.getElementById('files-manager-view'),
-          'polls': document.getElementById('polls-manager-view'),
-          'notifications': document.getElementById('notifications-manager'),
-          'meetings': document.getElementById('meetings-manager-view')
-        }[viewName];
-        
-        if (viewEl) {
-          window.searchDebug.push(`Direct toggle view backup triggered for: ${viewName}`);
-          sessionStorage.setItem('adminActiveView', viewName);
-          hideAllViews();
-          viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
-          clearSidebarActive();
-          btn.classList.add('active');
-          
-          if (viewName === 'database') {
-            const activeTab = document.querySelector('.db-tab.active');
-            if (activeTab && typeof loadTableData === 'function') loadTableData(activeTab.dataset.table);
-          } else if (viewName === 'users' && typeof loadUsersManagerData === 'function') {
-            loadUsersManagerData();
-          } else if (viewName === 'files' && typeof loadFilesManagerData === 'function') {
-            loadFilesManagerData();
-          } else if (viewName === 'polls' && typeof window.loadPolls === 'function') {
-            window.loadPolls();
-          } else if (viewName === 'meetings' && typeof window.loadMeetings === 'function') {
-            window.loadMeetings();
-          }
-        }
+    if (!targetId) return;
+    
+    const btn = document.getElementById(targetId);
+    window.searchDebug.push(`Button element found: ${!!btn}`);
+    if (!btn) return;
+
+    // Direct view toggle (no loading buffer — used for session restore & search nav)
+    const viewEl = {
+      'home': document.getElementById('dashboard-view'),
+      'database': document.getElementById('database-viewer'),
+      'financials': document.getElementById('financials-view'),
+      'users': document.getElementById('users-manager-view'),
+      'files': document.getElementById('files-manager-view'),
+      'polls': document.getElementById('polls-manager-view'),
+      'notifications': document.getElementById('notifications-manager'),
+      'meetings': document.getElementById('meetings-manager-view'),
+      'whatsapp': document.getElementById('whatsapp-analytics-view')
+    }[viewName];
+    
+    if (viewEl) {
+      window.searchDebug.push(`Direct toggle view for: ${viewName}`);
+      sessionStorage.setItem('adminActiveView', viewName);
+      hideAllViews();
+      viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
+      clearSidebarActive();
+      btn.classList.add('active');
+      
+      if (viewName === 'database') {
+        const activeTab = document.querySelector('.db-tab.active');
+        if (activeTab && typeof loadTableData === 'function') loadTableData(activeTab.dataset.table);
+      } else if (viewName === 'users' && typeof loadUsersManagerData === 'function') {
+        loadUsersManagerData();
+      } else if (viewName === 'files' && typeof loadFilesManagerData === 'function') {
+        loadFilesManagerData();
+      } else if (viewName === 'polls' && typeof window.loadPolls === 'function') {
+        window.loadPolls();
+      } else if (viewName === 'meetings' && typeof window.loadMeetings === 'function') {
+        window.loadMeetings();
+      } else if (viewName === 'whatsapp' && typeof window.loadWhatsAppAnalytics === 'function') {
+        window.loadWhatsAppAnalytics();
       }
     }
   }
@@ -3109,6 +3228,66 @@
 
   if (meetingsRefreshBtn) {
     meetingsRefreshBtn.addEventListener('click', loadMeetings);
+  }
+
+  // --- WhatsApp Log Ingest & Refresh Handlers ---
+  const whatsappUploadForm = document.getElementById('whatsapp-upload-form');
+  const whatsappUploadStatus = document.getElementById('whatsapp-upload-status');
+  const whatsappRefreshBtn = document.getElementById('whatsapp-refresh-btn');
+
+  if (whatsappUploadForm) {
+    whatsappUploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fileInput = document.getElementById('whatsapp-file');
+      if (!fileInput || !fileInput.files || fileInput.files.length === 0) return;
+
+      const file = fileInput.files[0];
+      const formData = new FormData();
+      formData.append('file', file);
+
+      if (whatsappUploadStatus) {
+        whatsappUploadStatus.style.display = 'block';
+        whatsappUploadStatus.style.color = '#697386';
+        whatsappUploadStatus.textContent = 'Uploading and analyzing chat log...';
+      }
+
+      try {
+        const response = await fetch('/api/analytics/whatsapp/upload', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: formData
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          if (whatsappUploadStatus) {
+            whatsappUploadStatus.style.color = '#059669';
+            whatsappUploadStatus.textContent = `Success! Ingested ${result.recordsIngested} messages.`;
+          }
+          fileInput.value = ''; // Reset input
+          if (typeof window.loadWhatsAppAnalytics === 'function') await window.loadWhatsAppAnalytics();
+          if (typeof showToast === 'function') {
+            showToast(`Ingested ${result.recordsIngested} messages successfully!`, 'success');
+          }
+        } else {
+          throw new Error(result.error || 'Failed to upload chat log');
+        }
+      } catch (err) {
+        if (whatsappUploadStatus) {
+          whatsappUploadStatus.style.color = '#991b1b';
+          whatsappUploadStatus.textContent = err.message;
+        }
+        if (typeof showToast === 'function') {
+          showToast(err.message, 'error');
+        }
+      }
+    });
+  }
+
+  if (whatsappRefreshBtn) {
+    whatsappRefreshBtn.addEventListener('click', () => { if (typeof window.loadWhatsAppAnalytics === 'function') window.loadWhatsAppAnalytics(); });
   }
 
   // ── Page Load Active Section Restore ────────────────────────

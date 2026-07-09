@@ -550,7 +550,7 @@ app.post('/api/documents/upload', adminProtect, upload.single('file'), async (re
     const fileUrl = storageFile.publicUrl();
     const uploadedById = req.user.id; // from JWT token cookie in adminProtect
 
-    // Insert metadata into database
+    // Insert metadata into database (including created_at column)
     const insertMutation = `
       mutation InsertDocument($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
         _execute(
@@ -807,12 +807,26 @@ app.delete('/api/documents/:id', adminProtect, async (req, res) => {
 // ---------------------------------------------------------
 // Route: Securely serve uploaded files (Admin/Employee only)
 // ---------------------------------------------------------
-app.get('/uploads/:filename', adminProtect, (req, res) => {
-  const filepath = path.join(uploadDir, req.params.filename);
-  if (fs.existsSync(filepath)) {
-    res.sendFile(filepath);
-  } else {
-    res.status(404).json({ error: 'File not found' });
+app.get('/uploads/:filename', adminProtect, async (req, res) => {
+  try {
+    const { getStorage } = require('firebase-admin/storage');
+    const bucket = getStorage().bucket('aldi-ecommerce-managemen-b40e8.firebasestorage.app');
+    const file = bucket.file(`documents/${req.params.filename}`);
+
+    const [exists] = await file.exists();
+    if (!exists) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    const [metadata] = await file.getMetadata();
+    if (metadata.contentType) {
+      res.setHeader('Content-Type', metadata.contentType);
+    }
+
+    file.createReadStream().pipe(res);
+  } catch (error) {
+    console.error('Error serving file from storage:', error);
+    res.status(500).json({ error: 'Failed to retrieve file' });
   }
 });
 
@@ -2449,6 +2463,327 @@ app.post('/api/notifications/broadcast', authenticateJWT, async (req, res) => {
   } catch (error) {
     console.error('Error broadcasting notification:', error);
     res.status(500).json({ error: 'Failed to broadcast notification' });
+  }
+});
+
+// ---------------------------------------------------------
+// WhatsApp Analytics Ingestion & Reporting (User Story 13)
+// ---------------------------------------------------------
+const whatsappJsonPath = path.join(__dirname, '../database/whatsapp_log.json');
+
+async function insertWhatsAppLog(logData) {
+  const { id, timestamp, topicCluster, sentimentScore } = logData;
+  try {
+    const insertMutation = `
+      mutation InsertWhatsAppLog($id: UUID!, $timestamp: Timestamp!, $topicCluster: String!, $sentimentScore: Float!) {
+        _execute(
+          sql: "INSERT INTO \\"whats_app_log\\" (id, timestamp, topic_cluster, sentiment_score) VALUES ($1, $2, $3, $4)",
+          params: [$id, $timestamp, $topicCluster, $sentimentScore]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(insertMutation, {
+      variables: {
+        id,
+        timestamp,
+        topicCluster,
+        sentimentScore
+      }
+    });
+    console.log('[WhatsAppLog] Successfully inserted log into PostgreSQL.');
+  } catch (err) {
+    console.warn('[WhatsAppLog] PostgreSQL insertion failed, falling back to local JSON database:', err.message);
+    // Fallback: local JSON file
+    try {
+      const dir = path.dirname(whatsappJsonPath);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      let logs = [];
+      if (fs.existsSync(whatsappJsonPath)) {
+        const fileContent = fs.readFileSync(whatsappJsonPath, 'utf8');
+        logs = JSON.parse(fileContent || '[]');
+      }
+      logs.push({ id, timestamp, topicCluster, sentimentScore });
+      fs.writeFileSync(whatsappJsonPath, JSON.stringify(logs, null, 2), 'utf8');
+      console.log('[WhatsAppLog] Successfully inserted log into local JSON file.');
+    } catch (fsErr) {
+      console.error('[WhatsAppLog] Local JSON file fallback failed:', fsErr.message);
+      throw fsErr;
+    }
+  }
+}
+
+async function getWhatsAppLogs() {
+  try {
+    const selectQuery = `
+      query GetWhatsAppLogs {
+        whatsAppLogs {
+          id
+          timestamp
+          topicCluster
+          sentimentScore
+        }
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(selectQuery);
+    if (result && result.data && Array.isArray(result.data.whatsAppLogs)) {
+      return result.data.whatsAppLogs;
+    }
+    return [];
+  } catch (err) {
+    console.warn('[WhatsAppLog] PostgreSQL read failed, reading from local JSON database:', err.message);
+    // Fallback: local JSON file
+    try {
+      if (fs.existsSync(whatsappJsonPath)) {
+        const fileContent = fs.readFileSync(whatsappJsonPath, 'utf8');
+        return JSON.parse(fileContent || '[]');
+      }
+      return [];
+    } catch (fsErr) {
+      console.error('[WhatsAppLog] Local JSON file read failed:', fsErr.message);
+      return [];
+    }
+  }
+}
+
+// Middleware: Protect whatsapp stats (admin & employee only)
+const whatsappStatsProtect = (req, res, next) => {
+  let token = req.cookies && req.cookies.aldi_jwt;
+  if (!token && req.headers.authorization) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  if (!token) {
+    token = req.headers['x-auth-token'];
+  }
+
+  if (!token) {
+    return res.status(401).json({ error: 'Unauthorized: Missing token' });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: 'Forbidden: Invalid or expired token' });
+    }
+    if (user.role !== 'admin' && user.role !== 'employee') {
+      return res.status(403).json({ error: 'Forbidden: Access restricted to admin and employee' });
+    }
+    req.user = user;
+    next();
+  });
+};
+
+// NLP Analysis Helper for WhatsApp Messages
+function analyzeWhatsAppMessage(text) {
+  const t = text.toLowerCase();
+  
+  // 1. Topic Clustering
+  let topicCluster = 'Other Inquiry';
+  if (/\b(order|track|buy|purchase|cart|checkout|checkout_payment|pay|payment|receipt|refund)\b/.test(t)) {
+    topicCluster = 'Order Issue';
+  } else if (/\b(price|size|stock|item|product|catalog|details|spec|specification|brand|cost|costly|cheap)\b/.test(t)) {
+    topicCluster = 'Product Inquiry';
+  } else if (/\b(ship|deliver|delivery|address|courier|post|mail|receive|received|sent|transit|delay)\b/.test(t)) {
+    topicCluster = 'Delivery Query';
+  } else if (/\b(support|help|scrum|sprint|jira|confluence|meeting|minutes|vote|poll|work|member|presentation)\b/.test(t)) {
+    topicCluster = 'General Support';
+  }
+  
+  // 2. Sentiment Scoring (NLP)
+  const positiveWords = ['hello', 'great', 'love', 'thanks', 'good', 'fine', 'perfect', 'awesome', 'best', 'wonderful', 'happy', 'yes', 'yup', 'calm', 'nice', 'well', 'agree', 'ready'];
+  const negativeWords = ['bad', 'late', 'error', 'slow', 'hate', 'wrong', 'fail', 'failed', 'issue', 'problem', 'delay', 'delayed', 'sad', 'sorry', 'behind', 'worry', 'worried', 'ill', 'sick', 'angry', 'no', 'cannot'];
+  
+  let score = 0.0;
+  const tokens = t.split(/\s+/);
+  tokens.forEach(token => {
+    const cleanToken = token.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+    if (positiveWords.includes(cleanToken)) score += 0.2;
+    if (negativeWords.includes(cleanToken)) score -= 0.2;
+  });
+  
+  score = Math.max(-1.0, Math.min(1.0, score));
+  return {
+    topicCluster,
+    sentimentScore: Number(score.toFixed(2))
+  };
+}
+
+// WhatsApp Log File Parser Helper (PII Stripped)
+function parseWhatsAppLogFile(fileContent) {
+  const lines = fileContent.split(/\r?\n/);
+  const parsedLogs = [];
+  
+  // Matches "DD/MM/YYYY, HH:MM - Sender: Message" or "MM/DD/YYYY, HH:MM - Sender: Message"
+  const messageRegex = /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*-\s*([^:]+):\s*(.*)$/;
+  
+  lines.forEach(line => {
+    const match = line.match(messageRegex);
+    if (match) {
+      const [_, dayStr, monthStr, yearStr, hourStr, minuteStr, sender, text] = match;
+      
+      let day = parseInt(dayStr, 10);
+      let month = parseInt(monthStr, 10);
+      let year = parseInt(yearStr, 10);
+      let hour = parseInt(hourStr, 10);
+      let minute = parseInt(minuteStr, 10);
+      
+      if (year < 100) {
+        year += 2000;
+      }
+      
+      let date;
+      if (month > 12) {
+        date = new Date(Date.UTC(year, day - 1, month, hour, minute));
+      } else {
+        date = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      }
+      
+      if (!isNaN(date.getTime())) {
+        const timestamp = date.toISOString();
+        const analysis = analyzeWhatsAppMessage(text);
+        
+        parsedLogs.push({
+          id: crypto.randomUUID(),
+          timestamp,
+          topicCluster: analysis.topicCluster,
+          sentimentScore: analysis.sentimentScore
+        });
+      }
+    }
+  });
+  
+  return parsedLogs;
+}
+
+// API: Upload WhatsApp Chat Log (Admin/Employee only)
+app.post('/api/analytics/whatsapp/upload', whatsappStatsProtect, upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // 1. Upload to Firebase Storage
+    const bucket = storage.bucket();
+    const uniqueFileName = `documents/${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const storageFile = bucket.file(uniqueFileName);
+    await storageFile.save(file.buffer, {
+      metadata: {
+        contentType: 'text/plain',
+      }
+    });
+    const fileUrl = storageFile.publicUrl();
+
+    // 2. Insert metadata into "document" table
+    const insertDocMutation = `
+      mutation InsertDocument($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
+        _execute(
+          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)",
+          params: [$id, $title, $category, $fileUrl, $uploadedById]
+        )
+      }
+    `;
+    const docId = crypto.randomUUID();
+    await sqlConnect.executeGraphql(insertDocMutation, {
+      variables: {
+        id: docId,
+        title: `WhatsApp Chat Log - ${file.originalname}`,
+        category: 'Analytics',
+        fileUrl,
+        uploadedById: req.user.id
+      }
+    });
+
+    // 3. Parse and ingest message logs (PII Stripped)
+    const fileContent = file.buffer.toString('utf8');
+    const parsedLogs = parseWhatsAppLogFile(fileContent);
+
+    // Ingest messages in parallel batches of 50
+    const batchSize = 50;
+    for (let i = 0; i < parsedLogs.length; i += batchSize) {
+      const chunk = parsedLogs.slice(i, i + batchSize);
+      await Promise.all(chunk.map(log => insertWhatsAppLog(log)));
+    }
+
+    res.status(201).json({
+      message: 'WhatsApp log file uploaded, parsed, and anonymized successfully',
+      documentId: docId,
+      recordsIngested: parsedLogs.length
+    });
+  } catch (error) {
+    console.error('Error in WhatsApp log upload:', error);
+    res.status(500).json({ error: 'Internal server error processing file upload' });
+  }
+});
+
+// Webhook endpoint: Ingest WhatsApp logs (PII Stripping enforced)
+app.post('/api/analytics/whatsapp/webhook', async (req, res) => {
+  try {
+    const { topicCluster, sentimentScore, timestamp, id } = req.body;
+
+    if (!topicCluster) {
+      return res.status(400).json({ error: 'Missing required field: topicCluster' });
+    }
+    if (sentimentScore === undefined || isNaN(Number(sentimentScore))) {
+      return res.status(400).json({ error: 'Missing or invalid required field: sentimentScore' });
+    }
+
+    // Stripping PII: extract ONLY the anonymized parameters
+    const logId = id || crypto.randomUUID();
+    const logTimestamp = timestamp || new Date().toISOString();
+    const cleanLog = {
+      id: logId,
+      timestamp: logTimestamp,
+      topicCluster,
+      sentimentScore: Number(sentimentScore)
+    };
+
+    await insertWhatsAppLog(cleanLog);
+
+    res.status(201).json({
+      message: 'WhatsApp log processed and stored successfully (anonymized)',
+      id: logId
+    });
+  } catch (error) {
+    console.error('Error in WhatsApp webhook:', error);
+    res.status(500).json({ error: 'Internal server error processing webhook' });
+  }
+});
+
+// Stats reporting endpoint: Aggregate logs (protected)
+app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) => {
+  try {
+    const logs = await getWhatsAppLogs();
+    
+    // Initialize 24-hour slots
+    const peakHours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
+    const topicMap = {};
+
+    logs.forEach(log => {
+      if (log.timestamp) {
+        const date = new Date(log.timestamp);
+        const hour = date.getUTCHours();
+        if (hour >= 0 && hour < 24) {
+          peakHours[hour].count++;
+        }
+      }
+      
+      const topic = log.topicCluster || 'Unknown';
+      topicMap[topic] = (topicMap[topic] || 0) + 1;
+    });
+
+    const topicClusters = Object.entries(topicMap).map(([topicCluster, count]) => ({
+      topicCluster,
+      count
+    })).sort((a, b) => b.count - a.count);
+
+    res.json({
+      peakHours,
+      topicClusters
+    });
+  } catch (error) {
+    console.error('Error fetching WhatsApp stats:', error);
+    res.status(500).json({ error: 'Internal server error fetching statistics' });
   }
 });
 

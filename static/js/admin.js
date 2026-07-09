@@ -332,6 +332,7 @@
 ) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      sessionStorage.setItem('adminActiveView', 'database');
       hideAllViews();
       if (dbViewer) dbViewer.style.display = 'flex';
       clearSidebarActive();
@@ -342,6 +343,7 @@
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      sessionStorage.setItem('adminActiveView', 'home');
       hideAllViews();
       if (dashboardView) dashboardView.style.display = 'block';
       clearSidebarActive();
@@ -350,6 +352,7 @@
 
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      sessionStorage.setItem('adminActiveView', 'financials');
       hideAllViews();
       if (financialsViewer) financialsViewer.style.display = 'flex';
       clearSidebarActive();
@@ -358,6 +361,7 @@
 
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      sessionStorage.setItem('adminActiveView', 'users');
       hideAllViews();
       if (usersViewer) usersViewer.style.display = 'flex';
       clearSidebarActive();
@@ -367,6 +371,7 @@
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
+      sessionStorage.setItem('adminActiveView', 'files');
       hideAllViews();
       if (filesViewer) filesViewer.style.display = 'flex';
       clearSidebarActive();
@@ -378,6 +383,7 @@
     if (pollsBtn) {
       pollsBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        sessionStorage.setItem('adminActiveView', 'polls');
         hideAllViews();
         if (pollsViewer) pollsViewer.style.display = 'flex';
         clearSidebarActive();
@@ -391,6 +397,7 @@
     if (notifsBtn) {
       notifsBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        sessionStorage.setItem('adminActiveView', 'notifications');
         hideAllViews();
         if (notifsViewer) notifsViewer.style.display = 'flex';
         clearSidebarActive();
@@ -402,6 +409,7 @@
     if (meetingsBtn) {
       meetingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
+        sessionStorage.setItem('adminActiveView', 'meetings');
         hideAllViews();
         if (meetingsViewer) meetingsViewer.style.display = 'flex';
         clearSidebarActive();
@@ -935,6 +943,7 @@
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
+      sessionStorage.setItem('adminActiveDbTable', tab.dataset.table);
       loadTableData(tab.dataset.table);
     });
   });
@@ -2562,6 +2571,7 @@
         
         if (viewEl) {
           window.searchDebug.push(`Direct toggle view backup triggered for: ${viewName}`);
+          sessionStorage.setItem('adminActiveView', viewName);
           hideAllViews();
           viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
           clearSidebarActive();
@@ -3059,6 +3069,30 @@
 
   if (meetingsRefreshBtn) {
     meetingsRefreshBtn.addEventListener('click', loadMeetings);
+  }
+
+  // ── Page Load Active Section Restore ────────────────────────
+  const savedView = sessionStorage.getItem('adminActiveView');
+  if (savedView) {
+    setTimeout(() => {
+      // Restore active database table first if database viewer is saved
+      if (savedView === 'database') {
+        const savedTable = sessionStorage.getItem('adminActiveDbTable');
+        if (savedTable) {
+          const dbTabs = document.querySelectorAll('.db-tab');
+          const targetTab = document.querySelector(`.db-tab[data-table="${savedTable}"]`);
+          if (dbTabs && targetTab) {
+            dbTabs.forEach(t => t.classList.remove('active'));
+            targetTab.classList.add('active');
+          }
+        }
+      }
+      
+      // Navigate to saved view
+      if (typeof navigateToView === 'function') {
+        navigateToView(savedView);
+      }
+    }, 150);
   }
 
   // ── Toast ─────────────────────────────────────────────────

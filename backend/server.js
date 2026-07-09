@@ -817,6 +817,208 @@ app.get('/uploads/:filename', adminProtect, (req, res) => {
 });
 
 // ---------------------------------------------------------
+// API: Meetings Management (Admin/Employee/Finance only)
+// ---------------------------------------------------------
+app.post('/api/meetings', adminProtect, async (req, res) => {
+  const { title, description, date } = req.body;
+  if (!title || typeof title !== 'string' || title.trim() === '') {
+    return res.status(400).json({ error: 'Title is required and must be a string' });
+  }
+  if (!date || isNaN(Date.parse(date))) {
+    return res.status(400).json({ error: 'A valid date is required' });
+  }
+  const desc = (description && typeof description === 'string') ? description.trim() : '';
+
+  try {
+    const id = crypto.randomUUID();
+    const query = `
+      mutation CreateMeeting($id: UUID!, $title: String!, $description: String!, $date: Timestamp!) {
+        _execute(
+          sql: "INSERT INTO \\"meeting\\" (id, title, description, date, minutes_document_id, created_at) VALUES ($1, $2, $3, CAST($4 AS timestamp with time zone), NULL, CURRENT_TIMESTAMP)",
+          params: [$id, $title, $description, $date]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(query, {
+      variables: {
+        id,
+        title: title.trim(),
+        description: desc,
+        date: new Date(date).toISOString()
+      }
+    });
+
+    res.status(201).json({
+      id,
+      title: title.trim(),
+      description: desc,
+      date,
+      minutesDocumentId: null
+    });
+  } catch (error) {
+    console.error('Error creating meeting:', error);
+    res.status(500).json({ error: 'Failed to create meeting' });
+  }
+});
+
+app.get('/api/meetings', adminProtect, async (req, res) => {
+  try {
+    const query = `
+      query GetMeetings {
+        _select(
+          sql: "SELECT m.id, m.title, m.description, m.date, m.minutes_document_id AS \\"minutesDocumentId\\", d.title AS \\"minutesDocumentTitle\\" FROM \\"meeting\\" m LEFT JOIN \\"document\\" d ON m.minutes_document_id = d.id ORDER BY m.date ASC"
+        )
+      }
+    `;
+    const result = await sqlConnect.executeGraphqlRead(query);
+    const meetings = (result.data && result.data._select) || [];
+    res.json(meetings);
+  } catch (error) {
+    console.error('Error fetching meetings:', error);
+    res.status(500).json({ error: 'Failed to fetch meetings' });
+  }
+});
+
+app.patch('/api/meetings/:id', adminProtect, async (req, res) => {
+  const meetingId = req.params.id;
+  const { minutesDocumentId } = req.body;
+
+  try {
+    const query = `
+      mutation LinkMinutes($meetingId: UUID!, $minutesDocumentId: String) {
+        _execute(
+          sql: "UPDATE \\"meeting\\" SET minutes_document_id = CAST($2 AS uuid) WHERE id = $1",
+          params: [$meetingId, $minutesDocumentId]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(query, {
+      variables: {
+        meetingId,
+        minutesDocumentId: minutesDocumentId || null
+      }
+    });
+
+    res.json({ message: 'Meeting updated successfully', id: meetingId, minutesDocumentId });
+  } catch (error) {
+    console.error('Error updating meeting minutes link:', error);
+    res.status(500).json({ error: 'Failed to update meeting' });
+  }
+});
+
+app.post('/api/meetings/:id/minutes', adminProtect, async (req, res) => {
+  const meetingId = req.params.id;
+  const { content } = req.body;
+
+  if (content === undefined || typeof content !== 'string') {
+    return res.status(400).json({ error: 'Content must be a string' });
+  }
+
+  try {
+    const checkQuery = `
+      query CheckMeeting($id: UUID!) {
+        _select(sql: "SELECT id, title, minutes_document_id AS \\"minutesDocumentId\\" FROM \\"meeting\\" WHERE id = $1", params: [$id])
+      }
+    `;
+    const checkRes = await sqlConnect.executeGraphqlRead(checkQuery, { variables: { id: meetingId } });
+    const meetings = (checkRes.data && checkRes.data._select) || [];
+    if (meetings.length === 0) {
+      return res.status(404).json({ error: 'Meeting not found' });
+    }
+    const meeting = meetings[0];
+
+    let docId = meeting.minutesDocumentId;
+    let doc = null;
+
+    if (docId) {
+      const docQuery = `
+        query GetDoc($id: UUID!) {
+          _select(sql: "SELECT id, file_url AS \\"fileUrl\\" FROM \\"document\\" WHERE id = $1", params: [$id])
+        }
+      `;
+      const docRes = await sqlConnect.executeGraphqlRead(docQuery, { variables: { id: docId } });
+      const docs = (docRes.data && docRes.data._select) || [];
+      if (docs.length > 0) {
+        doc = docs[0];
+      }
+    }
+
+    const bucket = storage.bucket();
+
+    if (doc) {
+      const storagePath = extractStoragePath(doc.fileUrl, bucket.name);
+      if (storagePath) {
+        const storageFile = bucket.file(storagePath);
+        await storageFile.save(Buffer.from(content, 'utf8'), {
+          metadata: { contentType: 'text/plain' }
+        });
+        return res.json({
+          message: 'Minutes updated successfully',
+          documentId: doc.id,
+          fileUrl: `/api/documents/download/${doc.id}`
+        });
+      }
+    }
+
+    // Otherwise, create a new minutes document
+    const generatedDocId = crypto.randomUUID();
+    const title = `Minutes - ${meeting.title}`;
+    const category = 'Governance';
+    const storagePath = `documents/minutes_${meetingId}_${Date.now()}.txt`;
+    const storageFile = bucket.file(storagePath);
+    await storageFile.save(Buffer.from(content, 'utf8'), {
+      metadata: { contentType: 'text/plain' }
+    });
+    await storageFile.makePublic();
+    const fileUrl = storageFile.publicUrl();
+
+    // Insert document row
+    const insertDoc = `
+      mutation InsertDoc($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
+        _execute(
+          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)",
+          params: [$id, $title, $category, $fileUrl, $uploadedById]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(insertDoc, {
+      variables: {
+        id: generatedDocId,
+        title,
+        category,
+        fileUrl,
+        uploadedById: req.user.id
+      }
+    });
+
+    // Link the new document to the meeting
+    const linkQuery = `
+      mutation LinkDoc($meetingId: UUID!, $docId: UUID!) {
+        _execute(
+          sql: "UPDATE \\"meeting\\" SET minutes_document_id = $2 WHERE id = $1",
+          params: [$meetingId, $docId]
+        )
+      }
+    `;
+    await sqlConnect.executeGraphql(linkQuery, {
+      variables: {
+        meetingId: meeting.id,
+        docId: generatedDocId
+      }
+    });
+
+    res.status(201).json({
+      message: 'Minutes created and linked successfully',
+      documentId: generatedDocId,
+      fileUrl: `/api/documents/download/${generatedDocId}`
+    });
+  } catch (error) {
+    console.error('Error saving meeting minutes:', error);
+    res.status(500).json({ error: 'Failed to save minutes' });
+  }
+});
+
+// ---------------------------------------------------------
 // API: Admin — Sales Losses (analytics data)
 // ---------------------------------------------------------
 app.get('/api/admin/sales-losses', async (req, res) => {
@@ -913,6 +1115,22 @@ app.get('/api/admin/database/:table', async (req, res) => {
   };
 
   const table = req.params.table;
+
+  if (table === 'Meeting') {
+    try {
+      const selectQuery = `
+        query GetMeetings {
+          _select(sql: "SELECT m.id, m.title, m.description, m.date, m.minutes_document_id AS \\"minutesDocumentId\\", m.created_at AS \\"createdAt\\" FROM \\"meeting\\" m ORDER BY m.date ASC")
+        }
+      `;
+      const result = await sqlConnect.executeGraphqlRead(selectQuery);
+      const meetings = (result.data && result.data._select) || [];
+      return res.json(meetings);
+    } catch (error) {
+      console.error('Failed to fetch Meeting table:', error);
+      return res.status(500).json({ error: 'Failed to fetch table data' });
+    }
+  }
 
   if (table === 'Document') {
     try {

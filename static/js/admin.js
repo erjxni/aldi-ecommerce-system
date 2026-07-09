@@ -1695,17 +1695,53 @@
     const ext = (extension || '').toLowerCase();
     const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
     const isPDF = ext === 'pdf';
+    const isTXT = ext === 'txt';
+
+    function esc(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
     if (isImage) {
       previewBody.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
     } else if (isPDF) {
       previewBody.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: 1px solid #e3e8ee; border-radius: 6px;"></iframe>`;
+    } else if (isTXT) {
+      const userToken = localStorage.getItem('userToken');
+      fetch(fileUrl, {
+        headers: { 'Authorization': `Bearer ${userToken}` }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(text => {
+          previewBody.innerHTML = `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+              <textarea readonly style="flex: 1; width: 100%; height: 100%; box-sizing: border-box; padding: 16px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; line-height: 1.6; resize: none; background: #f8fafd; color: #1a1f36; outline: none; overflow-y: auto;">${esc(text)}</textarea>
+            </div>
+          `;
+        })
+        .catch(err => {
+          console.error('[Preview] Failed to fetch text file content:', err);
+          previewBody.innerHTML = `
+            <div style="text-align: center; padding: 32px; color: #991b1b; font-family: inherit;">
+              <div style="font-size: 3rem; margin-bottom: 16px;">❌</div>
+              <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #991b1b;">Failed to load text preview</p>
+              <p style="font-size: 0.85rem; color: #697386;">Error: ${err.message}</p>
+            </div>
+          `;
+        });
     } else {
       previewBody.innerHTML = `
             <div style="text-align: center; padding: 32px; color: #4f566b; font-family: inherit;">
               <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F4C4;</div>
               <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #1a1f36;">Preview not supported for this file type.</p>
-              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG) and PDFs.</p>
+              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG), PDFs, and Text files (TXT).</p>
               <a href="${fileUrl}" download class="btn-outline" style="text-decoration: none; padding: 10px 20px; font-weight: 600; display: inline-block;">Download File to View</a>
             </div>
           `;

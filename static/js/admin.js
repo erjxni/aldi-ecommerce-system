@@ -22,11 +22,10 @@
     const userPhoto = localStorage.getItem('userPhoto');
     const profilePicDiv = document.querySelector('.profile-pic');
     if (profilePicDiv) {
-      if (userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== '') {
-        profilePicDiv.innerHTML = `<img src="${userPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
-      } else {
-        profilePicDiv.innerHTML = '&#x1F464;';
-      }
+      const finalPhoto = userPhoto && userPhoto !== 'null' && userPhoto !== 'undefined' && userPhoto.trim() !== ''
+        ? userPhoto
+        : '/assets/images/default-photo.jpg';
+      profilePicDiv.innerHTML = `<img src="${finalPhoto}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" />`;
     }
   };
   window.updateTopbarProfilePic();
@@ -106,8 +105,8 @@
   }
   loadWhatsAppAnalytics();
 
-  // Sync user profile from db if not cached locally
-  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '' || !localStorage.getItem('userName'))) {
+  // Sync user profile photo from db if not cached locally
+  if (userEmail && userToken && (!localStorage.getItem('userPhoto') || localStorage.getItem('userPhoto') === 'null' || localStorage.getItem('userPhoto') === '')) {
     fetch(`/api/admin/database/User`, {
       headers: { 'Authorization': `Bearer ${userToken}` }
     })
@@ -121,8 +120,6 @@
           }
           if (me.displayName) {
             localStorage.setItem('userName', me.displayName);
-            
-            // Immediately update main.js navbar if it exists
             const emailDisplay = document.getElementById('user-email-display');
             if (emailDisplay) {
               emailDisplay.textContent = `Hello, ${me.displayName}`;
@@ -130,7 +127,7 @@
           }
         }
       })
-      .catch(err => console.error('Failed to sync profile from db:', err));
+      .catch(err => console.error('Failed to sync user profile:', err));
   }
 
   // --- Logout Button ---
@@ -141,6 +138,7 @@
       localStorage.removeItem('userEmail');
       localStorage.removeItem('userToken');
       localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
       localStorage.removeItem('userPhoto');
       fetch('/api/logout', { method: 'POST', credentials: 'include' }).finally(() => {
         window.location.href = '/index.html';
@@ -278,6 +276,29 @@
     };
   }
 
+  // Bind reconnect action to status button
+  const wsRefreshBtn = document.getElementById('ws-refresh-btn');
+  if (wsRefreshBtn) {
+    wsRefreshBtn.addEventListener('click', () => {
+      // Premium micro-animation: spin 360deg
+      wsRefreshBtn.style.transform = 'rotate(360deg)';
+      setTimeout(() => { wsRefreshBtn.style.transform = 'none'; }, 400);
+
+      // Force reconnect
+      if (ws) {
+        // Prevent auto-reconnection loop in onclose handler temporarily
+        ws.onclose = () => {};
+        ws.close();
+      }
+      reconnectAttempts = 0;
+      if (wsStatusText) wsStatusText.textContent = 'Connecting…';
+      if (wsStatusDot) wsStatusDot.style.background = '#f59e0b'; // amber
+      connectWebSocket();
+    });
+  }
+
+  connectWebSocket();
+
   // --- Document Upload Widget ---
   const uploadForm = document.getElementById('doc-upload-form');
   const uploadStatus = document.getElementById('upload-status');
@@ -351,175 +372,687 @@
   const usersBtn = document.getElementById('btn-users-manager');
   const filesBtn = document.getElementById('btn-files-manager');
   const financialsBtn = document.getElementById('btn-financials');
-  const docBtn = document.getElementById('btn-document-manager');
+  const pollsBtn = document.getElementById('btn-polls-manager');
+  const notifsBtn = document.getElementById('btn-notifications-manager');
+  const meetingsBtn = document.getElementById('btn-meetings-manager');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
   const filesViewer = document.getElementById('files-manager-view');
   const financialsViewer = document.getElementById('financials-view');
+  const pollsViewer = document.getElementById('polls-manager-view');
+  const notifsViewer = document.getElementById('notifications-manager');
+  const meetingsViewer = document.getElementById('meetings-manager-view');
+
+  // Helper to hide all main views
+  function hideAllViews() {
+    if (dashboardView) dashboardView.style.display = 'none';
+    if (dbViewer) dbViewer.style.display = 'none';
+    if (usersViewer) usersViewer.style.display = 'none';
+    if (filesViewer) filesViewer.style.display = 'none';
+    if (financialsViewer) financialsViewer.style.display = 'none';
+    if (pollsViewer) pollsViewer.style.display = 'none';
+    if (notifsViewer) notifsViewer.style.display = 'none';
+    if (meetingsViewer) meetingsViewer.style.display = 'none';
+  }
+
+  // Helper to transition views with a glassmorphism loading buffer
+  function triggerLoadingBuffer(callback) {
+    const overlay = document.getElementById('global-loading-overlay');
+    if (!overlay) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
+    overlay.style.display = 'flex';
+    // force reflow
+    overlay.offsetHeight;
+    overlay.style.opacity = '1';
+    
+    setTimeout(() => {
+      if (typeof callback === 'function') callback();
+      
+      setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 250);
+      }, 300); // 300ms loading visual hold
+    }, 150); // 150ms delay to complete fade-in before action
+  }
+  function clearSidebarActive() {
+    document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+  }
 
   if (
-    dbBtn &&
-    homeBtn &&
-    usersBtn &&
-    filesBtn &&
-    financialsBtn &&
-    dashboardView &&
-    dbViewer &&
-    usersViewer &&
-    filesViewer &&
-    financialsViewer
-  ) {
+  dbBtn &&
+  homeBtn &&
+  usersBtn &&
+  filesBtn &&
+  financialsBtn &&
+  dashboardView &&
+  dbViewer &&
+  usersViewer &&
+  filesViewer &&
+  financialsViewer
+) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dbViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-      dbBtn.classList.add('active');
-
-      // Load default tab
-      const activeTab = document.querySelector('.db-tab.active');
-      if (activeTab) loadTableData(activeTab.dataset.table);
-    });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'database');
+        hideAllViews();
+        if (dbViewer) dbViewer.style.display = 'flex';
+        clearSidebarActive();
+        dbBtn.classList.add('active');
+        const activeTab = document.querySelector('.db-tab.active');
+        if (activeTab) loadTableData(activeTab.dataset.table);
+      });
     });
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      dashboardView.style.display = 'block';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-      homeBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'home');
+        hideAllViews();
+        if (dashboardView) dashboardView.style.display = 'block';
+        clearSidebarActive();
+        homeBtn.classList.add('active');
+      });
     });
+
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'financials');
+        hideAllViews();
+        if (financialsViewer) financialsViewer.style.display = 'flex';
+        clearSidebarActive();
+        financialsBtn.classList.add('active');
+      });
     });
 
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'none';
-      usersViewer.style.display = 'flex';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-      usersBtn.classList.add('active');
-
-      loadUsersManagerData();
-    });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'users');
+        hideAllViews();
+        if (usersViewer) usersViewer.style.display = 'flex';
+        clearSidebarActive();
+        usersBtn.classList.add('active');
+        loadUsersManagerData();
+      });
     });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'flex';
-      financialsViewer.style.display = 'none';
-
-      document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-      filesBtn.classList.add('active');
-
-      loadFilesManagerData();
-    });
-    financialsBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-
-      dashboardView.style.display = 'none';
-      dbViewer.style.display = 'none';
-      usersViewer.style.display = 'none';
-      filesViewer.style.display = 'none';
-      financialsViewer.style.display = 'flex';
-
-      document
-        .querySelectorAll('.admin-sidebar .sidebar-icon')
-        .forEach((i) => i.classList.remove('active'));
-
-      financialsBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'files');
+        hideAllViews();
+        if (filesViewer) filesViewer.style.display = 'flex';
+        clearSidebarActive();
+        filesBtn.classList.add('active');
+        loadFilesManagerData();
+      });
     });
 
-    const notifBtn = document.getElementById('btn-notifications-manager');
-    const notifPanel = document.getElementById('notifications-manager');
-    if (notifBtn && notifPanel) {
-      notifBtn.addEventListener('click', (e) => {
+    // Polls Manager button
+    if (pollsBtn) {
+      pollsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        dashboardView.style.display = 'none';
-        dbViewer.style.display = 'none';
-        usersViewer.style.display = 'none';
-        filesViewer.style.display = 'none';
-        notifPanel.style.display = 'flex';
-        document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'polls');
+          hideAllViews();
+          if (pollsViewer) pollsViewer.style.display = 'flex';
+          clearSidebarActive();
+          pollsBtn.classList.add('active');
+          // Load polls when navigating to the view
+          if (typeof window.loadPolls === 'function') window.loadPolls();
+        });
       });
     }
 
-    if (docBtn) {
-      docBtn.addEventListener('click', (e) => {
+    // Notifications Manager button
+    if (notifsBtn) {
+      notifsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        dashboardView.style.display = 'none';
-        usersViewer.style.display = 'none';
-        filesViewer.style.display = 'none';
-        financialsViewer.style.display = 'none';
-        if (notifPanel) notifPanel.style.display = 'none';
-        dbViewer.style.display = 'flex';
-        
-        document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
-        docBtn.classList.add('active');
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'notifications');
+          hideAllViews();
+          if (notifsViewer) notifsViewer.style.display = 'flex';
+          clearSidebarActive();
+          notifsBtn.classList.add('active');
+        });
+      });
+    }
 
-        const docTab = document.querySelector('.db-tab[data-table="Document"]');
-        if (docTab) {
-          docTab.click();
+    // Meetings Manager button
+    if (meetingsBtn) {
+      meetingsBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'meetings');
+          hideAllViews();
+          if (meetingsViewer) meetingsViewer.style.display = 'flex';
+          clearSidebarActive();
+          meetingsBtn.classList.add('active');
+          if (typeof window.loadMeetings === 'function') window.loadMeetings();
+        });
+      });
+    }
+
+    // --- Daily Losses, Sales Losses & Customers Widgets ---
+    function initDailyLossesWidget() {
+      const rangePreset = document.getElementById('overview-range-preset');
+      const customDates = document.getElementById('overview-custom-dates');
+      const startDateInput = document.getElementById('overview-start-date');
+      const endDateInput = document.getElementById('overview-end-date');
+      const chartContainer = document.getElementById('losses-chart-container');
+      const widgetTitle = document.getElementById('losses-widget-title');
+
+      if (!rangePreset || !chartContainer) return;
+
+      const formatDate = (d) => d.toISOString().split('T')[0];
+
+      async function loadLosses(startDate, endDate) {
+        chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #697386; padding: 40px 0;">Loading chart data...</div>';
+        
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        // Trigger loading customer stats in parallel
+        loadCustomers(startDate, endDate);
+        loadDashboardLedger(startDate, endDate);
+
+        try {
+          const queryParams = new URLSearchParams();
+          if (startDate) queryParams.append('startDate', startDate);
+          if (endDate) queryParams.append('endDate', endDate);
+
+          const res = await fetch(`/api/finance/losses?${queryParams.toString()}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch losses');
+          
+          const data = await res.json();
+          
+          if (widgetTitle) {
+            widgetTitle.textContent = `Daily Losses Trend (Total: €${data.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})`;
+          }
+
+          // 1. Update Sales Losses main figure
+          const totalLossAmountEl = document.getElementById('total-loss-amount');
+          if (totalLossAmountEl) {
+            totalLossAmountEl.textContent = `€${data.totalLoss.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+          }
+
+          // 2. Update Sales Losses Comparison Badge
+          const salesLossesChangeEl = document.getElementById('sales-losses-change-value');
+          if (salesLossesChangeEl) {
+            const diff = data.totalLoss - data.previousTotalLoss;
+            const prefix = diff >= 0 ? '+' : '';
+            salesLossesChangeEl.textContent = `${prefix}€${diff.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            // Loss increase is bad (red), loss decrease is good (green), zero change is neutral (gray)
+            salesLossesChangeEl.style.color = diff > 0 ? '#ef4444' : (diff < 0 ? '#10b981' : '#697386');
+          }
+
+          // 3. Render Sales Losses dot chart (Daily loss distribution)
+          const salesLossesDotChart = document.getElementById('sales-losses-dot-chart');
+          const lossesList = data.losses || [];
+
+          if (salesLossesDotChart) {
+            salesLossesDotChart.innerHTML = '';
+            if (lossesList.length > 0) {
+              const maxDailyLoss = Math.max(...lossesList.map(l => l.lossAmount), 0);
+              
+              lossesList.forEach(l => {
+                const col = document.createElement('div');
+                col.className = 'dot-col';
+                col.style.height = '100%';
+                col.style.justifyContent = 'flex-end';
+                
+                const activeDots = maxDailyLoss > 0 ? Math.round((l.lossAmount / maxDailyLoss) * 4) : 0;
+                
+                // Draw 4 rows of dots (active on bottom)
+                for (let i = 3; i >= 0; i--) {
+                  const dot = document.createElement('div');
+                  dot.className = 'dot' + (i < activeDots ? ' active-green' : '');
+                  col.appendChild(dot);
+                }
+                
+                // Set tooltip description
+                col.title = `${l.date} (${l.dayName}): €${l.lossAmount.toFixed(2)}`;
+                salesLossesDotChart.appendChild(col);
+              });
+            }
+          }
+
+          // 4. Render main 3D Bar chart
+          chartContainer.innerHTML = '';
+          if (lossesList.length === 0) {
+            chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #697386; padding: 40px 0;">No loss data found.</div>';
+            return;
+          }
+
+          const maxLoss = Math.max(...lossesList.map(l => l.lossAmount), 0);
+
+          lossesList.forEach(item => {
+            const barGroup = document.createElement('div');
+            barGroup.className = 'bar-group';
+            
+            const heightPercent = maxLoss > 0 ? (item.lossAmount / maxLoss) * 85 : 0;
+            const tooltipText = `${item.date} (${item.dayName}): €${item.lossAmount.toFixed(2)}`;
+            
+            barGroup.innerHTML = `
+              <div class="bar-3d" style="height: ${Math.max(heightPercent, 2)}%;" data-tooltip="${tooltipText}"></div>
+              <div class="bar-label">${item.dayName}</div>
+            `;
+            chartContainer.appendChild(barGroup);
+          });
+
+        } catch (err) {
+          console.error('Failed to load daily losses:', err);
+          chartContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #991b1b; padding: 40px 0;">Error loading chart data.</div>';
+        }
+      }
+
+      async function loadCustomers(startDate, endDate) {
+        const totalCustomersEl = document.getElementById('customer-table-count-value');
+        const customersChangeEl = document.getElementById('customers-change-value');
+        const customersDotChart = document.getElementById('customers-dot-chart');
+
+        if (!totalCustomersEl) return;
+
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        try {
+          const res = await fetch(`/api/finance/customers-stats?startDate=${startDate}&endDate=${endDate}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch customer stats');
+          const data = await res.json();
+
+          // 1. Update Customers count
+          totalCustomersEl.textContent = data.totalCustomers.toLocaleString();
+
+          // 2. Update Customers Comparison Badge
+          if (customersChangeEl) {
+            const count = data.newCustomersCount;
+            customersChangeEl.textContent = `+${count}`;
+            customersChangeEl.style.color = count > 0 ? '#10b981' : '#697386';
+          }
+
+          // 3. Render Customers dot chart (Daily signup distribution)
+          if (customersDotChart) {
+            customersDotChart.innerHTML = '';
+            const signups = data.dailySignups || [];
+            if (signups.length > 0) {
+              const maxSignups = Math.max(...signups.map(s => s.count), 0);
+
+              signups.forEach(s => {
+                const col = document.createElement('div');
+                col.className = 'dot-col';
+                col.style.height = '100%';
+                col.style.justifyContent = 'flex-end';
+
+                const activeDots = maxSignups > 0 ? Math.round((s.count / maxSignups) * 4) : 0;
+
+                for (let i = 3; i >= 0; i--) {
+                  const dot = document.createElement('div');
+                  dot.className = 'dot' + (i < activeDots ? ' active-blue' : '');
+                  col.appendChild(dot);
+                }
+
+                col.title = `${s.date} (${s.dayName}): ${s.count} new customer${s.count !== 1 ? 's' : ''}`;
+                customersDotChart.appendChild(col);
+              });
+            }
+          }
+        } catch (err) {
+          console.error('Failed to load customer stats:', err);
+        }
+      }
+
+      async function loadDashboardLedger(startDate, endDate) {
+        if (!ledgerBody) return;
+
+        const token = localStorage.getItem('userToken');
+        if (!token) return;
+
+        try {
+          const res = await fetch(`/api/finance/summary?startDate=${startDate}&endDate=${endDate}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Failed to fetch finance summary');
+          const data = await res.json();
+          
+          const records = data.records || [];
+          if (records.length === 0) {
+            ledgerBody.innerHTML = `
+              <tr>
+                <td colspan="5" style="text-align:center; padding: 24px; color: #697386;" class="ledger-empty">
+                  No financial records found for the selected range.</td>
+              </tr>
+            `;
+            return;
+          }
+
+          ledgerBody.innerHTML = records.map(r => {
+            const timestamp = new Date(r.createdAt).toLocaleString('en-AU', {
+              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            const isCost = r.transactionType === 'operational_cost' || r.transactionType === 'cost';
+            const typeClass = isCost ? 'status-warning' : 'status-success';
+            const typeName = isCost ? 'Expense' : 'Sale';
+
+            return `
+              <tr>
+                <td style="font-family:monospace;">${r.transactionId || 'N/A'}</td>
+                <td><span class="status-pill ${typeClass}">${typeName}</span></td>
+                <td style="font-weight:600;">€${Number(r.amount || 0).toFixed(2)}</td>
+                <td style="font-family:monospace;">${(r.relatedOrderId || r.orderId || 'N/A').substring(0, 8) + '...'}</td>
+                <td>${timestamp}</td>
+              </tr>
+            `;
+          }).join('');
+
+        } catch (err) {
+          console.error('Failed to load dashboard ledger:', err);
+        }
+      }
+
+      function handlePresetChange() {
+        const preset = rangePreset.value;
+        if (preset === 'custom') {
+          if (customDates) customDates.style.display = 'flex';
+          if (startDateInput.value && endDateInput.value) {
+            loadLosses(startDateInput.value, endDateInput.value);
+          }
+        } else {
+          if (customDates) customDates.style.display = 'none';
+          
+          const today = new Date();
+          let startDate, endDate;
+
+          if (preset === 'this-week') {
+            const day = today.getDay();
+            const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(today.setDate(diffToMon));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            startDate = formatDate(monday);
+            endDate = formatDate(sunday);
+          } else if (preset === 'last-week') {
+            const day = today.getDay();
+            const diffToMon = today.getDate() - day + (day === 0 ? -6 : 1) - 7;
+            const monday = new Date(today.setDate(diffToMon));
+            const sunday = new Date(monday);
+            sunday.setDate(monday.getDate() + 6);
+            startDate = formatDate(monday);
+            endDate = formatDate(sunday);
+          } else if (preset === 'this-month') {
+            const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            startDate = formatDate(startOfMonth);
+            endDate = formatDate(endOfMonth);
+          }
+
+          loadLosses(startDate, endDate);
+        }
+      }
+
+      rangePreset.addEventListener('change', handlePresetChange);
+      if (startDateInput) startDateInput.addEventListener('change', () => {
+        if (rangePreset.value === 'custom' && startDateInput.value && endDateInput.value) {
+          loadLosses(startDateInput.value, endDateInput.value);
         }
       });
+      if (endDateInput) endDateInput.addEventListener('change', () => {
+        if (rangePreset.value === 'custom' && startDateInput.value && endDateInput.value) {
+          loadLosses(startDateInput.value, endDateInput.value);
+        }
+      });
+
+      handlePresetChange();
     }
+
+    // --- Loss Categories 6-Month Trend SVG Chart ---
+    async function initLossCategoriesWidget() {
+      const container = document.getElementById('loss-categories-chart-container');
+      const labelsContainer = document.getElementById('loss-categories-labels-container');
+      const badge = document.getElementById('loss-category-badge');
+
+      if (!container || !labelsContainer) return;
+
+      const token = localStorage.getItem('userToken');
+      if (!token) return;
+
+      try {
+        const res = await fetch('/api/finance/losses-trend-6months', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error('Failed to fetch losses trend');
+        const data = await res.json();
+
+        // 1. Update Category percentage badge
+        if (badge) {
+          if (data.topCategory && data.topCategory.name !== 'None') {
+            badge.textContent = `${data.topCategory.name}: ${data.topCategory.percentage}% of losses`;
+          } else {
+            badge.textContent = 'No losses recorded';
+          }
+        }
+
+        // 2. Render SVG Line Chart
+        const monthsList = data.months || [];
+        if (monthsList.length === 0) return;
+
+        // Clear pre-existing SVGs from container (keep the badge)
+        container.querySelectorAll('svg').forEach(el => el.remove());
+        labelsContainer.innerHTML = '';
+
+        const maxTrendLoss = Math.max(...monthsList.map(m => m.lossAmount), 0);
+
+        // Map coordinates: X spreads across 340 width, Y scales 20 (max loss) to 100 (zero loss)
+        const points = monthsList.map((m, idx) => {
+          const x = 30 + idx * 56;
+          const y = maxTrendLoss > 0 ? 100 - (m.lossAmount / maxTrendLoss) * 80 : 100;
+          return { x, y, name: m.name, loss: m.lossAmount };
+        });
+
+        const pathD = 'M ' + points.map(p => `${p.x} ${p.y}`).join(' L ');
+        const areaD = `M 30 110 L ` + points.map(p => `${p.x} ${p.y}`).join(' L ') + ` L 310 110 Z`;
+
+        const svgNS = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgNS, "svg");
+        svg.setAttribute("viewBox", "0 0 340 120");
+        svg.setAttribute("width", "100%");
+        svg.setAttribute("height", "100%");
+        svg.style.overflow = "visible";
+
+        const defs = document.createElementNS(svgNS, "defs");
+        defs.innerHTML = `
+          <linearGradient id="line-grad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#ef4444" />
+            <stop offset="100%" stop-color="#ec4899" />
+          </linearGradient>
+          <linearGradient id="area-grad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#ef4444" stop-opacity="0.2" />
+            <stop offset="100%" stop-color="#ef4444" stop-opacity="0.0" />
+          </linearGradient>
+        `;
+        svg.appendChild(defs);
+
+        // Render Area
+        const areaPath = document.createElementNS(svgNS, "path");
+        areaPath.setAttribute("d", areaD);
+        areaPath.setAttribute("fill", "url(#area-grad)");
+        svg.appendChild(areaPath);
+
+        // Render Line
+        const linePath = document.createElementNS(svgNS, "path");
+        linePath.setAttribute("d", pathD);
+        linePath.setAttribute("fill", "none");
+        linePath.setAttribute("stroke", "url(#line-grad)");
+        linePath.setAttribute("stroke-width", "3");
+        linePath.setAttribute("stroke-linecap", "round");
+        linePath.setAttribute("stroke-linejoin", "round");
+        svg.appendChild(linePath);
+
+        // Render Circle Node points
+        points.forEach(p => {
+          const circle = document.createElementNS(svgNS, "circle");
+          circle.setAttribute("cx", p.x);
+          circle.setAttribute("cy", p.y);
+          circle.setAttribute("r", "5");
+          circle.setAttribute("fill", "#fff");
+          circle.setAttribute("stroke", "#ef4444");
+          circle.setAttribute("stroke-width", "3");
+          circle.style.cursor = "pointer";
+          circle.style.transition = "all 0.15s ease";
+
+          const title = document.createElementNS(svgNS, "title");
+          title.textContent = `${p.name}: €${p.loss.toFixed(2)}`;
+          circle.appendChild(title);
+
+          circle.addEventListener('mouseenter', () => {
+            circle.setAttribute("r", "7");
+            circle.setAttribute("fill", "#ef4444");
+            circle.setAttribute("stroke", "#fff");
+          });
+          circle.addEventListener('mouseleave', () => {
+            circle.setAttribute("r", "5");
+            circle.setAttribute("fill", "#fff");
+            circle.setAttribute("stroke", "#ef4444");
+          });
+
+          svg.appendChild(circle);
+        });
+
+        container.appendChild(svg);
+
+        // 3. Render Month label elements
+        monthsList.forEach(m => {
+          const labelSpan = document.createElement('span');
+          labelSpan.textContent = m.name;
+          labelsContainer.appendChild(labelSpan);
+        });
+
+      } catch (err) {
+        console.error('Failed to load category losses trend:', err);
+      }
+    }
+
+    // Initialize widgets on load
+    initDailyLossesWidget();
+    initLossCategoriesWidget();
+
+    // --- Revenue Breakdown Progress Bars ---
+    async function loadRevenueBreakdown() {
+      const token = localStorage.getItem('userToken');
+      if (!token) return;
+
+      const fmt = (d) => d.toISOString().split('T')[0];
+
+      // Current month: 1st of this month → today
+      const now = new Date();
+      const currStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const currEnd   = now;
+
+      // Previous month: 1st → last day of last month
+      const prevEnd   = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+      const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1);
+
+      const headers = { 'Authorization': `Bearer ${token}` };
+
+      try {
+        const [currRes, prevRes] = await Promise.all([
+          fetch(`/api/finance/summary?startDate=${fmt(currStart)}&endDate=${fmt(currEnd)}`, { headers }),
+          fetch(`/api/finance/summary?startDate=${fmt(prevStart)}&endDate=${fmt(prevEnd)}`, { headers })
+        ]);
+
+        if (!currRes.ok) return; // silently skip if not finance role
+
+        const currData  = await currRes.json();
+        const currGroups = currData.summary?.groupedByType || [];
+
+        // Extract this month's revenue sources
+        const revenueTypes = ['ecommerce_sale', 'membership_due'];
+        const online  = currGroups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
+        const subs    = currGroups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
+        const instore = currGroups
+          .filter(g => !['ecommerce_sale', 'membership_due', 'operational_cost'].includes(g.transactionType))
+          .reduce((sum, g) => sum + g.totalAmount, 0);
+
+        const currTotal = online + subs + instore;
+
+        // Update total revenue display
+        const fmt2 = (v) => `€${v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const totalEl = document.getElementById('total-revenue-amount');
+        if (totalEl) totalEl.textContent = fmt2(currTotal);
+
+        // Update progress bars (% share of current month total)
+        const pct = (val) => currTotal > 0 ? Math.round((val / currTotal) * 100) : 0;
+        const onlineBar  = document.getElementById('rev-online-bar');
+        const subsBar    = document.getElementById('rev-subscriptions-bar');
+        const instoreBar = document.getElementById('rev-instore-bar');
+        const onlineVal  = document.getElementById('rev-online-val');
+        const subsVal    = document.getElementById('rev-subscriptions-val');
+        const instoreVal = document.getElementById('rev-instore-val');
+
+        if (onlineBar)  onlineBar.style.width  = pct(online)  + '%';
+        if (subsBar)    subsBar.style.width     = pct(subs)    + '%';
+        if (instoreBar) instoreBar.style.width  = pct(instore) + '%';
+        if (onlineVal)  onlineVal.textContent   = fmt2(online);
+        if (subsVal)    subsVal.textContent     = fmt2(subs);
+        if (instoreVal) instoreVal.textContent  = fmt2(instore);
+
+        // --- MoM badge update ---
+        const badge = document.getElementById('revenue-change-badge');
+        if (!badge) return;
+
+        let prevTotal = 0;
+        if (prevRes.ok) {
+          const prevData   = await prevRes.json();
+          const prevGroups = prevData.summary?.groupedByType || [];
+          const prevOnline  = prevGroups.find(g => g.transactionType === 'ecommerce_sale')?.totalAmount || 0;
+          const prevSubs    = prevGroups.find(g => g.transactionType === 'membership_due')?.totalAmount || 0;
+          const prevInstore = prevGroups
+            .filter(g => !['ecommerce_sale', 'membership_due', 'operational_cost'].includes(g.transactionType))
+            .reduce((sum, g) => sum + g.totalAmount, 0);
+          prevTotal = prevOnline + prevSubs + prevInstore;
+        }
+
+        // Calculate percentage change vs previous month
+        let changeLabel, changeClass;
+        if (prevTotal === 0 && currTotal === 0) {
+          changeLabel = '— 0%';
+          changeClass = 'neutral';
+        } else if (prevTotal === 0) {
+          changeLabel = '▲ 100%';
+          changeClass = 'positive';
+        } else {
+          const diffPct = ((currTotal - prevTotal) / prevTotal) * 100;
+          if (Math.abs(diffPct) < 0.05) {
+            changeLabel = '— 0%';
+            changeClass = 'neutral';
+          } else if (diffPct > 0) {
+            changeLabel = `▲ ${diffPct.toFixed(1)}%`;
+            changeClass = 'positive';
+          } else {
+            changeLabel = `▼ ${Math.abs(diffPct).toFixed(1)}%`;
+            changeClass = 'negative';
+          }
+        }
+
+        badge.textContent = changeLabel;
+        badge.className = `metric-change ${changeClass}`;
+
+      } catch (err) {
+        console.warn('Revenue breakdown unavailable:', err.message);
+      }
+    }
+
+    loadRevenueBreakdown();
   }
 
   // --- Tab and Data Fetching Logic ---
@@ -531,6 +1064,7 @@
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
+      sessionStorage.setItem('adminActiveDbTable', tab.dataset.table);
       loadTableData(tab.dataset.table);
     });
   });
@@ -632,6 +1166,10 @@
     'deleteUser': {
       query: `mutation DeleteUser($id: UUID!) {\n  user_delete(id: $id)\n}`,
       variables: `{\n  "id": "PASTE_USER_ID_HERE"\n}`
+    },
+    'deleteFinancialRecord': {
+      query: `mutation DeleteFinancialRecord($id: UUID!) {\n  financialRecord_delete(id: $id)\n}`,
+      variables: `{\n  "id": "PASTE_FINANCIAL_RECORD_ID_HERE"\n}`
     }
   };
 
@@ -701,7 +1239,8 @@
       'cart': 'Cart',
       'cartitem': 'CartItem',
       'processedby': 'User',
-      'customer': 'User'
+      'customer': 'User',
+      'poll': 'Poll'
     };
     return map[col.toLowerCase()] || col;
   }
@@ -882,18 +1421,11 @@
       addUserError.style.display = 'block';
       addUserError.style.color = '#2b58f9';
 
-      let query, variables;
-      if (photoUrl) {
-        query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
-              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
-            }`;
-        variables = { email, password, role, name, photoUrl };
-      } else {
-        query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!) {
-              user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name })
-            }`;
-        variables = { email, password, role, name };
-      }
+      const finalPhotoUrl = photoUrl || '/assets/images/default-photo.jpg';
+      const query = `mutation AddStaffUser($email: String!, $password: String!, $role: String!, $name: String!, $photoUrl: String!) {
+            user_insert(data: { email: $email, passwordHash: $password, role: $role, displayName: $name, photoUrl: $photoUrl })
+          }`;
+      const variables = { email, password, role, name, photoUrl: finalPhotoUrl };
 
       try {
         const res = await fetch('/api/admin/query', {
@@ -1105,7 +1637,10 @@
       const trashIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
       usersCardContainer.innerHTML = users.map(u => {
-        const avatarHtml = u.photoUrl ? `<img src="${u.photoUrl}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />` : `<div style="width: 48px; height: 48px; border-radius: 50%; background: #f4f5f7; display: flex; align-items: center; justify-content: center; margin-right: 12px; font-size: 1.5rem; color: #697386; border: 1px solid #e3e8ee;">&#x1F464;</div>`;
+        const photo = u.photoUrl && u.photoUrl !== 'null' && u.photoUrl !== 'undefined' && u.photoUrl.trim() !== ''
+          ? u.photoUrl
+          : '/assets/images/default-photo.jpg';
+        const avatarHtml = `<img src="${photo}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover; margin-right: 12px; border: 1px solid #e3e8ee;" />`;
         return `
             <div class="user-card">
               <div class="user-card-header" style="align-items: center;">
@@ -1293,17 +1828,53 @@
     const ext = (extension || '').toLowerCase();
     const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
     const isPDF = ext === 'pdf';
+    const isTXT = ext === 'txt';
+
+    function esc(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
 
     if (isImage) {
       previewBody.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
     } else if (isPDF) {
       previewBody.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: 1px solid #e3e8ee; border-radius: 6px;"></iframe>`;
+    } else if (isTXT) {
+      const userToken = localStorage.getItem('userToken');
+      fetch(fileUrl, {
+        headers: { 'Authorization': `Bearer ${userToken}` }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          return res.text();
+        })
+        .then(text => {
+          previewBody.innerHTML = `
+            <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+              <textarea readonly style="flex: 1; width: 100%; height: 100%; box-sizing: border-box; padding: 16px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; line-height: 1.6; resize: none; background: #f8fafd; color: #1a1f36; outline: none; overflow-y: auto;">${esc(text)}</textarea>
+            </div>
+          `;
+        })
+        .catch(err => {
+          console.error('[Preview] Failed to fetch text file content:', err);
+          previewBody.innerHTML = `
+            <div style="text-align: center; padding: 32px; color: #991b1b; font-family: inherit;">
+              <div style="font-size: 3rem; margin-bottom: 16px;">❌</div>
+              <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #991b1b;">Failed to load text preview</p>
+              <p style="font-size: 0.85rem; color: #697386;">Error: ${err.message}</p>
+            </div>
+          `;
+        });
     } else {
       previewBody.innerHTML = `
             <div style="text-align: center; padding: 32px; color: #4f566b; font-family: inherit;">
               <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F4C4;</div>
               <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #1a1f36;">Preview not supported for this file type.</p>
-              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG) and PDFs.</p>
+              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG), PDFs, and Text files (TXT).</p>
               <a href="${fileUrl}" download class="btn-outline" style="text-decoration: none; padding: 10px 20px; font-weight: 600; display: inline-block;">Download File to View</a>
             </div>
           `;
@@ -1339,66 +1910,1328 @@
     return 'status-warning';
   }
 })();
-// ---------------------------------------------------------
-// Notifications Manager
-// ---------------------------------------------------------
-const btnNotificationsManager = document.getElementById('btn-notifications-manager');
-if (btnNotificationsManager) {
-  btnNotificationsManager.addEventListener('click', (e) => {
-    e.preventDefault();
-    document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display = 'none');
-    const panel = document.getElementById('notifications-manager');
-    if (panel) panel.style.display = 'flex';
-  });
-}
 
-const sendNotifBtn = document.getElementById('send-notif-btn');
-if (sendNotifBtn) {
-  sendNotifBtn.addEventListener('click', async () => {
-    const message = document.getElementById('notif-message-input').value.trim();
-    const type = document.getElementById('notif-type-select').value;
-    const roles = [];
-    if (document.getElementById('role-admin').checked) roles.push('admin');
-    if (document.getElementById('role-employee').checked) roles.push('employee');
-    if (document.getElementById('role-financial').checked) roles.push('financial_officer');
-    if (document.getElementById('role-customer').checked) roles.push('customer');
-    const status = document.getElementById('notif-status');
+// ================================================================
+// POLLS MANAGER MODULE — SCRUM-192
+// ================================================================
+(function () {
+  const userToken = localStorage.getItem('userToken');
+  const userRole = localStorage.getItem('userRole') || 'customer';
+  let currentPolls = [];
 
-    if (!message) {
-      status.textContent = 'Please enter a message.';
-      status.style.color = '#e53935';
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function coerceVoteCounts(voteCounts) {
+    return Array.isArray(voteCounts)
+      ? voteCounts.map(vote => ({
+        option: String(vote.option || ''),
+        count: Number(vote.count || 0)
+      }))
+      : [];
+  }
+
+  // ---- DOM Elements ----
+  const pollsList = document.getElementById('polls-list');
+  const pollsLoading = document.getElementById('polls-loading');
+  const pollsEmpty = document.getElementById('polls-empty');
+  const createPollPanel = document.getElementById('create-poll-panel');
+  const createPollForm = document.getElementById('create-poll-form');
+  const createPollStatus = document.getElementById('create-poll-status');
+  const pollsStatusBadge = document.getElementById('polls-status-badge');
+  const pollsRefreshBtn = document.getElementById('polls-refresh-btn');
+  const addOptionBtn = document.getElementById('add-poll-option-btn');
+  const optionsContainer = document.getElementById('poll-options-container');
+
+  // ---- Access Control: hide create form for non-admins ----
+  if (createPollPanel && userRole !== 'admin') {
+    createPollPanel.classList.add('non-admin-create-hide');
+  }
+
+  // ---- Toast helper ----
+  function showPollToast(title, message, isError = false) {
+    const existing = document.querySelector('.poll-vote-toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.className = 'poll-vote-toast' + (isError ? ' error' : '');
+    toast.innerHTML = `<div class="poll-vote-toast-title">${title}</div><div class="poll-vote-toast-msg">${message}</div>`;
+    document.body.appendChild(toast);
+    requestAnimationFrame(() => toast.classList.add('visible'));
+    setTimeout(() => {
+      toast.classList.remove('visible');
+      setTimeout(() => toast.remove(), 400);
+    }, 4000);
+  }
+
+  // ---- Build result bars HTML ----
+  function buildResultBars(poll) {
+    const options = Array.isArray(poll.options) ? poll.options : [];
+    const voteCounts = coerceVoteCounts(poll.voteCounts);
+    const userVote = poll.userVote;
+    const totalVotes = voteCounts.reduce((s, v) => s + (v.count || 0), 0);
+    const maxCount = voteCounts.reduce((m, v) => Math.max(m, v.count || 0), 0);
+
+    return options.map((option) => {
+      const match = voteCounts.find(v => v.option === option);
+      const count = match ? (match.count || 0) : 0;
+      const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      const isTop = count > 0 && count === maxCount;
+      const isUserVote = userVote === option;
+      const escapedOption = escapeHtml(option);
+      const encodedOption = encodeURIComponent(option);
+
+      // If user hasn't voted, show vote buttons
+      if (!userVote && poll.status === 'open') {
+        return `
+          <button class="vote-option-btn" data-poll-id="${escapeHtml(poll.id)}" data-option="${encodedOption}" title="Vote for ${escapedOption}">
+            ${escapedOption}
+          </button>
+        `;
+      }
+
+      // After voting or poll closed — show result bars
+      return `
+        <div class="poll-result-row">
+          <div class="poll-result-label">
+            <span class="result-option-name${isUserVote ? '" style="color:#2b58f9;font-weight:700;' : ''}">${escapedOption}${isUserVote ? ' ✓' : ''}</span>
+            <span class="poll-result-count">${count} <span class="poll-result-percentage">${pct}%</span></span>
+          </div>
+          <div class="poll-bar-bg">
+            <div class="poll-bar-fill${isTop ? ' top-option' : ''}" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ---- Render a single poll card ----
+  function renderPollCard(poll) {
+    const { id, title, description, status, createdAt, closesAt, userVote } = poll;
+    const voteCounts = coerceVoteCounts(poll.voteCounts);
+    const totalVotes = voteCounts.reduce((s, v) => s + (v.count || 0), 0);
+    const hasVoted = !!userVote;
+    const isClosed = status !== 'open';
+    const closesLabel = closesAt ? new Date(closesAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'No deadline';
+    const createdLabel = createdAt ? new Date(createdAt).toLocaleString('en-AU', { day: '2-digit', month: 'short', year: 'numeric' }) : '';
+
+    const card = document.createElement('div');
+    card.className = 'poll-card';
+    card.id = `poll-card-${id}`;
+
+    const adminActions = userRole === 'admin' && status === 'open'
+      ? `<button class="poll-close-btn" data-poll-id="${escapeHtml(id)}">Close Poll</button>`
+      : '';
+
+    card.innerHTML = `
+      <div class="poll-card-header">
+        <div style="flex:1;min-width:0;">
+          <h3 class="poll-card-title">${escapeHtml(title)}</h3>
+          ${description ? `<p class="poll-card-description">${escapeHtml(description)}</p>` : ''}
+        </div>
+        <span class="poll-status-badge poll-status-${escapeHtml(status)}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</span>
+      </div>
+      <div class="poll-card-body">
+        ${hasVoted || isClosed
+          ? `<div class="poll-results">${buildResultBars(poll)}</div>`
+          : `<div class="poll-options-grid">${buildResultBars(poll)}</div><div class="poll-divider"></div><div class="poll-results"></div>`
+        }
+      </div>
+      <div class="poll-card-footer">
+        <div>
+          <span class="poll-total-votes">🗳️ ${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
+          <span class="poll-meta" style="margin-left:12px;">Closes: ${closesLabel}</span>
+          ${createdLabel ? `<span class="poll-meta" style="margin-left:12px;">Created: ${createdLabel}</span>` : ''}
+        </div>
+        ${adminActions}
+      </div>
+    `;
+
+    return card;
+  }
+
+  // ---- Render all polls ----
+  function renderPolls(polls) {
+    if (!pollsList) return;
+    pollsList.innerHTML = '';
+
+    if (polls.length === 0) {
+      if (pollsLoading) pollsLoading.style.display = 'none';
+      if (pollsEmpty) pollsEmpty.style.display = 'block';
       return;
     }
 
-    if (roles.length === 0) {
-      status.textContent = 'Please select at least one role.';
-      status.style.color = '#e53935';
-      return;
+    if (pollsLoading) pollsLoading.style.display = 'none';
+    if (pollsEmpty) pollsEmpty.style.display = 'none';
+
+    polls.forEach(poll => {
+      const card = renderPollCard(poll);
+      pollsList.appendChild(card);
+    });
+
+    // Update status badge
+    if (pollsStatusBadge) {
+      pollsStatusBadge.textContent = `${polls.length} active poll${polls.length !== 1 ? 's' : ''}`;
     }
+
+    // Attach vote button handlers
+    pollsList.querySelectorAll('.vote-option-btn').forEach(btn => {
+      btn.addEventListener('click', () => submitVote(btn.dataset.pollId, decodeURIComponent(btn.dataset.option)));
+    });
+
+    // Attach close poll handlers (admin only)
+    pollsList.querySelectorAll('.poll-close-btn').forEach(btn => {
+      btn.addEventListener('click', () => closePoll(btn.dataset.pollId));
+    });
+  }
+
+  // ---- Fetch active polls ----
+  async function loadPolls() {
+    if (!pollsList) return;
+    if (pollsLoading) pollsLoading.style.display = 'block';
+    if (pollsEmpty) pollsEmpty.style.display = 'none';
+    pollsList.innerHTML = '';
 
     try {
-      status.textContent = 'Sending...';
-      status.style.color = '#4f566b';
+      const res = await fetch('/api/polls/active', {
+        headers: { 'Authorization': `Bearer ${userToken}` },
+        credentials: 'include'
+      });
+
+      if (res.status === 403) {
+        if (pollsLoading) pollsLoading.innerHTML = '⛔ Access denied. This section is for internal staff only.';
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      currentPolls = await res.json();
+      renderPolls(currentPolls);
+    } catch (err) {
+      console.error('[Polls] Failed to load polls:', err);
+      if (pollsLoading) pollsLoading.textContent = 'Failed to load polls. Please refresh.';
+    }
+  }
+
+  // Expose globally for sidebar button access
+  window.loadPolls = loadPolls;
+
+  // ---- Submit a vote ----
+  async function submitVote(pollId, selectedOption) {
+    try {
+      const res = await fetch(`/api/polls/${pollId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        credentials: 'include',
+        body: JSON.stringify({ selectedOption })
+      });
+
+      const data = await res.json();
+
+      if (res.status === 201) {
+        showPollToast('✅ Vote Recorded!', `You voted for "${selectedOption}"`);
+        // Refresh polls to show updated counts
+        await loadPolls();
+      } else if (res.status === 409) {
+        // SCRUM-194: Duplicate vote
+        if (data.code === 'DUPLICATE_VOTE') {
+          showPollToast('⚠️ Already Voted', 'You have already submitted a vote on this poll.', true);
+        } else {
+          showPollToast('⚠️ Poll Closed', data.error || 'This poll is no longer accepting votes.', true);
+        }
+      } else {
+        showPollToast('❌ Error', data.error || 'Failed to submit vote.', true);
+      }
+    } catch (err) {
+      console.error('[Polls] Vote submission failed:', err);
+      showPollToast('❌ Network Error', 'Failed to reach the server. Please try again.', true);
+    }
+  }
+
+  // ---- Close a poll (admin only) ----
+  async function closePoll(pollId) {
+    if (!confirm('Are you sure you want to close this poll? No more votes will be accepted.')) return;
+    try {
+      const res = await fetch(`/api/polls/${pollId}/close`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${userToken}` },
+        credentials: 'include'
+      });
+      if (res.ok) {
+        showPollToast('✅ Poll Closed', 'The poll has been closed successfully.');
+        await loadPolls();
+      } else {
+        const data = await res.json();
+        showPollToast('❌ Error', data.error || 'Failed to close poll.', true);
+      }
+    } catch (err) {
+      console.error('[Polls] Failed to close poll:', err);
+      showPollToast('❌ Network Error', 'Could not close the poll. Please try again.', true);
+    }
+  }
+
+  // ---- Refresh button ----
+  if (pollsRefreshBtn) {
+    pollsRefreshBtn.addEventListener('click', loadPolls);
+  }
+
+  // ---- Dynamic option add/remove ----
+  if (addOptionBtn && optionsContainer) {
+    addOptionBtn.addEventListener('click', () => {
+      const rows = optionsContainer.querySelectorAll('.poll-option-row');
+      const optionLetter = String.fromCharCode(65 + rows.length); // A, B, C...
+      const row = document.createElement('div');
+      row.className = 'poll-option-row';
+      row.style.cssText = 'display: flex; gap: 8px; align-items: center;';
+      row.innerHTML = `
+        <input type="text" class="poll-option-input" required placeholder="Option ${optionLetter}"
+          style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+        <button type="button" class="remove-option-btn"
+          style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0;">×</button>
+      `;
+      row.querySelector('.remove-option-btn').addEventListener('click', () => {
+        const remaining = optionsContainer.querySelectorAll('.poll-option-row');
+        if (remaining.length > 2) {
+          row.remove();
+        }
+      });
+      optionsContainer.appendChild(row);
+    });
+  }
+
+  // ---- Create Poll form submission ----
+  if (createPollForm && userRole === 'admin') {
+    createPollForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('poll-title').value.trim();
+      const description = document.getElementById('poll-description').value.trim();
+      const closesAt = document.getElementById('poll-closes-at').value;
+      const optionInputs = optionsContainer.querySelectorAll('.poll-option-input');
+      const options = Array.from(optionInputs).map(i => i.value.trim()).filter(Boolean);
+
+      if (!title) {
+        showPollStatus('Poll title is required.', '#991b1b');
+        return;
+      }
+      if (options.length < 2) {
+        showPollStatus('At least 2 options are required.', '#991b1b');
+        return;
+      }
+
+      showPollStatus('Creating poll...', '#2b58f9');
+
+      try {
+        const res = await fetch('/api/polls', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({ title, description, options, closesAt: closesAt || undefined })
+        });
+
+        const data = await res.json();
+
+        if (res.status === 201) {
+          showPollStatus('✅ Poll created successfully!', '#10b981');
+          createPollForm.reset();
+          // Reset options to 2 default rows
+          const defaultRows = optionsContainer.querySelectorAll('.poll-option-row');
+          defaultRows.forEach((row, idx) => { if (idx >= 2) row.remove(); });
+          // Reload polls list
+          await loadPolls();
+          showPollToast('🗳️ Poll Created!', `"${title}" is now live and accepting votes.`);
+          setTimeout(() => {
+            if (createPollStatus) createPollStatus.style.display = 'none';
+          }, 3000);
+        } else {
+          showPollStatus(data.error || 'Failed to create poll.', '#991b1b');
+        }
+      } catch (err) {
+        console.error('[Polls] Failed to create poll:', err);
+        showPollStatus('Network error. Please try again.', '#991b1b');
+      }
+    });
+
+    function showPollStatus(text, color) {
+      if (!createPollStatus) return;
+      createPollStatus.textContent = text;
+      createPollStatus.style.color = color;
+      createPollStatus.style.display = 'block';
+    }
+  }
+
+  // --- Notifications Manager Logic ---
+  const sendNotifBtn = document.getElementById('sendNotifBtn');
+  const notifType = document.getElementById('notifType');
+  const notifMessage = document.getElementById('notifMessage');
+  const notifStatus = document.getElementById('notifStatus');
+
+  if (sendNotifBtn) {
+    sendNotifBtn.addEventListener('click', async () => {
+      // Get selected roles
+      const roleCheckboxes = document.querySelectorAll('.notif-role-checkbox:checked');
+      const roles = Array.from(roleCheckboxes).map(cb => cb.value);
+
+      if (roles.length === 0) {
+        showNotifStatus('Please select at least one target role.', '#991b1b');
+        return;
+      }
+
+      const message = notifMessage.value.trim();
+      if (!message) {
+        showNotifStatus('Please enter a message to broadcast.', '#991b1b');
+        return;
+      }
+
+      sendNotifBtn.disabled = true;
+      sendNotifBtn.style.opacity = '0.7';
+      showNotifStatus('Sending broadcast...', '#2b58f9');
+
+      try {
+        const userToken = localStorage.getItem('userToken');
+        const res = await fetch('/api/notifications/broadcast', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: JSON.stringify({
+            roles,
+            type: notifType.value,
+            message
+          })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          showNotifStatus(`✅ Broadcast sent to ${data.sent} users.`, '#10b981');
+          notifMessage.value = '';
+          setTimeout(() => {
+            if (notifStatus) notifStatus.style.opacity = '0';
+          }, 3000);
+        } else {
+          showNotifStatus(data.error || 'Failed to send broadcast.', '#991b1b');
+        }
+      } catch (error) {
+        console.error('Broadcast error:', error);
+        showNotifStatus('Network error occurred.', '#991b1b');
+      } finally {
+        sendNotifBtn.disabled = false;
+        sendNotifBtn.style.opacity = '1';
+      }
+    });
+
+    function showNotifStatus(text, color) {
+      if (!notifStatus) return;
+      notifStatus.textContent = text;
+      notifStatus.style.color = color;
+      notifStatus.style.opacity = '1';
+    }
+  }
+
+})();
+
+// =========================================================
+// Restock Drawer Controller
+// =========================================================
+(function initRestockDrawer() {
+  const drawer    = document.getElementById('restock-drawer');
+  const backdrop  = document.getElementById('restock-backdrop');
+  const openBtn   = document.getElementById('btn-restock-drawer');
+  const closeBtn  = document.getElementById('restock-close-btn');
+  const searchEl  = document.getElementById('restock-product-search');
+  const dropdown  = document.getElementById('restock-product-dropdown');
+  const itemsList = document.getElementById('restock-items-list');
+  const emptyEl   = document.getElementById('restock-empty-state');
+  const badge     = document.getElementById('restock-badge');
+  const countEl   = document.getElementById('restock-item-count');
+  const costEl    = document.getElementById('restock-total-cost');
+  const submitBtn = document.getElementById('restock-submit-btn');
+
+  if (!drawer) return;
+
+  // State
+  let allProducts = [];        // cached from /api/admin/database/Product
+  let cartItems   = [];        // { uid, product, quantity, piecePrice, expiryDate }
+  let uidCounter  = 0;
+
+  // ── Open / Close ──────────────────────────────────────────
+  function openDrawer() {
+    drawer.classList.add('open');
+    backdrop.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    searchEl.focus();
+    if (allProducts.length === 0) fetchProducts();
+  }
+
+  function closeDrawer() {
+    drawer.classList.remove('open');
+    backdrop.classList.remove('open');
+    document.body.style.overflow = '';
+    dropdown.style.display = 'none';
+  }
+
+  if (openBtn)  openBtn.addEventListener('click', openDrawer);
+  if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+  backdrop.addEventListener('click', closeDrawer);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+  // ── Product Fetch ─────────────────────────────────────────
+  async function fetchProducts() {
+    try {
       const token = localStorage.getItem('userToken');
-      const res = await fetch('/api/notifications/broadcast', {
+      const res   = await fetch('/api/admin/database/Product', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      allProducts = await res.json();
+    } catch { /* silently ignore */ }
+  }
+
+  // ── Search / Dropdown ─────────────────────────────────────
+  function showDropdown() {
+    const q = searchEl.value.trim().toLowerCase();
+
+    const hits = q
+      ? allProducts.filter(p =>
+          p.name.toLowerCase().includes(q) || (p.category || '').toLowerCase().includes(q)
+        ).slice(0, 10)
+      : allProducts.slice(0, 10);
+
+    if (allProducts.length === 0) {
+      dropdown.innerHTML = `<div class="restock-dropdown-no-results">Loading products…</div>`;
+    } else if (hits.length === 0) {
+      dropdown.innerHTML = `<div class="restock-dropdown-no-results">No products found</div>`;
+    } else {
+      dropdown.innerHTML = hits.map(p => `
+        <div class="restock-dropdown-item" data-id="${p.id}">
+          <img class="restock-dropdown-item-img"
+               src="${p.imageUrl || '/assets/images/default-photo.jpg'}"
+               alt="${p.name}"
+               onerror="this.src='/assets/images/default-photo.jpg'" />
+          <div class="restock-dropdown-item-info">
+            <div class="restock-dropdown-item-name">${p.name}</div>
+            <div class="restock-dropdown-item-cat">${p.category || ''}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    dropdown.style.display = 'block';
+
+    dropdown.querySelectorAll('.restock-dropdown-item[data-id]').forEach(el => {
+      el.addEventListener('click', () => {
+        const prod = allProducts.find(p => p.id === el.dataset.id);
+        if (prod) addCartItem(prod);
+        dropdown.style.display = 'none';
+        searchEl.value = '';
+      });
+    });
+  }
+
+  searchEl.addEventListener('input', showDropdown);
+  searchEl.addEventListener('focus', showDropdown);
+
+  // Close dropdown on outside click
+  document.addEventListener('click', (e) => {
+    if (!searchEl.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  // ── Add Item ──────────────────────────────────────────────
+  function addCartItem(product) {
+    const uid = ++uidCounter;
+    cartItems.push({ uid, product, quantity: 1, piecePrice: 0, expiryDate: '' });
+    renderItems();
+  }
+
+  // ── Remove Item ───────────────────────────────────────────
+  function removeCartItem(uid) {
+    cartItems = cartItems.filter(i => i.uid !== uid);
+    renderItems();
+  }
+
+  // ── Render ────────────────────────────────────────────────
+  function renderItems() {
+    // Remove old cards (keep empty state el)
+    itemsList.querySelectorAll('.restock-item-card').forEach(el => el.remove());
+
+    if (cartItems.length === 0) {
+      emptyEl.style.display = 'flex';
+    } else {
+      emptyEl.style.display = 'none';
+      cartItems.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'restock-item-card';
+        card.dataset.uid = item.uid;
+        card.innerHTML = `
+          <div class="restock-card-top">
+            <span class="restock-card-name">${item.product.name}</span>
+            <span class="restock-card-cat">${item.product.category || ''}</span>
+            <button class="restock-card-remove" data-remove="${item.uid}" title="Remove">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+          <div class="restock-card-fields">
+            <div class="restock-field">
+              <label>Qty</label>
+              <input type="number" min="1" value="${item.quantity}" data-field="quantity" data-uid="${item.uid}" placeholder="0" />
+            </div>
+            <div class="restock-field">
+              <label>Price/unit (€)</label>
+              <input type="number" min="0" step="0.01" value="${item.piecePrice || ''}" data-field="piecePrice" data-uid="${item.uid}" placeholder="0.00" />
+            </div>
+            <div class="restock-field">
+              <label>Expiry date</label>
+              <input type="date" value="${item.expiryDate}" data-field="expiryDate" data-uid="${item.uid}" />
+            </div>
+          </div>
+        `;
+        itemsList.appendChild(card);
+
+        // Remove button
+        card.querySelector(`[data-remove="${item.uid}"]`).addEventListener('click', () => removeCartItem(item.uid));
+
+        // Field changes
+        card.querySelectorAll('input[data-field]').forEach(inp => {
+          inp.addEventListener('input', () => {
+            const ci = cartItems.find(i => i.uid === parseInt(inp.dataset.uid));
+            if (!ci) return;
+            if (inp.dataset.field === 'quantity')   ci.quantity   = parseInt(inp.value) || 0;
+            if (inp.dataset.field === 'piecePrice') ci.piecePrice = parseFloat(inp.value) || 0;
+            if (inp.dataset.field === 'expiryDate') ci.expiryDate = inp.value;
+            updateFooter();
+          });
+        });
+      });
+    }
+
+    updateFooter();
+  }
+
+  // ── Footer counters ───────────────────────────────────────
+  function updateFooter() {
+    const count = cartItems.length;
+    const total = cartItems.reduce((s, i) => s + (i.quantity * i.piecePrice), 0);
+
+    countEl.textContent = `${count} item${count !== 1 ? 's' : ''}`;
+    costEl.textContent  = `€${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} estimated cost`;
+    submitBtn.disabled  = count === 0;
+
+    // Sidebar badge
+    if (badge) {
+      if (count > 0) {
+        badge.textContent  = count;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  }
+
+  // ── Submit ────────────────────────────────────────────────
+  submitBtn.addEventListener('click', async () => {
+    // Validate
+    let valid = true;
+    cartItems.forEach(item => {
+      const card = itemsList.querySelector(`[data-uid="${item.uid}"]`);
+      card?.querySelectorAll('input').forEach(inp => inp.classList.remove('invalid'));
+      if (!item.quantity || item.quantity <= 0) {
+        card?.querySelector('[data-field="quantity"]')?.classList.add('invalid');
+        valid = false;
+      }
+      if (!item.expiryDate) {
+        card?.querySelector('[data-field="expiryDate"]')?.classList.add('invalid');
+        valid = false;
+      }
+    });
+    if (!valid) { showToast('Please fill in all required fields (Qty & Expiry).', 'error'); return; }
+
+    submitBtn.classList.add('loading');
+    submitBtn.textContent = 'Submitting…';
+
+    try {
+      const token = localStorage.getItem('userToken');
+      const res   = await fetch('/api/admin/restock', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ message, type, roles })
+        body: JSON.stringify({
+          items: cartItems.map(i => ({
+            productId:  i.product.id,
+            quantity:   i.quantity,
+            piecePrice: i.piecePrice,
+            expiryDate: i.expiryDate
+          }))
+        })
       });
-      if (res.ok) {
-        status.textContent = 'Notification sent successfully!';
-        status.style.color = '#2e7d32';
-        document.getElementById('notif-message-input').value = '';
+
+      const data = await res.json();
+
+      if (res.ok && data.inserted > 0) {
+        showToast(`✓ ${data.inserted} batch${data.inserted !== 1 ? 'es' : ''} restocked successfully!`, 'success');
+        cartItems = [];
+        uidCounter = 0;
+        renderItems();
+        // Clear DB viewer cache so StockBatch tab refreshes
+        sessionStorage.removeItem('db_cache_StockBatch');
+        sessionStorage.removeItem('db_cache_Product');
+        setTimeout(closeDrawer, 1200);
       } else {
-        status.textContent = 'Failed to send notification.';
-        status.style.color = '#e53935';
+        showToast(data.errors?.[0]?.error || data.error || 'Restock failed.', 'error');
       }
     } catch (err) {
-      status.textContent = 'Error sending notification.';
-      status.style.color = '#e53935';
+      showToast('Network error: ' + err.message, 'error');
+    } finally {
+      submitBtn.classList.remove('loading');
+      submitBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Restock Order`;
+      submitBtn.disabled = cartItems.length === 0;
     }
   });
-}
+
+  // ── Global Search Modal Wiring ────────────────────────────
+  const searchTrigger = document.getElementById('btn-search-trigger');
+  const searchModal = document.getElementById('search-modal');
+  const searchBackdrop = document.getElementById('search-modal-backdrop');
+  const searchClose = document.getElementById('search-modal-close');
+  const searchInput = document.getElementById('global-search-input');
+  const headingsResults = document.getElementById('search-headings-results');
+  const documentsResults = document.getElementById('search-documents-results');
+
+  const headingMappings = [
+    { name: 'Overview Dashboard', keywords: ['overview', 'home', 'daily losses', 'losses', 'sales', 'losses trend', 'revenue', 'expenses', 'profit'], view: 'home' },
+    { name: 'Document Management (Files)', keywords: ['document', 'documents', 'management', 'upload', 'files', 'compliance', 'reports', 'member records'], view: 'files' },
+    { name: 'Financial Ledger', keywords: ['financial', 'ledger', 'expenses', 'revenue', 'costs', 'transaction', 'transactions'], view: 'financials' },
+    { name: 'Database Viewer (SQL)', keywords: ['database', 'db', 'tables', 'viewer', 'sql', 'connect', 'users table', 'documents table'], view: 'database' },
+    { name: 'User Management', keywords: ['users', 'user', 'staff', 'employees', 'members', 'roles', 'permissions'], view: 'users' },
+    { name: 'Polls & Voting', keywords: ['polls', 'poll', 'voting', 'ballot', 'ballots', 'votes'], view: 'polls' },
+    { name: 'Notifications Manager', keywords: ['notifications', 'broadcast', 'broadcasts', 'alerts', 'announcements'], view: 'notifications' },
+    { name: 'Meetings & Reviews', keywords: ['meetings', 'meeting', 'reviews', 'review', 'sprint', 'schedule', 'minutes'], view: 'meetings' }
+  ];
+
+  function openSearch() {
+    if (searchModal && searchBackdrop) {
+      searchBackdrop.classList.add('open');
+      searchModal.showModal();
+      searchInput.value = '';
+      headingsResults.innerHTML = '<div class="search-no-results">Type keywords to search sections…</div>';
+      documentsResults.innerHTML = '<div class="search-no-results">Type keywords to search documents…</div>';
+      setTimeout(() => searchInput.focus(), 50);
+    }
+  }
+
+  function closeSearch() {
+    if (searchModal && searchBackdrop) {
+      searchBackdrop.classList.remove('open');
+      searchModal.close();
+    }
+  }
+
+  if (searchTrigger) {
+    searchTrigger.addEventListener('click', (e) => {
+      e.preventDefault();
+      openSearch();
+    });
+  }
+  if (searchBackdrop) searchBackdrop.addEventListener('click', closeSearch);
+  if (searchClose) searchClose.addEventListener('click', closeSearch);
+
+  function navigateToView(viewName) {
+    if (!window.searchDebug) window.searchDebug = [];
+    window.searchDebug.push(`navigateToView called with: ${viewName}`);
+
+    const btnIds = {
+      'home': 'btn-home-dashboard',
+      'database': 'btn-db-viewer',
+      'financials': 'btn-financials',
+      'users': 'btn-users-manager',
+      'files': 'btn-files-manager',
+      'polls': 'btn-polls-manager',
+      'notifications': 'btn-notifications-manager',
+      'meetings': 'btn-meetings-manager'
+    };
+
+    const targetId = btnIds[viewName];
+    window.searchDebug.push(`Mapped targetId: ${targetId}`);
+    if (targetId) {
+      const btn = document.getElementById(targetId);
+      window.searchDebug.push(`Button element found: ${!!btn}`);
+      if (btn) {
+        window.searchDebug.push(`Triggering btn.click()`);
+        btn.click();
+        
+        // FOOLPROOF BACKUP: Direct view toggle in case click propagation is blocked
+        const viewEl = {
+          'home': document.getElementById('dashboard-view'),
+          'database': document.getElementById('database-viewer'),
+          'financials': document.getElementById('financials-view'),
+          'users': document.getElementById('users-manager-view'),
+          'files': document.getElementById('files-manager-view'),
+          'polls': document.getElementById('polls-manager-view'),
+          'notifications': document.getElementById('notifications-manager'),
+          'meetings': document.getElementById('meetings-manager-view')
+        }[viewName];
+        
+        if (viewEl) {
+          window.searchDebug.push(`Direct toggle view backup triggered for: ${viewName}`);
+          sessionStorage.setItem('adminActiveView', viewName);
+          hideAllViews();
+          viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
+          clearSidebarActive();
+          btn.classList.add('active');
+          
+          if (viewName === 'database') {
+            const activeTab = document.querySelector('.db-tab.active');
+            if (activeTab && typeof loadTableData === 'function') loadTableData(activeTab.dataset.table);
+          } else if (viewName === 'users' && typeof loadUsersManagerData === 'function') {
+            loadUsersManagerData();
+          } else if (viewName === 'files' && typeof loadFilesManagerData === 'function') {
+            loadFilesManagerData();
+          } else if (viewName === 'polls' && typeof window.loadPolls === 'function') {
+            window.loadPolls();
+          } else if (viewName === 'meetings' && typeof window.loadMeetings === 'function') {
+            window.loadMeetings();
+          }
+        }
+      }
+    }
+  }
+
+  let searchTimeout = null;
+  if (searchInput) {
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      const query = searchInput.value.trim().toLowerCase();
+      if (!query) {
+        headingsResults.innerHTML = '<div class="search-no-results">Type keywords to search sections…</div>';
+        documentsResults.innerHTML = '<div class="search-no-results">Type keywords to search documents…</div>';
+        return;
+      }
+
+      // 1. Client-side intent mapping for dashboard sections
+      const matchedHeadings = headingMappings.filter(h => {
+        return h.name.toLowerCase().includes(query) || h.keywords.some(k => k.includes(query));
+      });
+
+      renderHeadingResults(matchedHeadings);
+
+      // 2. API search for documents (with sentiment enrichment)
+      searchTimeout = setTimeout(async () => {
+        try {
+          const token = localStorage.getItem('userToken');
+          const res = await fetch(`/api/documents/search?q=${encodeURIComponent(query)}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (!res.ok) throw new Error('Search failed');
+          const data = await res.json();
+          
+          // Sentiment-intent mappings returned from API
+          const apiSentiment = data.query?.sentiment || { score: 0, label: 'Neutral' };
+          
+          let additionalHeadings = [];
+          if (apiSentiment.label === 'Positive') {
+            additionalHeadings = headingMappings.filter(h => h.view === 'home' || h.view === 'financials');
+          } else if (apiSentiment.label === 'Negative') {
+            additionalHeadings = headingMappings.filter(h => h.view === 'home');
+          }
+          
+          const merged = [...matchedHeadings];
+          additionalHeadings.forEach(ah => {
+            if (!merged.some(m => m.view === ah.view)) {
+              merged.push(ah);
+            }
+          });
+          renderHeadingResults(merged);
+
+          renderDocumentResults(data.documents || []);
+        } catch (err) {
+          console.error('[Search] Failed to fetch documents:', err);
+          documentsResults.innerHTML = '<div class="search-no-results" style="color:#991b1b;">Error retrieving documents.</div>';
+        }
+      }, 250);
+    });
+  }
+
+  function renderHeadingResults(headings) {
+    if (!headingsResults) return;
+    if (headings.length === 0) {
+      headingsResults.innerHTML = '<div class="search-no-results">No sections found.</div>';
+      return;
+    }
+    
+    headingsResults.innerHTML = headings.map(h => `
+      <div class="search-result-item" data-view="${h.view}">
+        <div class="search-item-info">
+          <svg class="search-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+          <span class="search-item-text">${h.name}</span>
+        </div>
+        <span class="search-item-meta">Navigate</span>
+      </div>
+    `).join('');
+
+    headingsResults.querySelectorAll('.search-result-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const view = item.getAttribute('data-view');
+        closeSearch();
+        setTimeout(() => {
+          navigateToView(view);
+        }, 10);
+      });
+    });
+  }
+
+  function renderDocumentResults(documents) {
+    if (!documentsResults) return;
+    if (documents.length === 0) {
+      documentsResults.innerHTML = '<div class="search-no-results">No documents found.</div>';
+      return;
+    }
+
+    documentsResults.innerHTML = documents.map(d => {
+      let sentimentColor = '#697386'; 
+      let sentimentBg = '#f4f5f7';
+      if (d.sentiment?.label === 'Positive') {
+        sentimentColor = '#065f46'; 
+        sentimentBg = '#d1fae5';
+      } else if (d.sentiment?.label === 'Negative') {
+        sentimentColor = '#991b1b'; 
+        sentimentBg = '#fee2e2';
+      }
+
+      const keywordBadges = (d.keywords || [])
+        .slice(0, 3)
+        .map(kw => `<span style="font-size:0.7rem; background:#edf2f7; color:#4a5568; padding:2px 6px; border-radius:4px; margin-right:4px;">#${kw}</span>`)
+        .join('');
+
+      return `
+        <div class="search-result-item">
+          <div class="search-item-info" style="align-items: flex-start; flex-direction: column; gap: 4px;">
+            <div style="display:flex; align-items:center; gap:8px; width: 100%;">
+              <svg class="search-item-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color: #697386;">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span class="search-item-text" style="font-size: 0.9rem; font-weight:600; max-width: 320px; overflow:hidden; text-overflow:ellipsis;">${d.title}</span>
+              <span class="search-item-meta" style="background:#eef2ff; color:#4f46e5; border:1px solid #e0e7ff; font-size: 0.72rem; padding: 1px 6px;">${d.category}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
+              <span style="font-size:0.72rem; padding:2px 8px; border-radius:12px; font-weight:600; color:${sentimentColor}; background:${sentimentBg}; display:inline-flex; align-items:center; gap:3px;">
+                ${d.sentiment?.label || 'Neutral'} (${d.sentiment?.score || 0})
+              </span>
+              <div style="display:inline-flex; align-items:center;">
+                ${keywordBadges}
+              </div>
+            </div>
+          </div>
+          <a href="${d.fileUrl}" target="_blank" class="search-item-download-link" title="Download Document">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+          </a>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // ── Meetings Management ───────────────────────────────────
+  const userToken = localStorage.getItem('userToken');
+  const scheduleMeetingForm = document.getElementById('schedule-meeting-form');
+  const meetingsLoading = document.getElementById('meetings-loading');
+  const upcomingSection = document.getElementById('upcoming-meetings-section');
+  const upcomingCount = document.getElementById('upcoming-count');
+  const upcomingList = document.getElementById('upcoming-meetings-list');
+  const pastSection = document.getElementById('past-meetings-section');
+  const pastCount = document.getElementById('past-count');
+  const pastList = document.getElementById('past-meetings-list');
+  const meetingsEmpty = document.getElementById('meetings-empty');
+  const meetingsRefreshBtn = document.getElementById('meetings-refresh-btn');
+
+  // Load available documents for linking dropdowns
+  let cachedDocuments = [];
+  async function fetchAvailableDocuments() {
+    try {
+      const res = await fetch('/api/admin/database/Document', {
+        headers: { 'Authorization': `Bearer ${userToken}` }
+      });
+      if (res.ok) {
+        cachedDocuments = await res.json();
+      }
+    } catch (err) {
+      console.error('[Meetings] Failed to fetch documents for dropdown:', err);
+    }
+  }
+
+  async function loadMeetings() {
+    if (!meetingsLoading) return;
+    meetingsLoading.style.display = 'block';
+    if (upcomingSection) upcomingSection.style.display = 'none';
+    if (pastSection) pastSection.style.display = 'none';
+    if (meetingsEmpty) meetingsEmpty.style.display = 'none';
+    if (upcomingList) upcomingList.innerHTML = '';
+    if (pastList) pastList.innerHTML = '';
+
+    // Fetch documents in parallel so we can populate the dropdowns
+    await fetchAvailableDocuments();
+
+    try {
+      const res = await fetch('/api/meetings', {
+        headers: { 'Authorization': `Bearer ${userToken}` },
+        credentials: 'include'
+      });
+
+      if (res.status === 403) {
+        meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">Access denied. Meetings are for internal staff only.</div>';
+        return;
+      }
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const meetings = await res.json();
+      meetingsLoading.style.display = 'none';
+
+      if (meetings.length === 0) {
+        if (meetingsEmpty) meetingsEmpty.style.display = 'block';
+        return;
+      }
+
+      const now = new Date();
+      const upcoming = [];
+      const past = [];
+
+      meetings.forEach(m => {
+        const mDate = new Date(m.date);
+        if (mDate >= now) {
+          upcoming.push(m);
+        } else {
+          past.push(m);
+        }
+      });
+
+      // Update counters
+      if (upcomingCount) upcomingCount.textContent = upcoming.length;
+      if (pastCount) pastCount.textContent = past.length;
+
+      // Render upcoming
+      if (upcoming.length > 0) {
+        if (upcomingSection) upcomingSection.style.display = 'block';
+        upcoming.forEach(m => {
+          if (upcomingList) upcomingList.appendChild(createMeetingCard(m));
+        });
+      }
+
+      // Render past
+      if (past.length > 0) {
+        if (pastSection) pastSection.style.display = 'block';
+        past.forEach(m => {
+          if (pastList) pastList.appendChild(createMeetingCard(m));
+        });
+      }
+
+      if (upcoming.length === 0 && past.length === 0) {
+        if (meetingsEmpty) meetingsEmpty.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('[Meetings] Failed to load meetings:', err);
+      meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">Failed to load meetings. Please try again.</div>';
+    }
+  }
+
+  function createMeetingCard(m) {
+    const card = document.createElement('div');
+    card.className = 'meeting-card';
+    card.id = `meeting-card-${m.id}`;
+
+    const formattedDate = new Date(m.date).toLocaleString('en-US', {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const isLinked = !!m.minutesDocumentId;
+    const documentTitle = m.minutesDocumentTitle || 'None';
+
+    // Build select options for linking documents
+    const docOptions = cachedDocuments.map(d => 
+      `<option value="${d.id}" ${d.id === m.minutesDocumentId ? 'selected' : ''}>${d.title}</option>`
+    ).join('');
+
+    card.innerHTML = `
+      <div class="meeting-card-header">
+        <div>
+          <h4 class="meeting-card-title">${escapeHtml(m.title)}</h4>
+          <p class="meeting-card-description">${escapeHtml(m.description || 'No description provided.')}</p>
+        </div>
+      </div>
+      <div class="meeting-card-body">
+        <div class="meeting-meta-row">
+          <div class="meeting-meta-item">
+            <span>Date:</span>
+            <span>${formattedDate}</span>
+          </div>
+          <div class="meeting-meta-item">
+            <span>Minutes Document: <strong>${escapeHtml(documentTitle)}</strong></span>
+          </div>
+        </div>
+
+        <div class="meeting-actions">
+          <select class="meeting-select" id="select-doc-${m.id}">
+            <option value="">-- No Document Linked --</option>
+            ${docOptions}
+          </select>
+          <button class="meeting-btn btn-link-doc" data-meeting-id="${m.id}">Link Document</button>
+          <button class="meeting-btn meeting-btn-primary btn-toggle-editor" data-meeting-id="${m.id}">
+            ${isLinked ? 'Edit Minutes' : 'Write Minutes'}
+          </button>
+        </div>
+
+        <div class="minutes-editor-panel" id="editor-${m.id}">
+          <h5 style="margin: 0 0 8px 0; color: #1a1f36; font-size: 0.9rem;">Minutes Editor</h5>
+          <textarea class="minutes-textarea" id="textarea-${m.id}" placeholder="Type meeting minutes/notes here..."></textarea>
+          <div style="display: flex; gap: 8px; justify-content: flex-end;">
+            <button class="meeting-btn btn-cancel-minutes" data-meeting-id="${m.id}">Cancel</button>
+            <button class="meeting-btn meeting-btn-primary btn-save-minutes" data-meeting-id="${m.id}">Save Minutes</button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    // Bind link document button click
+    card.querySelector('.btn-link-doc').addEventListener('click', async () => {
+      const select = card.querySelector(`#select-doc-${m.id}`);
+      const docId = select.value;
+      await linkMinutesDocument(m.id, docId);
+    });
+
+    // Bind toggle editor button click
+    const toggleEditorBtn = card.querySelector('.btn-toggle-editor');
+    toggleEditorBtn.addEventListener('click', async () => {
+      const panel = card.querySelector(`#editor-${m.id}`);
+      const isVisible = panel.style.display === 'flex';
+      
+      // Close all editors first
+      document.querySelectorAll('.minutes-editor-panel').forEach(p => p.style.display = 'none');
+
+      if (!isVisible) {
+        panel.style.display = 'flex';
+        const textarea = panel.querySelector('textarea');
+        textarea.value = 'Loading existing minutes...';
+        
+        // Fetch existing minutes text content if linked
+        if (m.minutesDocumentId) {
+          try {
+            const downloadUrl = `/api/documents/download/${m.minutesDocumentId}`;
+            const res = await fetch(downloadUrl, {
+              headers: { 'Authorization': `Bearer ${userToken}` }
+            });
+            if (res.ok) {
+              const text = await res.text();
+              textarea.value = text;
+            } else {
+              textarea.value = '';
+            }
+          } catch (err) {
+            console.error('[Meetings] Failed to download existing minutes:', err);
+            textarea.value = 'Failed to load minutes.';
+          }
+        } else {
+          textarea.value = '';
+        }
+        textarea.focus();
+      }
+    });
+
+    // Bind cancel button click
+    card.querySelector('.btn-cancel-minutes').addEventListener('click', () => {
+      card.querySelector(`#editor-${m.id}`).style.display = 'none';
+    });
+
+    // Bind save button click
+    card.querySelector('.btn-save-minutes').addEventListener('click', async () => {
+      const content = card.querySelector(`#textarea-${m.id}`).value;
+      await saveMinutesContent(m.id, content);
+    });
+
+    return card;
+  }
+
+  async function linkMinutesDocument(meetingId, minutesDocumentId) {
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        body: JSON.stringify({ minutesDocumentId })
+      });
+      if (res.ok) {
+        showToast('Document linked successfully!', 'success');
+        await loadMeetings();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to link document.', 'error');
+      }
+    } catch (err) {
+      console.error('[Meetings] Failed to link document:', err);
+      showToast('Network error.', 'error');
+    }
+  }
+
+  async function saveMinutesContent(meetingId, content) {
+    try {
+      const res = await fetch(`/api/meetings/${meetingId}/minutes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${userToken}`
+        },
+        body: JSON.stringify({ content })
+      });
+      if (res.ok) {
+        showToast('Minutes saved and linked successfully!', 'success');
+        // Clear caches so the document list is refreshed
+        sessionStorage.removeItem('db_cache_Document');
+        await loadMeetings();
+      } else {
+        const data = await res.json();
+        showToast(data.error || 'Failed to save minutes.', 'error');
+      }
+    } catch (err) {
+      console.error('[Meetings] Failed to save minutes:', err);
+      showToast('Network error.', 'error');
+    }
+  }
+
+  function escapeHtml(text) {
+    if (!text) return '';
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  window.loadMeetings = loadMeetings;
+
+  // Bind schedule form submit
+  if (scheduleMeetingForm) {
+    scheduleMeetingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const titleInput = document.getElementById('meeting-title');
+      const dateInput = document.getElementById('meeting-date');
+      const descInput = document.getElementById('meeting-description');
+      const statusEl = document.getElementById('schedule-meeting-status');
+
+      if (!titleInput.value || !dateInput.value) {
+        statusEl.textContent = 'Please fill in all required fields.';
+        statusEl.style.color = '#991b1b';
+        statusEl.style.display = 'block';
+        return;
+      }
+
+      statusEl.textContent = 'Scheduling...';
+      statusEl.style.color = '#2b58f9';
+      statusEl.style.display = 'block';
+
+      try {
+        const res = await fetch('/api/meetings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${userToken}`
+          },
+          body: JSON.stringify({
+            title: titleInput.value,
+            date: dateInput.value,
+            description: descInput.value
+          })
+        });
+
+        if (res.status === 201) {
+          statusEl.textContent = 'Meeting scheduled successfully!';
+          statusEl.style.color = '#065f46';
+          scheduleMeetingForm.reset();
+          // Refresh lists
+          await loadMeetings();
+        } else {
+          const data = await res.json();
+          statusEl.textContent = data.error || 'Failed to schedule meeting.';
+          statusEl.style.color = '#991b1b';
+        }
+      } catch (err) {
+        console.error('[Meetings] Schedule failed:', err);
+        statusEl.textContent = 'Network error occurred.';
+        statusEl.style.color = '#991b1b';
+      }
+    });
+  }
+
+  if (meetingsRefreshBtn) {
+    meetingsRefreshBtn.addEventListener('click', loadMeetings);
+  }
+
+  // ── Page Load Active Section Restore ────────────────────────
+  const savedView = sessionStorage.getItem('adminActiveView');
+  if (savedView) {
+    setTimeout(() => {
+      // Restore active database table first if database viewer is saved
+      if (savedView === 'database') {
+        const savedTable = sessionStorage.getItem('adminActiveDbTable');
+        if (savedTable) {
+          const dbTabs = document.querySelectorAll('.db-tab');
+          const targetTab = document.querySelector(`.db-tab[data-table="${savedTable}"]`);
+          if (dbTabs && targetTab) {
+            dbTabs.forEach(t => t.classList.remove('active'));
+            targetTab.classList.add('active');
+          }
+        }
+      }
+      
+      // Navigate to saved view
+      if (typeof navigateToView === 'function') {
+        navigateToView(savedView);
+      }
+    }, 150);
+  }
+
+  // ── Toast ─────────────────────────────────────────────────
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.style.cssText = `
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      background:${type === 'success' ? '#065f46' : '#991b1b'};
+      color:#fff; padding:12px 22px; border-radius:10px; font-size:0.875rem;
+      font-weight:600; z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.2);
+      animation:fadeInUp 0.25s ease; font-family:'Poppins',sans-serif;
+      max-width:90vw; text-align:center;
+    `;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+})();

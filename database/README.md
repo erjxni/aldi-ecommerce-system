@@ -112,14 +112,6 @@ type Vote @table(key: ["poll", "userId"]) {
   selectedOption: String!
   createdAt: Timestamp! @default(expr: "request.time")
 }
-
-type Meeting @table {
-  title: String!
-  description: String! @default(value: "")
-  date: Timestamp!
-  minutesDocument: Document
-  createdAt: Timestamp! @default(expr: "request.time")
-}
 ```
 
 ---
@@ -245,18 +237,6 @@ Stores staff votes and enforces one vote per user per poll.
 | `userId` | `UUID` | Unique with `pollId` | Staff user who voted |
 | `selectedOption` | `String!` | | Chosen poll option |
 | `createdAt` | `Timestamp!` | current timestamp | Vote creation timestamp |
-
-### 11. Meeting Table
-Stores scheduled organizational meetings and sprint reviews.
-
-| Field | Type | Attributes / Default | Description |
-| :--- | :--- | :--- | :--- |
-| `id` | `UUID` / `ID` | Primary Key | Unique identifier for each meeting |
-| `title` | `String!` | | Meeting title/headline |
-| `description` | `String!` | `""` | Optional description or agenda |
-| `date` | `Timestamp!` | | Scheduled date and time |
-| `minutesDocumentId` | `UUID` | Foreign Key to `Document` (Nullable) | Links to the uploaded minutes document |
-| `createdAt` | `Timestamp!` | current timestamp | Record creation timestamp |
 
 ---
 

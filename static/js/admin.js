@@ -293,7 +293,6 @@
   const financialsBtn = document.getElementById('btn-financials');
   const pollsBtn = document.getElementById('btn-polls-manager');
   const notifsBtn = document.getElementById('btn-notifications-manager');
-  const meetingsBtn = document.getElementById('btn-meetings-manager');
   const dashboardView = document.getElementById('dashboard-view');
   const dbViewer = document.getElementById('database-viewer');
   const usersViewer = document.getElementById('users-manager-view');
@@ -301,7 +300,6 @@
   const financialsViewer = document.getElementById('financials-view');
   const pollsViewer = document.getElementById('polls-manager-view');
   const notifsViewer = document.getElementById('notifications-manager');
-  const meetingsViewer = document.getElementById('meetings-manager-view');
 
   // Helper to hide all main views
   function hideAllViews() {
@@ -312,7 +310,6 @@
     if (financialsViewer) financialsViewer.style.display = 'none';
     if (pollsViewer) pollsViewer.style.display = 'none';
     if (notifsViewer) notifsViewer.style.display = 'none';
-    if (meetingsViewer) meetingsViewer.style.display = 'none';
   }
   function clearSidebarActive() {
     document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
@@ -332,7 +329,6 @@
 ) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'database');
       hideAllViews();
       if (dbViewer) dbViewer.style.display = 'flex';
       clearSidebarActive();
@@ -343,7 +339,6 @@
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'home');
       hideAllViews();
       if (dashboardView) dashboardView.style.display = 'block';
       clearSidebarActive();
@@ -352,7 +347,6 @@
 
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'financials');
       hideAllViews();
       if (financialsViewer) financialsViewer.style.display = 'flex';
       clearSidebarActive();
@@ -361,7 +355,6 @@
 
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'users');
       hideAllViews();
       if (usersViewer) usersViewer.style.display = 'flex';
       clearSidebarActive();
@@ -371,7 +364,6 @@
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'files');
       hideAllViews();
       if (filesViewer) filesViewer.style.display = 'flex';
       clearSidebarActive();
@@ -383,7 +375,6 @@
     if (pollsBtn) {
       pollsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'polls');
         hideAllViews();
         if (pollsViewer) pollsViewer.style.display = 'flex';
         clearSidebarActive();
@@ -397,24 +388,10 @@
     if (notifsBtn) {
       notifsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'notifications');
         hideAllViews();
         if (notifsViewer) notifsViewer.style.display = 'flex';
         clearSidebarActive();
         notifsBtn.classList.add('active');
-      });
-    }
-
-    // Meetings Manager button
-    if (meetingsBtn) {
-      meetingsBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'meetings');
-        hideAllViews();
-        if (meetingsViewer) meetingsViewer.style.display = 'flex';
-        clearSidebarActive();
-        meetingsBtn.classList.add('active');
-        if (typeof window.loadMeetings === 'function') window.loadMeetings();
       });
     }
 
@@ -943,7 +920,6 @@
     tab.addEventListener('click', () => {
       tabs.forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
-      sessionStorage.setItem('adminActiveDbTable', tab.dataset.table);
       loadTableData(tab.dataset.table);
     });
   });
@@ -1704,53 +1680,17 @@
     const ext = (extension || '').toLowerCase();
     const isImage = ['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext);
     const isPDF = ext === 'pdf';
-    const isTXT = ext === 'txt';
-
-    function esc(text) {
-      return String(text || '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-    }
 
     if (isImage) {
       previewBody.innerHTML = `<img src="${fileUrl}" style="max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" />`;
     } else if (isPDF) {
       previewBody.innerHTML = `<iframe src="${fileUrl}" style="width: 100%; height: 100%; border: 1px solid #e3e8ee; border-radius: 6px;"></iframe>`;
-    } else if (isTXT) {
-      const userToken = localStorage.getItem('userToken');
-      fetch(fileUrl, {
-        headers: { 'Authorization': `Bearer ${userToken}` }
-      })
-        .then(res => {
-          if (!res.ok) throw new Error(`HTTP ${res.status}`);
-          return res.text();
-        })
-        .then(text => {
-          previewBody.innerHTML = `
-            <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
-              <textarea readonly style="flex: 1; width: 100%; height: 100%; box-sizing: border-box; padding: 16px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Courier New', Courier, monospace; font-size: 0.9rem; line-height: 1.6; resize: none; background: #f8fafd; color: #1a1f36; outline: none; overflow-y: auto;">${esc(text)}</textarea>
-            </div>
-          `;
-        })
-        .catch(err => {
-          console.error('[Preview] Failed to fetch text file content:', err);
-          previewBody.innerHTML = `
-            <div style="text-align: center; padding: 32px; color: #991b1b; font-family: inherit;">
-              <div style="font-size: 3rem; margin-bottom: 16px;">❌</div>
-              <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #991b1b;">Failed to load text preview</p>
-              <p style="font-size: 0.85rem; color: #697386;">Error: ${err.message}</p>
-            </div>
-          `;
-        });
     } else {
       previewBody.innerHTML = `
             <div style="text-align: center; padding: 32px; color: #4f566b; font-family: inherit;">
               <div style="font-size: 3rem; margin-bottom: 16px;">&#x1F4C4;</div>
               <p style="font-weight: 600; margin: 0 0 8px 0; font-size: 1.1rem; color: #1a1f36;">Preview not supported for this file type.</p>
-              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG), PDFs, and Text files (TXT).</p>
+              <p style="font-size: 0.85rem; color: #697386; margin-bottom: 20px;">Supported formats for preview are Images (PNG, JPG, JPEG) and PDFs.</p>
               <a href="${fileUrl}" download class="btn-outline" style="text-decoration: none; padding: 10px 20px; font-weight: 600; display: inline-block;">Download File to View</a>
             </div>
           `;
@@ -2502,8 +2442,7 @@
     { name: 'Database Viewer (SQL)', keywords: ['database', 'db', 'tables', 'viewer', 'sql', 'connect', 'users table', 'documents table'], view: 'database' },
     { name: 'User Management', keywords: ['users', 'user', 'staff', 'employees', 'members', 'roles', 'permissions'], view: 'users' },
     { name: 'Polls & Voting', keywords: ['polls', 'poll', 'voting', 'ballot', 'ballots', 'votes'], view: 'polls' },
-    { name: 'Notifications Manager', keywords: ['notifications', 'broadcast', 'broadcasts', 'alerts', 'announcements'], view: 'notifications' },
-    { name: 'Meetings & Reviews', keywords: ['meetings', 'meeting', 'reviews', 'review', 'sprint', 'schedule', 'minutes'], view: 'meetings' }
+    { name: 'Notifications Manager', keywords: ['notifications', 'broadcast', 'broadcasts', 'alerts', 'announcements'], view: 'notifications' }
   ];
 
   function openSearch() {
@@ -2544,8 +2483,7 @@
       'users': 'btn-users-manager',
       'files': 'btn-files-manager',
       'polls': 'btn-polls-manager',
-      'notifications': 'btn-notifications-manager',
-      'meetings': 'btn-meetings-manager'
+      'notifications': 'btn-notifications-manager'
     };
 
     const targetId = btnIds[viewName];
@@ -2565,13 +2503,11 @@
           'users': document.getElementById('users-manager-view'),
           'files': document.getElementById('files-manager-view'),
           'polls': document.getElementById('polls-manager-view'),
-          'notifications': document.getElementById('notifications-manager'),
-          'meetings': document.getElementById('meetings-manager-view')
+          'notifications': document.getElementById('notifications-manager')
         }[viewName];
         
         if (viewEl) {
           window.searchDebug.push(`Direct toggle view backup triggered for: ${viewName}`);
-          sessionStorage.setItem('adminActiveView', viewName);
           hideAllViews();
           viewEl.style.display = (viewName === 'home') ? 'block' : 'flex';
           clearSidebarActive();
@@ -2586,8 +2522,6 @@
             loadFilesManagerData();
           } else if (viewName === 'polls' && typeof window.loadPolls === 'function') {
             window.loadPolls();
-          } else if (viewName === 'meetings' && typeof window.loadMeetings === 'function') {
-            window.loadMeetings();
           }
         }
       }
@@ -2732,367 +2666,6 @@
         </div>
       `;
     }).join('');
-  }
-
-  // ── Meetings Management ───────────────────────────────────
-  const userToken = localStorage.getItem('userToken');
-  const scheduleMeetingForm = document.getElementById('schedule-meeting-form');
-  const meetingsLoading = document.getElementById('meetings-loading');
-  const upcomingSection = document.getElementById('upcoming-meetings-section');
-  const upcomingCount = document.getElementById('upcoming-count');
-  const upcomingList = document.getElementById('upcoming-meetings-list');
-  const pastSection = document.getElementById('past-meetings-section');
-  const pastCount = document.getElementById('past-count');
-  const pastList = document.getElementById('past-meetings-list');
-  const meetingsEmpty = document.getElementById('meetings-empty');
-  const meetingsRefreshBtn = document.getElementById('meetings-refresh-btn');
-
-  // Load available documents for linking dropdowns
-  let cachedDocuments = [];
-  async function fetchAvailableDocuments() {
-    try {
-      const res = await fetch('/api/admin/database/Document', {
-        headers: { 'Authorization': `Bearer ${userToken}` }
-      });
-      if (res.ok) {
-        cachedDocuments = await res.json();
-      }
-    } catch (err) {
-      console.error('[Meetings] Failed to fetch documents for dropdown:', err);
-    }
-  }
-
-  async function loadMeetings() {
-    if (!meetingsLoading) return;
-    meetingsLoading.style.display = 'block';
-    if (upcomingSection) upcomingSection.style.display = 'none';
-    if (pastSection) pastSection.style.display = 'none';
-    if (meetingsEmpty) meetingsEmpty.style.display = 'none';
-    if (upcomingList) upcomingList.innerHTML = '';
-    if (pastList) pastList.innerHTML = '';
-
-    // Fetch documents in parallel so we can populate the dropdowns
-    await fetchAvailableDocuments();
-
-    try {
-      const res = await fetch('/api/meetings', {
-        headers: { 'Authorization': `Bearer ${userToken}` },
-        credentials: 'include'
-      });
-
-      if (res.status === 403) {
-        meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">Access denied. Meetings are for internal staff only.</div>';
-        return;
-      }
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const meetings = await res.json();
-      meetingsLoading.style.display = 'none';
-
-      if (meetings.length === 0) {
-        if (meetingsEmpty) meetingsEmpty.style.display = 'block';
-        return;
-      }
-
-      const now = new Date();
-      const upcoming = [];
-      const past = [];
-
-      meetings.forEach(m => {
-        const mDate = new Date(m.date);
-        if (mDate >= now) {
-          upcoming.push(m);
-        } else {
-          past.push(m);
-        }
-      });
-
-      // Update counters
-      if (upcomingCount) upcomingCount.textContent = upcoming.length;
-      if (pastCount) pastCount.textContent = past.length;
-
-      // Render upcoming
-      if (upcoming.length > 0) {
-        if (upcomingSection) upcomingSection.style.display = 'block';
-        upcoming.forEach(m => {
-          if (upcomingList) upcomingList.appendChild(createMeetingCard(m));
-        });
-      }
-
-      // Render past
-      if (past.length > 0) {
-        if (pastSection) pastSection.style.display = 'block';
-        past.forEach(m => {
-          if (pastList) pastList.appendChild(createMeetingCard(m));
-        });
-      }
-
-      if (upcoming.length === 0 && past.length === 0) {
-        if (meetingsEmpty) meetingsEmpty.style.display = 'block';
-      }
-    } catch (err) {
-      console.error('[Meetings] Failed to load meetings:', err);
-      meetingsLoading.innerHTML = '<div style="color:#991b1b;font-weight:600;text-align:center;padding:24px;">Failed to load meetings. Please try again.</div>';
-    }
-  }
-
-  function createMeetingCard(m) {
-    const card = document.createElement('div');
-    card.className = 'meeting-card';
-    card.id = `meeting-card-${m.id}`;
-
-    const formattedDate = new Date(m.date).toLocaleString('en-US', {
-      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric',
-      hour: '2-digit', minute: '2-digit'
-    });
-
-    const isLinked = !!m.minutesDocumentId;
-    const documentTitle = m.minutesDocumentTitle || 'None';
-
-    // Build select options for linking documents
-    const docOptions = cachedDocuments.map(d => 
-      `<option value="${d.id}" ${d.id === m.minutesDocumentId ? 'selected' : ''}>${d.title}</option>`
-    ).join('');
-
-    card.innerHTML = `
-      <div class="meeting-card-header">
-        <div>
-          <h4 class="meeting-card-title">${escapeHtml(m.title)}</h4>
-          <p class="meeting-card-description">${escapeHtml(m.description || 'No description provided.')}</p>
-        </div>
-      </div>
-      <div class="meeting-card-body">
-        <div class="meeting-meta-row">
-          <div class="meeting-meta-item">
-            <span>Date:</span>
-            <span>${formattedDate}</span>
-          </div>
-          <div class="meeting-meta-item">
-            <span>Minutes Document: <strong>${escapeHtml(documentTitle)}</strong></span>
-          </div>
-        </div>
-
-        <div class="meeting-actions">
-          <select class="meeting-select" id="select-doc-${m.id}">
-            <option value="">-- No Document Linked --</option>
-            ${docOptions}
-          </select>
-          <button class="meeting-btn btn-link-doc" data-meeting-id="${m.id}">Link Document</button>
-          <button class="meeting-btn meeting-btn-primary btn-toggle-editor" data-meeting-id="${m.id}">
-            ${isLinked ? 'Edit Minutes' : 'Write Minutes'}
-          </button>
-        </div>
-
-        <div class="minutes-editor-panel" id="editor-${m.id}">
-          <h5 style="margin: 0 0 8px 0; color: #1a1f36; font-size: 0.9rem;">Minutes Editor</h5>
-          <textarea class="minutes-textarea" id="textarea-${m.id}" placeholder="Type meeting minutes/notes here..."></textarea>
-          <div style="display: flex; gap: 8px; justify-content: flex-end;">
-            <button class="meeting-btn btn-cancel-minutes" data-meeting-id="${m.id}">Cancel</button>
-            <button class="meeting-btn meeting-btn-primary btn-save-minutes" data-meeting-id="${m.id}">Save Minutes</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Bind link document button click
-    card.querySelector('.btn-link-doc').addEventListener('click', async () => {
-      const select = card.querySelector(`#select-doc-${m.id}`);
-      const docId = select.value;
-      await linkMinutesDocument(m.id, docId);
-    });
-
-    // Bind toggle editor button click
-    const toggleEditorBtn = card.querySelector('.btn-toggle-editor');
-    toggleEditorBtn.addEventListener('click', async () => {
-      const panel = card.querySelector(`#editor-${m.id}`);
-      const isVisible = panel.style.display === 'flex';
-      
-      // Close all editors first
-      document.querySelectorAll('.minutes-editor-panel').forEach(p => p.style.display = 'none');
-
-      if (!isVisible) {
-        panel.style.display = 'flex';
-        const textarea = panel.querySelector('textarea');
-        textarea.value = 'Loading existing minutes...';
-        
-        // Fetch existing minutes text content if linked
-        if (m.minutesDocumentId) {
-          try {
-            const downloadUrl = `/api/documents/download/${m.minutesDocumentId}`;
-            const res = await fetch(downloadUrl, {
-              headers: { 'Authorization': `Bearer ${userToken}` }
-            });
-            if (res.ok) {
-              const text = await res.text();
-              textarea.value = text;
-            } else {
-              textarea.value = '';
-            }
-          } catch (err) {
-            console.error('[Meetings] Failed to download existing minutes:', err);
-            textarea.value = 'Failed to load minutes.';
-          }
-        } else {
-          textarea.value = '';
-        }
-        textarea.focus();
-      }
-    });
-
-    // Bind cancel button click
-    card.querySelector('.btn-cancel-minutes').addEventListener('click', () => {
-      card.querySelector(`#editor-${m.id}`).style.display = 'none';
-    });
-
-    // Bind save button click
-    card.querySelector('.btn-save-minutes').addEventListener('click', async () => {
-      const content = card.querySelector(`#textarea-${m.id}`).value;
-      await saveMinutesContent(m.id, content);
-    });
-
-    return card;
-  }
-
-  async function linkMinutesDocument(meetingId, minutesDocumentId) {
-    try {
-      const res = await fetch(`/api/meetings/${meetingId}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify({ minutesDocumentId })
-      });
-      if (res.ok) {
-        showToast('Document linked successfully!', 'success');
-        await loadMeetings();
-      } else {
-        const data = await res.json();
-        showToast(data.error || 'Failed to link document.', 'error');
-      }
-    } catch (err) {
-      console.error('[Meetings] Failed to link document:', err);
-      showToast('Network error.', 'error');
-    }
-  }
-
-  async function saveMinutesContent(meetingId, content) {
-    try {
-      const res = await fetch(`/api/meetings/${meetingId}/minutes`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userToken}`
-        },
-        body: JSON.stringify({ content })
-      });
-      if (res.ok) {
-        showToast('Minutes saved and linked successfully!', 'success');
-        // Clear caches so the document list is refreshed
-        sessionStorage.removeItem('db_cache_Document');
-        await loadMeetings();
-      } else {
-        const data = await res.json();
-        showToast(data.error || 'Failed to save minutes.', 'error');
-      }
-    } catch (err) {
-      console.error('[Meetings] Failed to save minutes:', err);
-      showToast('Network error.', 'error');
-    }
-  }
-
-  function escapeHtml(text) {
-    if (!text) return '';
-    return text
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
-  window.loadMeetings = loadMeetings;
-
-  // Bind schedule form submit
-  if (scheduleMeetingForm) {
-    scheduleMeetingForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const titleInput = document.getElementById('meeting-title');
-      const dateInput = document.getElementById('meeting-date');
-      const descInput = document.getElementById('meeting-description');
-      const statusEl = document.getElementById('schedule-meeting-status');
-
-      if (!titleInput.value || !dateInput.value) {
-        statusEl.textContent = 'Please fill in all required fields.';
-        statusEl.style.color = '#991b1b';
-        statusEl.style.display = 'block';
-        return;
-      }
-
-      statusEl.textContent = 'Scheduling...';
-      statusEl.style.color = '#2b58f9';
-      statusEl.style.display = 'block';
-
-      try {
-        const res = await fetch('/api/meetings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${userToken}`
-          },
-          body: JSON.stringify({
-            title: titleInput.value,
-            date: dateInput.value,
-            description: descInput.value
-          })
-        });
-
-        if (res.status === 201) {
-          statusEl.textContent = 'Meeting scheduled successfully!';
-          statusEl.style.color = '#065f46';
-          scheduleMeetingForm.reset();
-          // Refresh lists
-          await loadMeetings();
-        } else {
-          const data = await res.json();
-          statusEl.textContent = data.error || 'Failed to schedule meeting.';
-          statusEl.style.color = '#991b1b';
-        }
-      } catch (err) {
-        console.error('[Meetings] Schedule failed:', err);
-        statusEl.textContent = 'Network error occurred.';
-        statusEl.style.color = '#991b1b';
-      }
-    });
-  }
-
-  if (meetingsRefreshBtn) {
-    meetingsRefreshBtn.addEventListener('click', loadMeetings);
-  }
-
-  // ── Page Load Active Section Restore ────────────────────────
-  const savedView = sessionStorage.getItem('adminActiveView');
-  if (savedView) {
-    setTimeout(() => {
-      // Restore active database table first if database viewer is saved
-      if (savedView === 'database') {
-        const savedTable = sessionStorage.getItem('adminActiveDbTable');
-        if (savedTable) {
-          const dbTabs = document.querySelectorAll('.db-tab');
-          const targetTab = document.querySelector(`.db-tab[data-table="${savedTable}"]`);
-          if (dbTabs && targetTab) {
-            dbTabs.forEach(t => t.classList.remove('active'));
-            targetTab.classList.add('active');
-          }
-        }
-      }
-      
-      // Navigate to saved view
-      if (typeof navigateToView === 'function') {
-        navigateToView(savedView);
-      }
-    }, 150);
   }
 
   // ── Toast ─────────────────────────────────────────────────

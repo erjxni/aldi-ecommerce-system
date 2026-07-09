@@ -2,7 +2,7 @@ const { initializeApp, cert } = require('firebase-admin/app');
 const { getDataConnect } = require('firebase-admin/data-connect');
 const path = require('path');
 
-async function run() {
+async function inspect() {
   let serviceAccount;
   if (process.env.ALDI_SQL_CONNECT_API_KEY) {
     serviceAccount = JSON.parse(process.env.ALDI_SQL_CONNECT_API_KEY);
@@ -13,7 +13,7 @@ async function run() {
 
   const app = initializeApp({
     credential: cert(serviceAccount)
-  }, 'inspect-doc-cols-app');
+  }, 'inspect-app');
 
   const sqlConnect = getDataConnect({
     serviceId: 'aldi-ecommerce-managemen-b40e8-service',
@@ -21,18 +21,16 @@ async function run() {
   }, app);
 
   const query = `
-    query GetMeetings {
-      _select(sql: "SELECT m.id, m.title, m.description, m.date, m.minutes_document_id AS \\"minutesDocumentId\\", d.title AS \\"minutesDocumentTitle\\" FROM \\"meeting\\" m LEFT JOIN \\"document\\" d ON m.minutes_document_id = d.id ORDER BY m.date ASC")
+    query GetCols {
+      _select(sql: "SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'document'")
     }
   `;
 
-  try {
-    const res = await sqlConnect.executeGraphqlRead(query);
-    console.log(JSON.stringify(res.data, null, 2));
-  } catch (err) {
-    console.error(err);
-  }
-  process.exit(0);
+  const result = await sqlConnect.executeGraphqlRead(query);
+  console.log(JSON.stringify(result.data._select, null, 2));
 }
 
-run();
+inspect().then(() => process.exit(0)).catch(err => {
+  console.error(err);
+  process.exit(1);
+});

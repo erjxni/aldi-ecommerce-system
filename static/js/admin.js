@@ -94,7 +94,7 @@
       if (!res.ok) throw new Error('Failed to fetch WhatsApp analytics stats');
 
       const data = await res.json();
-      const { peakHours, topicClusters, mostActiveUsers, leastActiveUsers, frequency, averages, messageTypes, sentimentDistribution, averageSentiment, selectedDocument, isLiveDatabase } = data;
+      const { peakHours, topicClusters, mostActiveUsers, leastActiveUsers, frequency, averages, messageTypes, sentimentDistribution, averageSentiment, spamAnalysis, influentialMembers, densityClusters, topicEmotionalIndex, selectedDocument, isLiveDatabase } = data;
 
       // Sync dropdown selections
       if (historySelect) {
@@ -274,6 +274,132 @@
         if (sentimentPosSpan) sentimentPosSpan.textContent = '-';
         if (sentimentNeuSpan) sentimentNeuSpan.textContent = '-';
         if (sentimentNegSpan) sentimentNegSpan.textContent = '-';
+      }
+
+      // 7. Render Influential Members
+      const influentialList = document.getElementById('whatsapp-influential-list');
+      if (influentialList) {
+        if (isLiveDatabase) {
+          influentialList.innerHTML = '<span style="color: #697386; font-style: italic; font-size: 0.8rem;">Anonymized to comply with database PII stripping guidelines. Select an upload file to view.</span>';
+        } else if (!influentialMembers || influentialMembers.length === 0) {
+          influentialList.innerHTML = '<span style="color: #697386; font-style: italic;">No users detected.</span>';
+        } else {
+          influentialList.innerHTML = '';
+          influentialMembers.forEach(m => {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.padding = '4px 0';
+            div.style.borderBottom = '1px dashed #e2e8f0';
+            div.innerHTML = `<span style="font-weight: 500; color: #1a1f36;">${m.name}</span><span style="color: #2b58f9; font-weight: 500;">Score: ${m.influenceScore}</span>`;
+            influentialList.appendChild(div);
+          });
+        }
+      }
+
+      // 8. Render Interaction Density Peaks
+      const densityList = document.getElementById('whatsapp-density-list');
+      if (densityList) {
+        if (!densityClusters || densityClusters.length === 0) {
+          densityList.innerHTML = '<span style="color: #697386; font-style: italic;">No density data found.</span>';
+        } else {
+          densityList.innerHTML = '';
+          densityClusters.forEach(c => {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.padding = '4px 0';
+            div.style.borderBottom = '1px dashed #e2e8f0';
+            div.innerHTML = `<span style="color: #4f566b;">${c.time}</span><span style="color: #ef4444; font-weight: 500;">${c.count} msgs / 10m</span>`;
+            densityList.appendChild(div);
+          });
+        }
+      }
+
+      // 9. Render Emotional Reaction Topics
+      const emotionalList = document.getElementById('whatsapp-emotional-list');
+      if (emotionalList) {
+        if (!topicEmotionalIndex || topicEmotionalIndex.length === 0) {
+          emotionalList.innerHTML = '<span style="color: #697386; font-style: italic;">No emotional data found.</span>';
+        } else {
+          emotionalList.innerHTML = '';
+          topicEmotionalIndex.forEach(e => {
+            const div = document.createElement('div');
+            div.style.display = 'flex';
+            div.style.justifyContent = 'space-between';
+            div.style.padding = '4px 0';
+            div.style.borderBottom = '1px dashed #e2e8f0';
+            div.innerHTML = `<span style="color: #4f566b;">${e.topic}</span><span style="color: #f59e0b; font-weight: 500;">Index: ${e.emotionalIndex.toFixed(2)}</span>`;
+            emotionalList.appendChild(div);
+          });
+        }
+      }
+
+      // 10. Render Spam Analysis
+      const spamCountSpan = document.getElementById('whatsapp-spam-count');
+      const spamPctSpan = document.getElementById('whatsapp-spam-pct');
+      const spamDropdown = document.getElementById('whatsapp-spam-dropdown');
+      const spamPreview = document.getElementById('whatsapp-spam-preview');
+
+      if (spamAnalysis) {
+        if (spamCountSpan) spamCountSpan.textContent = spamAnalysis.spamCount;
+        if (spamPctSpan) spamPctSpan.textContent = `${spamAnalysis.spamPercentage}%`;
+
+        if (spamDropdown) {
+          spamDropdown.innerHTML = '';
+          const messages = spamAnalysis.spamMessages || [];
+          if (messages.length === 0) {
+            spamDropdown.innerHTML = '<option value="">No spam messages detected</option>';
+            if (spamPreview) {
+              spamPreview.style.display = 'none';
+              spamPreview.textContent = '';
+            }
+          } else {
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = `Select message (${messages.length} flagged)`;
+            spamDropdown.appendChild(defaultOpt);
+
+            messages.forEach((msg, idx) => {
+              const opt = document.createElement('option');
+              opt.value = idx;
+              const textSnippet = msg.text.length > 30 ? msg.text.substring(0, 30) + '...' : msg.text;
+              opt.textContent = `[${msg.sender}] ${textSnippet}`;
+              spamDropdown.appendChild(opt);
+            });
+
+            spamDropdown.onchange = () => {
+              const val = spamDropdown.value;
+              if (val === '' || !spamPreview) {
+                if (spamPreview) {
+                  spamPreview.style.display = 'none';
+                  spamPreview.textContent = '';
+                }
+              } else {
+                const selectedMsg = messages[parseInt(val, 10)];
+                if (selectedMsg) {
+                  spamPreview.style.display = 'block';
+                  spamPreview.textContent = `${selectedMsg.sender}: "${selectedMsg.text}"`;
+                }
+              }
+            };
+            
+            if (spamPreview) {
+              spamPreview.style.display = 'none';
+              spamPreview.textContent = '';
+            }
+          }
+        }
+      } else {
+        if (spamCountSpan) spamCountSpan.textContent = '-';
+        if (spamPctSpan) spamPctSpan.textContent = '-';
+        if (spamDropdown) {
+          spamDropdown.innerHTML = '<option value="">No spam messages loaded</option>';
+        }
+        if (spamPreview) {
+          spamPreview.style.display = 'none';
+          spamPreview.textContent = '';
+        }
       }
 
     } catch (err) {

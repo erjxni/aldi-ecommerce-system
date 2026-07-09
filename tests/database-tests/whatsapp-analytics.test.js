@@ -422,7 +422,27 @@ async function testWhatsAppAnalytics() {
         throw new Error('Response did not contain averageSentiment score');
       }
 
-      console.log('[Test 6] PASS: Stats returned complete user activity, type composition, sentiment profile, and frequency calculations.');
+      // Verify spam analysis
+      if (!data.spamAnalysis || typeof data.spamAnalysis.spamCount !== 'number' || typeof data.spamAnalysis.spamPercentage !== 'number' || !Array.isArray(data.spamAnalysis.spamMessages)) {
+        throw new Error('Response did not contain valid spamAnalysis stats');
+      }
+
+      // Verify influential members
+      if (!data.influentialMembers || !Array.isArray(data.influentialMembers)) {
+        throw new Error('Response did not contain influentialMembers array');
+      }
+
+      // Verify density clusters
+      if (!data.densityClusters || !Array.isArray(data.densityClusters)) {
+        throw new Error('Response did not contain densityClusters array');
+      }
+
+      // Verify emotional topics
+      if (!data.topicEmotionalIndex || !Array.isArray(data.topicEmotionalIndex)) {
+        throw new Error('Response did not contain topicEmotionalIndex array');
+      }
+
+      console.log('[Test 6] PASS: Stats returned complete user activity, type composition, sentiment profile, spam counts, density peaks, emotional index, and frequency calculations.');
       passed++;
     } catch (err) {
       console.error('[Test 6] FAIL:', err.message);

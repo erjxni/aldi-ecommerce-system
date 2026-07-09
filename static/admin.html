@@ -1220,6 +1220,56 @@
                   </div>
                 </div>
               </div>
+              
+              <!-- Spam, Influence, Density, & Emotional Reactions Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; border-top: 1px solid #e3e8ee; padding-top: 24px; margin-top: 24px;">
+                <!-- Influential Members -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Influential Members</h3>
+                  <div id="whatsapp-influential-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select an uploaded file to view influential members</span>
+                  </div>
+                </div>
+
+                <!-- Interaction density peaks -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Communication Density Peaks</h3>
+                  <div id="whatsapp-density-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select a data source to view communication density</span>
+                  </div>
+                </div>
+
+                <!-- Emotional Reaction Topics -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Topic Emotional Reactions</h3>
+                  <div id="whatsapp-emotional-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select a data source to view emotional indexes</span>
+                  </div>
+                </div>
+
+                <!-- Spam Analysis -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Content Integrity</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Spam/Promo Count</span>
+                      <span id="whatsapp-spam-count" style="font-weight: 500; font-size: 0.95rem; color: #0f172a;">-</span>
+                    </div>
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Spam/Promo Ratio</span>
+                      <span id="whatsapp-spam-pct" style="font-weight: 500; font-size: 0.95rem; color: #ef4444;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                      <label for="whatsapp-spam-dropdown" style="font-size: 0.8rem; color: #4f566b; font-weight: 500;">Flagged Messages</label>
+                      <select id="whatsapp-spam-dropdown" style="width: 100%; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; background: white; cursor: pointer;">
+                        <option value="">No spam messages loaded</option>
+                      </select>
+                    </div>
+                    <div id="whatsapp-spam-preview" style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; color: #c53030; display: none; word-break: break-all; max-height: 90px; overflow-y: auto;">
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
           </div>

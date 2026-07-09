@@ -3032,7 +3032,32 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
     let neutralSentiment = 0;
     let totalSentimentScore = 0;
 
+    let spamCount = 0;
+    const spamMessages = [];
+    const senderWordCount = {};
+    const senderMessageCount = {};
+    const timeBins = {};
+    const emotionalReactions = {};
+
     parsedMessages.forEach(msg => {
+      const sender = msg.sender || 'Anonymized';
+      senderMessageCount[sender] = (senderMessageCount[sender] || 0) + 1;
+
+      let messageText = msg.text || '';
+      let isSpam = false;
+      if (!isLiveDatabase && messageText) {
+        // Spam detection
+        if (/\b(promo|discount|sale|free|deal|click here|subscribe|special offer|coupon|percent off|limited time)\b/i.test(messageText) || /https?:\/\//i.test(messageText)) {
+          spamCount++;
+          isSpam = true;
+          spamMessages.push({ sender, text: messageText });
+        }
+
+        // Word count for influence mapping
+        const words = messageText.split(/\s+/).length;
+        senderWordCount[sender] = (senderWordCount[sender] || 0) + words;
+      }
+
       // Hour aggregation
       if (msg.timestamp) {
         const date = new Date(msg.timestamp);
@@ -3062,6 +3087,11 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
         const year = new Date(firstThursday).getUTCFullYear();
         const weekStr = `${year}-W${String(weekNum).padStart(2, '0')}`;
         weeklyMap[weekStr] = (weeklyMap[weekStr] || 0) + 1;
+
+        // Interaction density (10-minute bins)
+        const minuteBin = Math.floor(date.getUTCMinutes() / 10);
+        const binKey = `${yyyymmdd} ${String(hour).padStart(2, '0')}:${minuteBin}0`;
+        timeBins[binKey] = (timeBins[binKey] || 0) + 1;
       }
 
       // Topic cluster aggregation
@@ -3090,6 +3120,13 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
       } else {
         neutralSentiment++;
       }
+
+      // Emotional reaction by topic cluster
+      if (!emotionalReactions[topic]) {
+        emotionalReactions[topic] = { totalAbsSentiment: 0, count: 0 };
+      }
+      emotionalReactions[topic].totalAbsSentiment += Math.abs(msg.sentimentScore || 0);
+      emotionalReactions[topic].count++;
     });
 
     const averageSentiment = parsedMessages.length > 0 ? Number((totalSentimentScore / parsedMessages.length).toFixed(2)) : 0;
@@ -3108,6 +3145,32 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
 
     const mostActiveUsers = sortedSenders.slice(0, 5);
     const leastActiveUsers = [...sortedSenders].reverse().slice(0, 5);
+
+    // Compute Influential Senders (Influence Score = msgCount * 0.4 + avgWordCount * 0.6)
+    const influentialMembers = Object.keys(senderMessageCount).map(name => {
+      const msgCount = senderMessageCount[name];
+      const totalWords = senderWordCount[name] || 0;
+      const avgWordCount = totalWords / msgCount;
+      const influenceScore = (msgCount * 0.4) + (avgWordCount * 0.6);
+      return {
+        name,
+        influenceScore: Number(influenceScore.toFixed(1)),
+        messageCount: msgCount
+      };
+    }).sort((a, b) => b.influenceScore - a.influenceScore).slice(0, 5);
+
+    // Compute Interaction density clusters (Top 3)
+    const densityClusters = Object.entries(timeBins).map(([time, count]) => ({
+      time,
+      count
+    })).sort((a, b) => b.count - a.count).slice(0, 3);
+
+    // Compute emotional reactions by topic
+    const topicEmotionalIndex = Object.entries(emotionalReactions).map(([topic, stats]) => ({
+      topic,
+      emotionalIndex: stats.count > 0 ? Number((stats.totalAbsSentiment / stats.count).toFixed(2)) : 0,
+      messageCount: stats.count
+    })).sort((a, b) => b.emotionalIndex - a.emotionalIndex);
 
     // Format Frequencies
     const dailyFrequency = Object.entries(dailyMap).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
@@ -3147,6 +3210,14 @@ app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) 
         neutral: neutralSentiment
       },
       averageSentiment,
+      spamAnalysis: {
+        spamCount,
+        spamPercentage: totalMsgs > 0 ? Math.round((spamCount / totalMsgs) * 100) : 0,
+        spamMessages
+      },
+      influentialMembers,
+      densityClusters,
+      topicEmotionalIndex,
       isLiveDatabase,
       selectedDocument: targetDocId && targetDocId !== 'live' ? { id: targetDocId, title: targetDocTitle } : { id: 'live', title: 'Live Database Logs (Anonymized)' }
     });

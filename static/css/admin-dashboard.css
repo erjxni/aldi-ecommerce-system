@@ -366,6 +366,10 @@ body.admin-body .navbar, body.admin-body .storefront-container {
 }
 .status-success { background: #d1fae5; color: #065f46; }
 .status-warning { background: #fef3c7; color: #92400e; }
+.status-logistics { background: #e0f2fe; color: #0369a1; }
+.status-announcements { background: #f3e8ff; color: #6b21a8; }
+.status-notices { background: #ffe4e6; color: #9f1239; }
+.status-reports { background: #e0e7ff; color: #3730a3; }
 
 /* Line Chart Mock (Retention style for Loss Categories) */
 .line-chart-mock {

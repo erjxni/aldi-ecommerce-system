@@ -366,6 +366,9 @@
                     <option value="Governance">Governance</option>
                     <option value="E-Commerce">E-Commerce</option>
                     <option value="Logistics">Logistics</option>
+                    <option value="Official announcements">Official announcements</option>
+                    <option value="Administrative notices">Administrative notices</option>
+                    <option value="Organizational reports">Organizational reports</option>
                   </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -641,6 +644,9 @@
                     <option value="Governance">Governance</option>
                     <option value="E-Commerce">E-Commerce</option>
                     <option value="Logistics">Logistics</option>
+                    <option value="Official announcements">Official announcements</option>
+                    <option value="Administrative notices">Administrative notices</option>
+                    <option value="Organizational reports">Organizational reports</option>
                   </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -875,6 +881,10 @@
                 <div style="display: flex; flex-direction: column; gap: 4px;">
                   <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Closes At (optional)</label>
                   <input type="datetime-local" id="poll-closes-at" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
+                  <input type="checkbox" id="poll-is-confidential" style="width: auto; margin: 0; cursor: pointer;" />
+                  <label for="poll-is-confidential" style="font-size: 0.85rem; font-weight: 500; color: #4f566b; cursor: pointer; user-select: none;">Confidential / Anonymous Poll</label>
                 </div>
                 <div id="create-poll-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
                 <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">

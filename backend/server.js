@@ -2011,6 +2011,18 @@ async function aggregateVotes(pollId) {
   }
 }
 
+// Helper: generate deterministic UUID for confidential votes to maintain voter anonymity while preventing duplicate votes.
+function generateConfidentialVoteUserId(pollId, realUserId) {
+  const hash = crypto.createHash('md5').update(pollId + JWT_SECRET + realUserId).digest('hex');
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    '3' + hash.substring(13, 16),
+    '8' + hash.substring(17, 20),
+    hash.substring(20, 32)
+  ].join('-');
+}
+
 // ----------------------------------------------------------
 // SCRUM-191: POST /api/polls — Admin-only poll creation
 // ----------------------------------------------------------
@@ -2022,7 +2034,7 @@ app.post('/api/polls', adminProtect, async (req, res) => {
     });
   }
 
-  const { title, description, options, closesAt } = req.body;
+  const { title, description, options, closesAt, isConfidential } = req.body;
 
   if (!title || typeof title !== 'string' || title.trim() === '') {
     return res.status(400).json({ error: 'Poll title is required.' });
@@ -2048,8 +2060,9 @@ app.post('/api/polls', adminProtect, async (req, res) => {
 
   const safeTitle = escapeSqlLiteral(title.trim());
   const safeDesc = escapeSqlLiteral((description || '').trim());
+  const dbIsConfidential = isConfidential ? 'TRUE' : 'FALSE';
 
-  const insertSql = `INSERT INTO "poll" (id, title, description, options, status, created_at, closes_at) VALUES ('${pollId}', '${safeTitle}', '${safeDesc}', '${escapeSqlLiteral(optionsJson)}', 'open', CURRENT_TIMESTAMP, ${closesAtValue})`;
+  const insertSql = `INSERT INTO "poll" (id, title, description, options, status, is_confidential, created_at, closes_at) VALUES ('${pollId}', '${safeTitle}', '${safeDesc}', '${escapeSqlLiteral(optionsJson)}', 'open', ${dbIsConfidential}, CURRENT_TIMESTAMP, ${closesAtValue})`;
   const insertMutation = `
     mutation InsertPoll {
       _execute(sql: ${graphqlSqlString(insertSql)})
@@ -2066,16 +2079,12 @@ app.post('/api/polls', adminProtect, async (req, res) => {
         description: (description || '').trim(),
         options: normalizedOptions,
         status: 'open',
-        closesAt: closesAtIso
+        closesAt: closesAtIso,
+        isConfidential: !!isConfidential
       }
     });
   } catch (err) {
     console.error('[Polls] Error creating poll:', err.message);
-    console.error('[Polls] Full error:', JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
-    if (err.httpResponse && err.httpResponse.data) {
-      console.error('[Polls] Data Connect errors:', JSON.stringify(err.httpResponse.data, null, 2));
-    }
-    console.error('[Polls] SQL used:', insertSql);
     res.status(500).json({ error: 'Failed to create poll.', detail: err.message });
   }
 });
@@ -2083,10 +2092,9 @@ app.post('/api/polls', adminProtect, async (req, res) => {
 // ----------------------------------------------------------
 // SCRUM-191: GET /api/polls/active — Retrieve all open polls
 // Accessible to: admin, employee, financial_officer (via adminProtect)
-// Customers get 403 from adminProtect middleware
 // ----------------------------------------------------------
 app.get('/api/polls/active', adminProtect, async (req, res) => {
-  const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE status = 'open' AND (closes_at IS NULL OR closes_at > CURRENT_TIMESTAMP) ORDER BY created_at DESC`;
+  const sql = `SELECT id, title, description, options, status, is_confidential AS "isConfidential", created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE status = 'open' AND (closes_at IS NULL OR closes_at > CURRENT_TIMESTAMP) ORDER BY created_at DESC`;
   const query = `
     query GetActivePolls {
       _select(sql: ${graphqlSqlString(sql)})
@@ -2097,17 +2105,21 @@ app.get('/api/polls/active', adminProtect, async (req, res) => {
     const result = await sqlConnect.executeGraphqlRead(query);
     const polls = (result.data && result.data._select) || [];
 
-    // Attach vote aggregation and check if current user voted
     const userId = req.user.id;
     const enriched = await Promise.all(polls.map(async (poll) => {
       const voteCounts = await aggregateVotes(poll.id);
+      const isConf = poll.isConfidential === true || poll.isConfidential === 'true' || poll.isConfidential === 1 || poll.isConfidential === 't';
 
-      // Check if this user already voted
+      // Check if this user already voted (deterministic user_id check if confidential)
       const safeUserId = sanitizeUuid(userId);
       const safePollId = sanitizeUuid(poll.id);
       let userVote = null;
       try {
-        const voteSql = `SELECT selected_option AS "selectedOption" FROM "vote" WHERE poll_id = '${safePollId}' AND user_id = '${safeUserId}' LIMIT 1`;
+        const targetVoteUserId = isConf
+          ? generateConfidentialVoteUserId(safePollId, safeUserId)
+          : safeUserId;
+
+        const voteSql = `SELECT selected_option AS "selectedOption" FROM "vote" WHERE poll_id = '${safePollId}' AND user_id = '${targetVoteUserId}' LIMIT 1`;
         const voteCheck = await sqlConnect.executeGraphqlRead(`
           query CheckUserVote {
             _select(sql: ${graphqlSqlString(voteSql)})
@@ -2115,7 +2127,7 @@ app.get('/api/polls/active', adminProtect, async (req, res) => {
         `);
         const voteRows = (voteCheck.data && voteCheck.data._select) || [];
         if (voteRows.length > 0) {
-          userVote = voteRows[0].selectedOption;
+          userVote = isConf ? 'confidential_voted' : voteRows[0].selectedOption;
         }
       } catch (e) {
         console.warn('[Polls] Could not check user vote:', e.message);
@@ -2131,6 +2143,7 @@ app.get('/api/polls/active', adminProtect, async (req, res) => {
         status: poll.status,
         createdAt: poll.createdAt,
         closesAt: poll.closesAt,
+        isConfidential: isConf,
         voteCounts,
         userVote
       };
@@ -2145,7 +2158,6 @@ app.get('/api/polls/active', adminProtect, async (req, res) => {
 
 // ----------------------------------------------------------
 // SCRUM-191: POST /api/polls/:id/vote — Submit a vote
-// Returns 409 if user already voted (UNIQUE constraint violation)
 // ----------------------------------------------------------
 app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
   const pollId = req.params.id;
@@ -2159,9 +2171,10 @@ app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
   const safePollId = sanitizeUuid(pollId);
   const safeUserId = sanitizeUuid(userId);
 
+  let isConfidentialPoll = false;
   // Verify poll exists and is open
   try {
-    const pollCheckSql = `SELECT id, status, closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollCheckSql = `SELECT id, status, is_confidential AS "isConfidential", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
     const pollCheck = await sqlConnect.executeGraphqlRead(`
       query CheckPoll {
         _select(sql: ${graphqlSqlString(pollCheckSql)})
@@ -2178,6 +2191,7 @@ app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
     if (poll.closesAt && new Date(poll.closesAt) < new Date()) {
       return res.status(409).json({ error: 'This poll has already closed.' });
     }
+    isConfidentialPoll = poll.isConfidential === true || poll.isConfidential === 'true' || poll.isConfidential === 1 || poll.isConfidential === 't';
 
     // Verify the selected option is valid for this poll
     const optionsSql = `SELECT options FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
@@ -2199,11 +2213,16 @@ app.post('/api/polls/:id/vote', adminProtect, async (req, res) => {
     return res.status(500).json({ error: 'Failed to validate poll.' });
   }
 
+  // Anonymize the vote's userId field if the poll is confidential
+  const voteUserId = isConfidentialPoll
+    ? generateConfidentialVoteUserId(safePollId, safeUserId)
+    : safeUserId;
+
   // Insert vote
   const voteId = crypto.randomUUID();
   const safeOption = escapeSqlLiteral(selectedOption.trim());
 
-  const insertVoteSql = `INSERT INTO "vote" (poll_id, user_id, selected_option, created_at) VALUES ('${safePollId}', '${safeUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
+  const insertVoteSql = `INSERT INTO "vote" (poll_id, user_id, selected_option, created_at) VALUES ('${safePollId}', '${voteUserId}', '${safeOption}', CURRENT_TIMESTAMP)`;
   const insertVote = `
     mutation InsertVote {
       _execute(sql: ${graphqlSqlString(insertVoteSql)})
@@ -2244,7 +2263,7 @@ app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
 
   try {
     // Get poll metadata
-    const pollSql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollSql = `SELECT id, title, description, options, status, is_confidential AS "isConfidential", created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
     const pollResult = await sqlConnect.executeGraphqlRead(`
       query GetPollForResults {
         _select(sql: ${graphqlSqlString(pollSql)})
@@ -2256,6 +2275,7 @@ app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
     }
     const poll = polls[0];
     const parsedOptions = parsePollOptions(poll.options);
+    const isConf = poll.isConfidential === true || poll.isConfidential === 'true' || poll.isConfidential === 1 || poll.isConfidential === 't';
 
     // Get total vote count
     const totalSql = `SELECT CAST(COUNT(*) AS INT) AS "total" FROM "vote" WHERE poll_id = '${safePollId}'`;
@@ -2285,6 +2305,7 @@ app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
         description: poll.description,
         options: parsedOptions,
         status: poll.status,
+        isConfidential: isConf,
         createdAt: poll.createdAt,
         closesAt: poll.closesAt
       },
@@ -2298,6 +2319,135 @@ app.get('/api/polls/:id/results', adminProtect, async (req, res) => {
 });
 
 // ----------------------------------------------------------
+// GET /api/polls/:id/report/csv — Download results report (admin only)
+// ----------------------------------------------------------
+app.get('/api/polls/:id/report/csv', adminProtect, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Admin access required.' });
+  }
+  const pollId = req.params.id;
+  const safePollId = sanitizeUuid(pollId);
+
+  try {
+    // 1. Fetch poll details
+    const pollSql = `SELECT id, title, description, options, status, is_confidential AS "isConfidential", created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" WHERE id = '${safePollId}' LIMIT 1`;
+    const pollResult = await sqlConnect.executeGraphqlRead(`
+      query GetPollForReport {
+        _select(sql: ${graphqlSqlString(pollSql)})
+      }
+    `);
+    const polls = (pollResult.data && pollResult.data._select) || [];
+    if (polls.length === 0) {
+      return res.status(404).json({ error: 'Poll not found.' });
+    }
+    const poll = polls[0];
+    const isConf = poll.isConfidential === true || poll.isConfidential === 'true' || poll.isConfidential === 1 || poll.isConfidential === 't';
+    const parsedOptions = parsePollOptions(poll.options);
+
+    // 2. Fetch vote counts
+    const totalSql = `SELECT CAST(COUNT(*) AS INT) AS "total" FROM "vote" WHERE poll_id = '${safePollId}'`;
+    const totalResult = await sqlConnect.executeGraphqlRead(`
+      query GetTotalVotesForReport {
+        _select(sql: ${graphqlSqlString(totalSql)})
+      }
+    `);
+    const totalRows = (totalResult.data && totalResult.data._select) || [];
+    const totalVotes = totalRows.length > 0 ? Number(totalRows[0].total || 0) : 0;
+    const voteCounts = await aggregateVotes(safePollId);
+
+    // 3. Fetch all staff users to verify who voted / compile audit list
+    const usersSql = `SELECT id, email, display_name AS "displayName", role FROM "user" WHERE role IN ('admin', 'financial_officer', 'employee') ORDER BY display_name ASC`;
+    const usersResult = await sqlConnect.executeGraphqlRead(`
+      query GetUsersForReport {
+        _select(sql: ${graphqlSqlString(usersSql)})
+      }
+    `);
+    const users = (usersResult.data && usersResult.data._select) || [];
+
+    // 4. Fetch all votes from "vote" table for matching
+    const votesSql = `SELECT user_id AS "userId", selected_option AS "selectedOption", created_at AS "createdAt" FROM "vote" WHERE poll_id = '${safePollId}'`;
+    const votesResult = await sqlConnect.executeGraphqlRead(`
+      query GetVotesForReport {
+        _select(sql: ${graphqlSqlString(votesSql)})
+      }
+    `);
+    const votesList = (votesResult.data && votesResult.data._select) || [];
+
+    // Compile audit records
+    const auditRecords = [];
+    for (const u of users) {
+      const realUserId = sanitizeUuid(u.id);
+      let match = null;
+
+      if (isConf) {
+        // Search by computed deterministic hash
+        const hashedUserId = generateConfidentialVoteUserId(safePollId, realUserId);
+        match = votesList.find(v => sanitizeUuid(v.userId) === hashedUserId);
+      } else {
+        // Search by direct real user ID
+        match = votesList.find(v => sanitizeUuid(v.userId) === realUserId);
+      }
+
+      if (match) {
+        auditRecords.push({
+          name: u.displayName || 'N/A',
+          email: u.email,
+          role: u.role,
+          voted: 'Yes',
+          choice: isConf ? 'Confidential' : match.selectedOption,
+          timestamp: new Date(match.createdAt).toISOString()
+        });
+      } else {
+        auditRecords.push({
+          name: u.displayName || 'N/A',
+          email: u.email,
+          role: u.role,
+          voted: 'No',
+          choice: 'N/A',
+          timestamp: 'N/A'
+        });
+      }
+    }
+
+    // 5. Generate CSV string
+    let csv = '';
+    // Header section
+    csv += `"Governance Poll Report"\n`;
+    csv += `"Poll ID","${poll.id}"\n`;
+    csv += `"Title","${poll.title.replace(/"/g, '""')}"\n`;
+    csv += `"Description","${(poll.description || '').replace(/"/g, '""')}"\n`;
+    csv += `"Status","${poll.status}"\n`;
+    csv += `"Confidential","${isConf ? 'Yes (Anonymous)' : 'No (Public)'}"\n`;
+    csv += `"Total Votes Cast","${totalVotes}"\n\n`;
+
+    // Aggregated Results table
+    csv += `"Results Summary"\n`;
+    csv += `"Option","Votes Count","Percentage"\n`;
+    for (const opt of parsedOptions) {
+      const match = voteCounts.find(v => v.option === opt);
+      const count = match ? Number(match.count || 0) : 0;
+      const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+      csv += `"${opt.replace(/"/g, '""')}","${count}","${pct}%"\n`;
+    }
+    csv += `\n`;
+
+    // Detailed Audit Log table
+    csv += `"Voter Audit Log"\n`;
+    csv += `"Name","Email","Role","Voted?","Selected Option","Vote Timestamp"\n`;
+    for (const rec of auditRecords) {
+      csv += `"${rec.name.replace(/"/g, '""')}","${rec.email.replace(/"/g, '""')}","${rec.role}","${rec.voted}","${rec.choice.replace(/"/g, '""')}","${rec.timestamp}"\n`;
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="poll_${safePollId}_report.csv"`);
+    res.send(csv);
+  } catch (err) {
+    console.error('[Polls] Error generating CSV report:', err.message);
+    res.status(500).json({ error: 'Failed to generate results report.' });
+  }
+});
+
+// ----------------------------------------------------------
 // SCRUM-191: GET /api/polls — List all polls (admin only)
 // ----------------------------------------------------------
 app.get('/api/polls', adminProtect, async (req, res) => {
@@ -2305,7 +2455,7 @@ app.get('/api/polls', adminProtect, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden: Admin access required.' });
   }
   try {
-    const sql = `SELECT id, title, description, options, status, created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" ORDER BY created_at DESC`;
+    const sql = `SELECT id, title, description, options, status, is_confidential AS "isConfidential", created_at AS "createdAt", closes_at AS "closesAt" FROM "poll" ORDER BY created_at DESC`;
     const query = `
       query GetAllPolls {
         _select(sql: ${graphqlSqlString(sql)})
@@ -2316,7 +2466,13 @@ app.get('/api/polls', adminProtect, async (req, res) => {
     const enriched = await Promise.all(polls.map(async (poll) => {
       const voteCounts = await aggregateVotes(poll.id);
       const parsedOptions = parsePollOptions(poll.options);
-      return { ...poll, options: parsedOptions, voteCounts };
+      const isConf = poll.isConfidential === true || poll.isConfidential === 'true' || poll.isConfidential === 1 || poll.isConfidential === 't';
+      return { 
+        ...poll, 
+        options: parsedOptions, 
+        isConfidential: isConf,
+        voteCounts 
+      };
     }));
     res.json(enriched);
   } catch (err) {

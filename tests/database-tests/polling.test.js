@@ -174,6 +174,25 @@ async function cleanupTestPolls() {
 async function runTests() {
   log('=== ALDI Polling System Test Suite (SCRUM-190 to SCRUM-194) ===\n');
 
+  // Start Express server programmatically if not already running
+  const { server } = require('../../backend/server.js');
+  if (!server.listening) {
+    await new Promise((resolve, reject) => {
+      server.listen(3001, () => {
+        log('Server started on port 3001 for polling tests', 'INFO');
+        resolve();
+      });
+      server.on('error', (err) => {
+        if (err.code === 'EADDRINUSE') {
+          log('Port 3001 already in use, assuming server is running.', 'INFO');
+          resolve();
+        } else {
+          reject(err);
+        }
+      });
+    });
+  }
+
   const { adminToken, employeeToken, financialOfficerToken, customerToken, adminUserId, employeeUserId } = await getTestTokens();
 
   // ── Test 1: Poll table exists ──────────────────────────────────
@@ -352,6 +371,69 @@ async function runTests() {
       assert(res.status === 400, 'T5.7: Missing selectedOption returns 400', `Got status ${res.status}`);
     } catch (e) {
       assert(false, 'T5.7: Missing selectedOption', e.message);
+    }
+  }
+
+  // ── Test 15: Create confidential poll ───────────────────────────
+  log('\n--- Test Group 6: Confidential Voting & Reporting ---');
+  let confidentialPollId = null;
+  try {
+    const res = await apiCall('POST', '/api/polls', {
+      title: '[TEST] Confidential Governance Vote',
+      description: 'Testing anonymous voting flow',
+      options: ['Yes', 'No', 'Abstain'],
+      isConfidential: true
+    }, adminToken);
+    assert(res.status === 201, 'T6.1: Admin can create a confidential poll');
+    if (res.status === 201 && res.body.poll && res.body.poll.id) {
+      confidentialPollId = res.body.poll.id;
+      createdPollIds.push(confidentialPollId);
+    }
+  } catch (e) {
+    assert(false, 'T6.1: Confidential poll creation', e.message);
+  }
+
+  // ── Test 16: Vote on confidential poll ──────────────────────────
+  if (confidentialPollId) {
+    try {
+      const res = await apiCall('POST', `/api/polls/${confidentialPollId}/vote`,
+        { selectedOption: 'Yes' }, employeeToken);
+      assert(res.status === 201, 'T6.2: Employee can vote on confidential poll');
+    } catch (e) {
+      assert(false, 'T6.2: Vote on confidential poll', e.message);
+    }
+  }
+
+  // ── Test 17: Verify userVote is masked in active polls ───────────
+  if (confidentialPollId) {
+    try {
+      const res = await apiCall('GET', '/api/polls/active', null, employeeToken);
+      const pollObj = res.body.find(p => p.id === confidentialPollId);
+      assert(pollObj && pollObj.userVote === 'confidential_voted', 'T6.3: Active polls returns "confidential_voted" for voter choice mask');
+    } catch (e) {
+      assert(false, 'T6.3: Mask voter choice in active polls', e.message);
+    }
+  }
+
+  // ── Test 18: Download CSV report for public poll ────────────────
+  if (testPollId) {
+    try {
+      const res = await apiCall('GET', `/api/polls/${testPollId}/report/csv`, null, adminToken);
+      assert(res.status === 200, 'T6.4: Admin can retrieve public CSV report');
+      assert(typeof res.body === 'string' && res.body.includes('Option A') && res.body.includes('Option'), 'T6.5: Public report includes option choice details');
+    } catch (e) {
+      assert(false, 'T6.4: Public CSV report download', e.message);
+    }
+  }
+
+  // ── Test 19: Download CSV report for confidential poll ──────────
+  if (confidentialPollId) {
+    try {
+      const res = await apiCall('GET', `/api/polls/${confidentialPollId}/report/csv`, null, adminToken);
+      assert(res.status === 200, 'T6.6: Admin can retrieve confidential CSV report');
+      assert(typeof res.body === 'string' && res.body.includes('Confidential') && !res.body.includes('Yes,"Yes'), 'T6.7: Confidential report masks option choice as "Confidential"');
+    } catch (e) {
+      assert(false, 'T6.6: Confidential CSV report download', e.message);
     }
   }
 

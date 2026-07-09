@@ -1941,6 +1941,10 @@
   function getCategoryClass(cat) {
     if (cat === 'Governance') return 'status-warning';
     if (cat === 'E-Commerce') return 'status-success';
+    if (cat === 'Logistics') return 'status-logistics';
+    if (cat === 'Official announcements') return 'status-announcements';
+    if (cat === 'Administrative notices') return 'status-notices';
+    if (cat === 'Organizational reports') return 'status-reports';
     return 'status-warning';
   }
 })();
@@ -2044,9 +2048,32 @@
     }).join('');
   }
 
+  // ---- Download Poll Report (Admin only) ----
+  async function downloadPollReport(pollId, pollTitle) {
+    try {
+      const res = await fetch(`/api/polls/${pollId}/report/csv`, {
+        headers: { 'Authorization': `Bearer ${userToken}` }
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const safeTitle = pollTitle.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase();
+      a.download = `poll_${safeTitle}_report.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('[Polls] Report download failed:', err);
+      alert('Failed to download report. Please try again.');
+    }
+  }
+
   // ---- Render a single poll card ----
   function renderPollCard(poll) {
-    const { id, title, description, status, createdAt, closesAt, userVote } = poll;
+    const { id, title, description, status, createdAt, closesAt, userVote, isConfidential } = poll;
     const voteCounts = coerceVoteCounts(poll.voteCounts);
     const totalVotes = voteCounts.reduce((s, v) => s + (v.count || 0), 0);
     const hasVoted = !!userVote;
@@ -2062,13 +2089,24 @@
       ? `<button class="poll-close-btn" data-poll-id="${escapeHtml(id)}">Close Poll</button>`
       : '';
 
+    const reportBtn = userRole === 'admin'
+      ? `<button class="poll-report-btn btn-outline" data-poll-id="${escapeHtml(id)}" data-poll-title="${escapeHtml(title)}" style="font-size: 0.8rem; padding: 6px 10px; display: inline-flex; align-items: center; gap: 4px;" title="Download Report">📊 Report</button>`
+      : '';
+
+    const confidentialBadge = isConfidential
+      ? `<span class="poll-status-badge" style="background:#e0e7ff; color:#3730a3; display: inline-flex; align-items: center; gap: 4px;" title="Voter identity is hidden from results"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Confidential</span>`
+      : '';
+
     card.innerHTML = `
       <div class="poll-card-header">
         <div style="flex:1;min-width:0;">
           <h3 class="poll-card-title">${escapeHtml(title)}</h3>
           ${description ? `<p class="poll-card-description">${escapeHtml(description)}</p>` : ''}
         </div>
-        <span class="poll-status-badge poll-status-${escapeHtml(status)}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</span>
+        <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+          <span class="poll-status-badge poll-status-${escapeHtml(status)}">${escapeHtml(status.charAt(0).toUpperCase() + status.slice(1))}</span>
+          ${confidentialBadge}
+        </div>
       </div>
       <div class="poll-card-body">
         ${hasVoted || isClosed
@@ -2082,7 +2120,10 @@
           <span class="poll-meta" style="margin-left:12px;">Closes: ${closesLabel}</span>
           ${createdLabel ? `<span class="poll-meta" style="margin-left:12px;">Created: ${createdLabel}</span>` : ''}
         </div>
-        ${adminActions}
+        <div style="display: flex; gap: 8px; align-items: center;">
+          ${reportBtn}
+          ${adminActions}
+        </div>
       </div>
     `;
 
@@ -2121,6 +2162,11 @@
     // Attach close poll handlers (admin only)
     pollsList.querySelectorAll('.poll-close-btn').forEach(btn => {
       btn.addEventListener('click', () => closePoll(btn.dataset.pollId));
+    });
+
+    // Attach report download handlers (admin only)
+    pollsList.querySelectorAll('.poll-report-btn').forEach(btn => {
+      btn.addEventListener('click', () => downloadPollReport(btn.dataset.pollId, btn.dataset.pollTitle));
     });
   }
 
@@ -2249,6 +2295,7 @@
       const title = document.getElementById('poll-title').value.trim();
       const description = document.getElementById('poll-description').value.trim();
       const closesAt = document.getElementById('poll-closes-at').value;
+      const isConfidential = document.getElementById('poll-is-confidential') ? document.getElementById('poll-is-confidential').checked : false;
       const optionInputs = optionsContainer.querySelectorAll('.poll-option-input');
       const options = Array.from(optionInputs).map(i => i.value.trim()).filter(Boolean);
 
@@ -2271,7 +2318,7 @@
             'Authorization': `Bearer ${userToken}`
           },
           credentials: 'include',
-          body: JSON.stringify({ title, description, options, closesAt: closesAt || undefined })
+          body: JSON.stringify({ title, description, options, closesAt: closesAt || undefined, isConfidential })
         });
 
         const data = await res.json();

@@ -11,6 +11,34 @@
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/admin-dashboard.css" />
   <link rel="stylesheet" href="/css/finance-reporting.css" />
+  <style>
+    /* 3D Bar Tooltip */
+    .bar-3d { cursor: pointer; }
+    .bar-3d:hover { filter: brightness(1.15); }
+    .bar-3d::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: -32px;
+      left: 50%;
+      transform: translateX(-50%) scale(0.9);
+      background: #1a1f36;
+      color: white;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight: 600;
+      z-index: 10;
+    }
+    .bar-3d:hover::after {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
+    }
+  </style>
   <link rel="apple-touch-icon" sizes="180x180" href="/assets/public/apple-touch-icon.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/public/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/assets/public/favicon-16x16.png">
@@ -47,7 +75,7 @@
       <aside class="admin-sidebar">
         <div style="flex-grow: 0; display:flex; flex-direction:column; gap:16px; align-items:center; width:100%;">
           <!-- Search Icon -->
-          <a href="#" class="sidebar-icon" title="Search">
+          <a href="#" id="btn-search-trigger" class="sidebar-icon" title="Search">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round">
               <circle cx="11" cy="11" r="8"></circle>
@@ -119,10 +147,6 @@
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
           </a>
-          <!-- Notification Icon -->
-          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications" onclick="event.preventDefault(); document.querySelectorAll('.admin-content-wrapper > div').forEach(el => el.style.display='none'); document.getElementById('notifications-manager').style.display='flex';">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-          </a>
           <!-- Shield Icon -->
           <a href="#" class="sidebar-icon" title="Security">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -130,6 +154,47 @@
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
             </svg>
           </a>
+          <!-- Polls Icon (Ballot Box) -->
+          <a href="#" id="btn-polls-manager" class="sidebar-icon" title="Polls & Voting">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="9" x2="15" y2="9"></line>
+              <line x1="9" y1="12" x2="15" y2="12"></line>
+              <line x1="9" y1="15" x2="13" y2="15"></line>
+            </svg>
+          </a>
+          <!-- Notifications Manager Icon -->
+          <a href="#" id="btn-notifications-manager" class="sidebar-icon" title="Notifications Manager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+              <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+            </svg>
+          </a>
+          <!-- Meetings Manager Icon -->
+          <a href="#" id="btn-meetings-manager" class="sidebar-icon" title="Meetings Manager">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+          </a>
+          <!-- WhatsApp Analytics Icon -->
+          <a href="#" id="btn-whatsapp-analytics" class="sidebar-icon" title="WhatsApp Analytics">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
+            </svg>
+          </a>
+          <!-- Restock Cart Icon -->
+          <button id="btn-restock-drawer" class="sidebar-icon restock-cart-btn" title="Restock Order" style="background:none;border:none;cursor:pointer;position:relative;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="9" cy="21" r="1"></circle>
+              <circle cx="20" cy="21" r="1"></circle>
+              <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+            </svg>
+            <span class="restock-badge" id="restock-badge" style="display:none;">0</span>
+          </button>
         </div>
       </aside>
 
@@ -141,12 +206,18 @@
               Overview
               <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">&#128279;</span>
             </h1>
-            <div class="header-actions">
-              <button class="btn-outline">&#x1F4C5; Jan 01 - July 31</button>
-              <span style="color:#697386; font-size:0.8rem; align-self:center;">compared to</span>
-              <button class="btn-outline">&#x1F4C5; Aug 01 - Dec 31</button>
-              <button class="btn-outline">Daily</button>
-              <button class="btn-outline" style="background:#f4f5f7;">Add widget +</button>
+            <div class="header-actions" style="display: flex; gap: 12px; align-items: center;">
+              <select id="overview-range-preset" class="btn-outline" style="padding: 8px 12px; border: 1px solid #e3e8ee; border-radius: 6px; outline: none; background: white; cursor: pointer; font-family: inherit;">
+                <option value="this-week">This Week</option>
+                <option value="last-week">Last Week</option>
+                <option value="this-month">This Month</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              <div id="overview-custom-dates" style="display: none; align-items: center; gap: 8px;">
+                <input type="date" id="overview-start-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+                <span style="color: #697386; font-size: 0.85rem;">to</span>
+                <input type="date" id="overview-end-date" class="btn-outline" style="padding: 6px 10px; font-family: inherit;" />
+              </div>
             </div>
           </div>
 
@@ -156,40 +227,11 @@
             <!-- Daily Losses Trend (span 2) -->
             <div class="widget widget-span-2">
               <div class="widget-header">
-                <h2 class="widget-title">Daily Losses Trend</h2>
-                <button class="widget-icon-btn">&#x22EF;</button>
+                <h2 class="widget-title" id="losses-widget-title">Daily Losses Trend</h2>
               </div>
 
-              <div class="bar-chart-container">
-                <!-- Mocking 3D bars -->
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 60%;"></div>
-                  <div class="bar-label">Mon</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 80%;"></div>
-                  <div class="bar-label">Tue</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 50%;"></div>
-                  <div class="bar-label">Wed</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 40%;"></div>
-                  <div class="bar-label">Thu</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 70%;"></div>
-                  <div class="bar-label">Fri</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 90%;"></div>
-                  <div class="bar-label">Sat</div>
-                </div>
-                <div class="bar-group">
-                  <div class="bar-3d" style="height: 30%;"></div>
-                  <div class="bar-label">Sun</div>
-                </div>
+              <div class="bar-chart-container" id="losses-chart-container" style="overflow-x: auto; min-width: 0; display: flex; gap: 2%;">
+                <!-- Dynamically populated -->
               </div>
             </div>
 
@@ -200,34 +242,34 @@
                 <button class="widget-icon-btn">&#x22EF;</button>
               </div>
               <h3 class="metric-value" id="total-revenue-amount">€0.00</h3>
-              <span class="metric-change positive">&#x25B2; 15%</span>
+              <span class="metric-change neutral" id="revenue-change-badge">&#x2014; 0%</span>
 
               <div class="progress-list">
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>Online Payments</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-online-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-green" style="width: 70%;"></div>
+                    <div class="progress-bar-fill pb-green" id="rev-online-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>Subscriptions</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-subscriptions-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-blue" style="width: 45%;"></div>
+                    <div class="progress-bar-fill pb-blue" id="rev-subscriptions-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
                 <div class="progress-item">
                   <div class="progress-label">
                     <span>In-Store Sales</span>
-                    <span class="progress-val">€0.00</span>
+                    <span class="progress-val" id="rev-instore-val">€0.00</span>
                   </div>
                   <div class="progress-bar-bg">
-                    <div class="progress-bar-fill pb-pink" style="width: 20%;"></div>
+                    <div class="progress-bar-fill pb-pink" id="rev-instore-bar" style="width: 0%; transition: width 0.6s ease;"></div>
                   </div>
                 </div>
               </div>
@@ -237,16 +279,14 @@
             <div class="widget">
               <div class="widget-header">
                 <h2 class="widget-title">Loss Categories</h2>
-                <button class="widget-icon-btn">&#x22EF;</button>
               </div>
-              <div class="line-chart-mock">
-                <div
-                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                  42%</div>
+              <div class="line-chart-mock" id="loss-categories-chart-container" style="position:relative; height:160px;">
+                <div id="loss-category-badge"
+                  style="position:absolute; top:20px; left:20px; background:white; border-radius:4px; padding:2px 6px; font-size:0.75rem; font-weight:600; box-shadow:0 2px 4px rgba(0,0,0,0.1); z-index: 2;">
+                  -</div>
               </div>
-              <div
+              <div id="loss-categories-labels-container"
                 style="display:flex; justify-content:space-between; margin-top:10px; font-size:0.75rem; color:#697386;">
-                <span>Jan</span><span>Feb</span><span>Mar</span><span>Apr</span><span>May</span><span>Jun</span>
               </div>
             </div>
 
@@ -255,68 +295,32 @@
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Sales Losses</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
                   <div class="stat-value" id="total-loss-amount">€0.00</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+€34,002</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="sales-losses-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-green"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot"></div>
-                  </div>
+                <div class="dot-chart" id="sales-losses-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
 
               <div class="widget" style="padding: 20px;">
                 <div class="widget-header" style="margin-bottom:10px;">
                   <h2 class="widget-title">Customers</h2>
-                  <button class="widget-icon-btn">&#x22EF;</button>
                 </div>
                 <div class="stat-group">
-                  <div class="stat-value" id="customer-table-count-value">1,284</div>
+                  <div class="stat-value" id="customer-table-count-value">-</div>
                   <div>
                     <div style="font-size:0.75rem; color:#697386; margin-bottom:4px; text-align:right;">vs last period
                     </div>
-                    <div style="font-size:0.9rem; font-weight:600; text-align:right;">+320</div>
+                    <div style="font-size:0.9rem; font-weight:600; text-align:right;" id="customers-change-value">-</div>
                   </div>
                 </div>
-                <div class="dot-chart" style="margin-top:10px;">
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                    <div class="dot active-blue"></div>
-                  </div>
-                  <div class="dot-col">
-                    <div class="dot active-blue"></div>
-                  </div>
+                <div class="dot-chart" id="customers-dot-chart" style="margin-top:12px; display:flex; gap:8px; height:40px; align-items:flex-end;">
                 </div>
               </div>
             </div>
@@ -333,6 +337,12 @@
                 style="position:absolute; bottom:24px; right:24px; background:rgba(255,255,255,0.2); padding:6px 12px; border-radius:20px; font-size:0.8rem; display:flex; align-items:center; gap:6px;">
                 <div style="width:8px; height:8px; background:#10b981; border-radius:50%;"></div>
                 <span class="ws-status-text">Connected</span>
+                <button id="ws-refresh-btn" title="Reconnect WebSocket" style="background:none; border:none; padding:0; cursor:pointer; display:flex; align-items:center; color:white; margin-left:2px; transition:transform 0.4s ease; outline:none;">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="23 4 23 10 17 10"></polyline>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                  </svg>
+                </button>
               </div>
             </div>
 
@@ -356,6 +366,9 @@
                     <option value="Governance">Governance</option>
                     <option value="E-Commerce">E-Commerce</option>
                     <option value="Logistics">Logistics</option>
+                    <option value="Official announcements">Official announcements</option>
+                    <option value="Administrative notices">Administrative notices</option>
+                    <option value="Organizational reports">Organizational reports</option>
                   </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -423,139 +436,87 @@
           </main>
         </div> <!-- /#dashboard-view -->
         <!-- Financials View -->
-<div
-  id="financials-view"
-  style="display: none; height: 100%; flex-direction: column;"
->
-  <section class="admin-card finance-reporting-widget" id="finance-reporting-widget">
-              <div class="finance-widget-header">
-                <div>
-                  <h2>Financial Reporting</h2>
-                  <p>View revenue, expenses, and profit summary for a selected date range.</p>
-                </div>
+        <!-- Financials View -->
+        <div id="financials-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">Financial Reporting</h1>
+            <button type="button" id="download-finance-csv" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+              Download CSV Report
+            </button>
+          </div>
 
-                <button type="button" id="download-finance-csv" class="btn-outline">
-                  Download CSV Report
-                </button>
-              </div>
-
-              <div class="finance-filters">
-                <label>
-                  Date Range
-                  <select id="finance-date-range">
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; flex-direction: column; gap: 24px; min-height: 0; overflow-y: auto;">
+            
+            <div class="finance-reporting-widget" id="finance-reporting-widget" style="padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px;">
+              
+              <div class="finance-filters" style="display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap;">
+                <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 200px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Date Range</label>
+                  <select id="finance-date-range" style="width: 100%; height: 41px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; transition: border-color 0.2s;">
                     <option value="7">Last 7 Days</option>
                     <option value="30" selected>Last 30 Days</option>
                     <option value="90">Last 90 Days</option>
                     <option value="custom">Custom Range</option>
                   </select>
-                </label>
+                </div>
 
-                <label>
-                  Start Date
-                  <input type="date" id="finance-start-date">
-                </label>
+                <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Start Date</label>
+                  <input type="date" id="finance-start-date" style="width: 100%; height: 41px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; transition: border-color 0.2s;" />
+                </div>
 
-                <label>
-                  End Date
-                  <input type="date" id="finance-end-date">
-                </label>
+                <div style="display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 150px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">End Date</label>
+                  <input type="date" id="finance-end-date" style="width: 100%; height: 41px; box-sizing: border-box; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; transition: border-color 0.2s;" />
+                </div>
 
-             <button type="button" id="load-finance-report" class="btn-outline">
+                <button type="button" id="load-finance-report" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 11px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; font-size: 0.9rem; height: 41px; box-sizing: border-box;">
                   Load Report
                 </button>
               </div>
 
-              <div id="finance-message" class="finance-message"></div>
+              <div id="finance-message" class="finance-message" style="margin: 0; font-size: 0.85rem; font-weight: 600; min-height: 0; display: none;"></div>
 
-              <div class="finance-summary-grid">
-                <div class="finance-summary-card">
-                  <span>Total Revenue</span>
-                  <strong id="finance-total-revenue">€0.00</strong>
+              <div class="finance-summary-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;">
+                <div class="finance-summary-card" style="padding: 20px; border: 1px solid #e3e8ee; border-radius: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 6px;">
+                  <span style="font-size: 0.75rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Total Revenue</span>
+                  <strong id="finance-total-revenue" style="font-size: 1.8rem; font-weight: 700; color: #1a1f36; letter-spacing: -0.02em;">€0.00</strong>
                 </div>
 
-                <div class="finance-summary-card">
-                  <span>Total Expenses</span>
-                  <strong id="finance-total-expenses">€0.00</strong>
+                <div class="finance-summary-card" style="padding: 20px; border: 1px solid #e3e8ee; border-radius: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 6px;">
+                  <span style="font-size: 0.75rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Total Expenses</span>
+                  <strong id="finance-total-expenses" style="font-size: 1.8rem; font-weight: 700; color: #1a1f36; letter-spacing: -0.02em;">€0.00</strong>
                 </div>
 
-                <div class="finance-summary-card">
-                  <span>Total Profit</span>
-                  <strong id="finance-total-profit">€0.00</strong>
+                <div class="finance-summary-card" style="padding: 20px; border: 1px solid #e3e8ee; border-radius: 12px; background: #ffffff; box-shadow: 0 2px 8px rgba(0,0,0,0.02); display: flex; flex-direction: column; gap: 6px;">
+                  <span style="font-size: 0.75rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Total Profit</span>
+                  <strong id="finance-total-profit" style="font-size: 1.8rem; font-weight: 700; color: #1a1f36; letter-spacing: -0.02em;">€0.00</strong>
                 </div>
               </div>
 
-              <div class="finance-table-wrapper">
-                <table class="finance-table">
+              <div class="finance-table-wrapper" style="border: 1px solid #e3e8ee; border-radius: 8px; overflow: hidden; background: white;">
+                <table class="finance-table" style="width: 100%; border-collapse: collapse;">
                   <thead>
-                    <tr>
-                      <th>Date</th>
-                      <th>Transaction Type</th>
-                      <th>Description</th>
-                      <th>Amount</th>
-                      <th>Related Order</th>
+                    <tr style="background: #f4f5f7; border-bottom: 1px solid #e3e8ee;">
+                      <th style="padding: 12px 20px; text-align: left; font-size: 0.8rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Date</th>
+                      <th style="padding: 12px 20px; text-align: left; font-size: 0.8rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Transaction Type</th>
+                      <th style="padding: 12px 20px; text-align: left; font-size: 0.8rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Description</th>
+                      <th style="padding: 12px 20px; text-align: left; font-size: 0.8rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Amount</th>
+                      <th style="padding: 12px 20px; text-align: left; font-size: 0.8rem; font-weight: 600; color: #697386; text-transform: uppercase; letter-spacing: 0.04em;">Related Order</th>
                     </tr>
                   </thead>
                   <tbody id="finance-ledger-body">
                     <tr>
-                      <td colspan="5">No financial records loaded yet.</td>
+                      <td colspan="5" style="padding: 24px; text-align: center; color: #697386; font-size: 0.95rem;">No financial records loaded yet.</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
-            </section>
-</div>
-
-        <!-- Notifications Manager (Hidden by default) -->
-        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
-          <div class="db-viewer-header">
-            <h1 class="dashboard-title">Notification Manager</h1>
-          </div>
-
-          <!-- Create Notification Widget -->
-          <div class="db-viewer-content" style="margin-top: 24px;">
-            <div class="db-viewer-inner table-widget" style="padding: 32px; background: white;">
-              <h3 style="margin-top: 0; color: #1a1f36;">Create Notification</h3>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Message:</label>
-                <input type="text" id="notif-message-input" placeholder="Enter notification message..." style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; outline: none;" />
-              </div>
-
-              <div style="margin-bottom: 16px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Type:</label>
-                <select id="notif-type-select" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Poppins', sans-serif; outline: none;">
-                  <option value="system">System</option>
-                  <option value="order">Order</option>
-                  <option value="meeting">Meeting</option>
-                  <option value="poll">Poll</option>
-                </select>
-              </div>
-
-              <div style="margin-bottom: 24px;">
-                <label style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Send To:</label>
-                <div style="display: flex; gap: 16px; flex-wrap: wrap;">
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-admin" value="admin" checked /> Admin
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-employee" value="employee" checked /> Employee
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-financial" value="financial_officer" checked /> Financial Officer
-                  </label>
-                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
-                    <input type="checkbox" id="role-customer" value="customer" /> Customer
-                  </label>
-                </div>
-              </div>
-
-              <button id="send-notif-btn" style="background: #1a1f36; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-family: 'Poppins', sans-serif; font-size: 0.9rem; font-weight: 500; cursor: pointer;">
-                Send Notification
-              </button>
-              <span id="notif-status" style="margin-left: 16px; font-size: 0.85rem; color: #4f566b;"></span>
             </div>
+            
           </div>
-        </div> <!-- /#notifications-manager -->
+        </div>
+
         <!-- Database Viewer (Hidden by default) -->
         <div id="database-viewer" style="display: none; height: 100%; flex-direction: column;">
           <div class="db-viewer-header">
@@ -569,6 +530,11 @@
               <button class="db-tab" data-table="OrderItem">OrderItem</button>
               <button class="db-tab" data-table="FinancialRecord">FinancialRecord</button>
               <button class="db-tab" data-table="Document">Document</button>
+              <button class="db-tab" data-table="StockBatch">StockBatch</button>
+              <button class="db-tab" data-table="Notification">Notification</button>
+              <button class="db-tab" data-table="Poll">Poll</button>
+              <button class="db-tab" data-table="Vote">Vote</button>
+              <button class="db-tab" data-table="Meeting">Meeting</button>
             </div>
           </div>
           <div class="db-viewer-content" style="flex: 1; display: flex; flex-direction: column; min-height: 0;">
@@ -601,6 +567,7 @@
                   <option value="addProduct">Add a new Product</option>
                   <option value="deleteOrder">Delete an Order</option>
                   <option value="deleteUser">Delete a User</option>
+                  <option value="deleteFinancialRecord">Delete a Financial Record</option>
                 </select>
               </div>
               <div style="display: flex; gap: 24px;">
@@ -677,6 +644,9 @@
                     <option value="Governance">Governance</option>
                     <option value="E-Commerce">E-Commerce</option>
                     <option value="Logistics">Logistics</option>
+                    <option value="Official announcements">Official announcements</option>
+                    <option value="Administrative notices">Administrative notices</option>
+                    <option value="Organizational reports">Organizational reports</option>
                   </select>
                 </div>
                 <div style="display: flex; flex-direction: column; gap: 4px;">
@@ -747,6 +717,7 @@
                 style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
               <select id="new-user-role" required
                 style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="customer">Customer</option>
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
@@ -787,7 +758,7 @@
         <!-- Edit User Modal -->
         <dialog id="edit-user-modal"
           style="border: none; border-radius: 12px; padding: 32px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); max-width: 400px; width: 100%;">
-          <h2 style="margin-top: 0; color: #1a1f36;">Edit Staff User</h2>
+          <h2 style="margin-top: 0; color: #1a1f36;">Edit User</h2>
           <form id="edit-user-form" style="display: flex; flex-direction: column; gap: 16px;">
             <input type="hidden" id="edit-user-id">
             <div>
@@ -809,6 +780,7 @@
                 style="display: block; font-weight: 500; font-size: 0.9rem; color: #4f566b; margin-bottom: 8px;">Role</label>
               <select id="edit-user-role" required
                 style="width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-family: 'Inter', sans-serif;">
+                <option value="customer">Customer</option>
                 <option value="employee">Employee</option>
                 <option value="financial_officer">Financial Officer</option>
                 <option value="admin">Admin</option>
@@ -861,14 +833,560 @@
           </div>
         </dialog>
 
+        <!-- Polls Manager View (SCRUM-192) — Hidden by default -->
+        <div id="polls-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">Polls &amp; Voting</h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="polls-status-badge" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; background: #d1fae5; color: #065f46; font-weight: 600;"></span>
+              <button id="polls-refresh-btn" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+
+            <!-- Left: Create Poll Form (Admin only) -->
+            <div id="create-poll-panel" class="widget" style="width: 320px; flex-shrink: 0; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Create Poll</h2>
+                <span style="font-size: 1.2rem;">📊</span>
+              </div>
+              <form id="create-poll-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Poll Title *</label>
+                  <input type="text" id="poll-title" required placeholder="e.g. Q3 Strategy Vote" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Description</label>
+                  <textarea id="poll-description" rows="3" placeholder="What is this poll about?" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical; transition: border-color 0.2s;"></textarea>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Options * (min. 2)</label>
+                  <div id="poll-options-container" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option A" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                    <div class="poll-option-row" style="display: flex; gap: 8px; align-items: center;">
+                      <input type="text" class="poll-option-input" required placeholder="Option B" style="flex: 1; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; font-family: inherit;" />
+                      <button type="button" class="remove-option-btn" style="background: none; border: 1px solid #e3e8ee; width: 30px; height: 30px; border-radius: 6px; cursor: pointer; color: #697386; font-size: 1rem; flex-shrink: 0; display: none;">×</button>
+                    </div>
+                  </div>
+                  <button type="button" id="add-poll-option-btn" style="background: none; border: 1px dashed #c4c9d4; padding: 8px; border-radius: 8px; font-size: 0.85rem; color: #697386; cursor: pointer; transition: all 0.2s; text-align: center;">
+                    + Add Option
+                  </button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Closes At (optional)</label>
+                  <input type="datetime-local" id="poll-closes-at" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit;" />
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px; margin: 4px 0;">
+                  <input type="checkbox" id="poll-is-confidential" style="width: auto; margin: 0; cursor: pointer;" />
+                  <label for="poll-is-confidential" style="font-size: 0.85rem; font-weight: 500; color: #4f566b; cursor: pointer; user-select: none;">Confidential / Anonymous Poll</label>
+                </div>
+                <div id="create-poll-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                  🗳️ Create Poll
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Active Polls List -->
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="polls-loading" style="text-align: center; padding: 48px; color: #697386; font-size: 0.95rem;">
+                Loading polls...
+              </div>
+              <div id="polls-empty" style="display: none; text-align: center; padding: 64px 32px;">
+                <div style="font-size: 3rem; margin-bottom: 16px;">🗳️</div>
+                <h3 style="margin: 0 0 8px 0; color: #1a1f36;">No active polls</h3>
+                <p style="color: #697386; margin: 0;">Create a poll using the form on the left to get started.</p>
+              </div>
+              <div id="polls-list" style="display: flex; flex-direction: column; gap: 20px;"></div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Notifications Manager View -->
+        <div id="notifications-manager" style="display: none; height: 100%; flex-direction: column;">
+          <div class="dashboard-header">
+            <h1 class="dashboard-title">
+              Broadcast Center
+              <span class="widget-icon-btn" style="width:24px; height:24px; font-size:12px;">📢</span>
+            </h1>
+          </div>
+          
+          <div class="widget-grid" style="grid-template-columns: 1fr;">
+            <!-- Broadcast Card -->
+            <div class="glass-card" style="padding: 24px;">
+              <h2 style="font-size: 1.1rem; color: #1a1f36; margin: 0 0 16px 0;">New Broadcast</h2>
+              
+              <div style="display: flex; flex-direction: column; gap: 16px;">
+                <!-- Target Roles -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Target Roles</label>
+                  <div style="display: flex; gap: 12px;">
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="employee" checked> Employee
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="financial_officer"> Finance
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 6px; font-size: 0.9rem; color: #3c4257;">
+                      <input type="checkbox" class="notif-role-checkbox" value="admin"> Admin
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Notification Type -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Type</label>
+                  <select id="notifType" style="width: 100%; max-width: 300px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white;">
+                    <option value="info">Information</option>
+                    <option value="alert">Alert</option>
+                    <option value="success">Success</option>
+                  </select>
+                </div>
+
+                <!-- Message -->
+                <div>
+                  <label style="display: block; font-size: 0.85rem; font-weight: 500; color: #4f566b; margin-bottom: 8px;">Message</label>
+                  <textarea id="notifMessage" rows="4" placeholder="Enter the broadcast message..." style="width: 100%; padding: 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical;"></textarea>
+                </div>
+
+                <!-- Actions -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                  <span id="notifStatus" style="font-size: 0.9rem; font-weight: 500; transition: opacity 0.3s;"></span>
+                  <button id="sendNotifBtn" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 10px 24px; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="22" y1="2" x2="11" y2="13"></line>
+                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                    Send Broadcast
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Meetings Manager View — Hidden by default -->
+        <div id="meetings-manager-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">Meetings &amp; Reviews</h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="meetings-status-badge" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; background: #e0e6ff; color: #2b58f9; font-weight: 600; display: none;"></span>
+              <button id="meetings-refresh-btn" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+
+            <!-- Left: Schedule Meeting Form -->
+            <div id="schedule-meeting-panel" class="widget" style="width: 320px; flex-shrink: 0; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+              <div class="widget-header" style="margin-bottom: 16px;">
+                <h2 class="widget-title">Schedule Meeting</h2>
+              </div>
+              <form id="schedule-meeting-form" style="display: flex; flex-direction: column; gap: 14px;">
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Meeting Title *</label>
+                  <input type="text" id="meeting-title" required placeholder="e.g. Q3 Sprint Planning" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; transition: border-color 0.2s;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Date &amp; Time *</label>
+                  <input type="datetime-local" id="meeting-date" required style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit;" />
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">Description</label>
+                  <textarea id="meeting-description" rows="3" placeholder="What is the agenda?" style="padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; resize: vertical; transition: border-color 0.2s;"></textarea>
+                </div>
+                <div id="schedule-meeting-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                  Schedule Meeting
+                </button>
+              </form>
+            </div>
+
+            <!-- Right: Upcoming & Past Meetings List -->
+            <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="meetings-loading" style="text-align: center; padding: 48px; color: #697386; font-size: 0.95rem;">
+                Loading meetings...
+              </div>
+
+              <!-- Upcoming Meetings Section -->
+              <div id="upcoming-meetings-section" style="display: none; width: 100%;">
+                <h3 style="margin: 0 0 12px 0; color: #1a1f36; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                  <span>Upcoming Meetings</span>
+                  <span id="upcoming-count" style="font-size: 0.75rem; background: #e0e6ff; color: #2b58f9; padding: 2px 8px; border-radius: 20px; font-weight: 600;">0</span>
+                </h3>
+                <div id="upcoming-meetings-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
+              </div>
+
+              <!-- Past Meetings Section -->
+              <div id="past-meetings-section" style="display: none; width: 100%;">
+                <h3 style="margin: 24px 0 12px 0; color: #1a1f36; font-size: 1.1rem; display: flex; align-items: center; gap: 8px;">
+                  <span>Past Meetings</span>
+                  <span id="past-count" style="font-size: 0.75rem; background: #f4f5f7; color: #4f566b; padding: 2px 8px; border-radius: 20px; font-weight: 600;">0</span>
+                </h3>
+                <div id="past-meetings-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
+              </div>
+
+              <div id="meetings-empty" style="display: none; text-align: center; padding: 64px 32px;">
+                <h3 style="margin: 0 0 8px 0; color: #1a1f36;">No meetings scheduled</h3>
+                <p style="color: #697386; margin: 0;">Schedule a meeting using the form on the left to get started.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- WhatsApp Analytics View — Hidden by default -->
+        <div id="whatsapp-analytics-view" style="display: none; height: 100%; flex-direction: column;">
+          <div class="db-viewer-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0;">
+            <h1 class="dashboard-title">WhatsApp Analytics</h1>
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span id="whatsapp-status-badge" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; background: #e0e6ff; color: #2b58f9; font-weight: 600; display: none;"></span>
+              <button id="whatsapp-refresh-btn" class="btn-outline" style="font-size: 0.85rem; padding: 8px 16px;">
+                ↻ Refresh
+              </button>
+            </div>
+          </div>
+
+          <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
+            
+            <!-- Left: Upload WhatsApp Chat Log Form -->
+            <div style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="whatsapp-upload-panel" class="widget" style="padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="widget-header" style="margin-bottom: 16px;">
+                  <h2 class="widget-title">Ingest Chat Log</h2>
+                </div>
+                <form id="whatsapp-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">WhatsApp Export File (.txt) *</label>
+                    <input type="file" id="whatsapp-file" accept=".txt" required style="padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-size: 0.9rem; font-family: inherit; cursor: pointer;" />
+                  </div>
+                  <div id="whatsapp-upload-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                  <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                    Upload & Analyze
+                  </button>
+                </form>
+              </div>
+
+              <div id="whatsapp-source-panel" class="widget" style="padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="widget-header" style="margin-bottom: 12px;">
+                  <h2 class="widget-title" style="font-size: 1rem;">Select Analysis Source</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="whatsapp-log-history" style="font-size: 0.8rem; color: #4f566b; font-weight: 500;">Chat Log History</label>
+                  <select id="whatsapp-log-history" style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer;">
+                    <option value="live">Live Webhook Data (PostgreSQL)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Peak Chat Hours & Common Interaction Clusters -->
+            <div class="widget" style="flex: 1; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 32px;">
+              <div class="widget-header" style="margin-bottom: 0;">
+                <h2 class="widget-title">WhatsApp Analytics Dashboard</h2>
+              </div>
+              <div style="display: flex; gap: 32px; flex-wrap: wrap; align-items: stretch; justify-content: space-between;">
+                <!-- Peak Chat Hours Graph -->
+                <div style="flex: 1.5; min-width: 320px; display: flex; flex-direction: column;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Peak Chat Hours</h3>
+                  <div id="whatsapp-hours-chart" style="display: flex; align-items: flex-end; justify-content: space-between; height: 160px; border-bottom: 2px solid #e3e8ee; padding-bottom: 8px; position: relative;">
+                    <!-- Dynamically populated vertical bars -->
+                  </div>
+                  <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #697386; margin-top: 8px;">
+                    <span>12 AM</span>
+                    <span>6 AM</span>
+                    <span>12 PM</span>
+                    <span>6 PM</span>
+                    <span>11 PM</span>
+                  </div>
+                </div>
+                <!-- Topics list -->
+                <div style="flex: 1; min-width: 260px; display: flex; flex-direction: column;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Common Interaction Clusters</h3>
+                  <div id="whatsapp-topics-list" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 180px;">
+                    <div style="color: #697386; font-size: 0.9rem; text-align: center; padding-top: 24px;">No analytics data ingested yet.</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Sender Activity & Message Frequency Metrics -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; border-top: 1px solid #e3e8ee; padding-top: 24px;">
+                <!-- User Activity -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">User Participation</h3>
+                  <div style="display: flex; gap: 16px; flex-direction: column;">
+                    <div>
+                      <h4 style="font-size: 0.85rem; font-weight: 600; color: #10b981; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <span>🔥 Most Active Users</span>
+                      </h4>
+                      <div id="whatsapp-most-active" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+                        <span style="color: #697386; font-style: italic;">Select an uploaded file to view user statistics</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style="font-size: 0.85rem; font-weight: 600; color: #f59e0b; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <span>💤 Least Active Users</span>
+                      </h4>
+                      <div id="whatsapp-least-active" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+                        <span style="color: #697386; font-style: italic;">Select an uploaded file to view user statistics</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Message Frequency -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Message Frequency</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Daily Average</span>
+                        <span id="whatsapp-freq-daily" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Weekly Average</span>
+                        <span id="whatsapp-freq-weekly" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Monthly Average</span>
+                        <span id="whatsapp-freq-monthly" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Message Composition -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Message Composition</h3>
+                  <div style="display: flex; flex-direction: column; gap: 14px;">
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: #4f566b;">
+                        <span>Text Messages</span>
+                        <span id="whatsapp-type-text-val" style="font-weight: 500; color: #1a1f36;">-</span>
+                      </div>
+                      <div style="background: #e3e8ee; border-radius: 10px; height: 8px; width: 100%; overflow: hidden;">
+                        <div id="whatsapp-type-text-bar" style="background: #2b58f9; height: 100%; width: 0%; border-radius: 10px; transition: width 0.3s;"></div>
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 6px; color: #4f566b;">
+                        <span>Media Attachments</span>
+                        <span id="whatsapp-type-media-val" style="font-weight: 500; color: #1a1f36;">-</span>
+                      </div>
+                      <div style="background: #e3e8ee; border-radius: 10px; height: 8px; width: 100%; overflow: hidden;">
+                        <div id="whatsapp-type-media-bar" style="background: #f59e0b; height: 100%; width: 0%; border-radius: 10px; transition: width 0.3s;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Sentiment Profiling -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Sentiment Profile</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border-radius: 8px; padding: 8px 12px; border: 1px solid #e2e8f0; margin-bottom: 4px;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Sentiment Score</span>
+                      <span id="whatsapp-sentiment-avg" style="font-weight: 600; font-size: 0.95rem; color: #0f172a;">0.00</span>
+                    </div>
+                    
+                    <div style="display: flex; flex-direction: column; gap: 6px; font-size: 0.8rem;">
+                      <div style="display: flex; justify-content: space-between; color: #10b981;">
+                        <span>Positive 😊</span>
+                        <span id="whatsapp-sentiment-pos" style="font-weight: 500;">-</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; color: #64748b;">
+                        <span>Neutral 😐</span>
+                        <span id="whatsapp-sentiment-neu" style="font-weight: 500;">-</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between; color: #ef4444;">
+                        <span>Negative 😞</span>
+                        <span id="whatsapp-sentiment-neg" style="font-weight: 500;">-</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Spam, Influence, Density, & Emotional Reactions Grid -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; border-top: 1px solid #e3e8ee; padding-top: 24px; margin-top: 24px;">
+                <!-- Influential Members -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Influential Members</h3>
+                  <div id="whatsapp-influential-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select an uploaded file to view influential members</span>
+                  </div>
+                </div>
+
+                <!-- Interaction density peaks -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Communication Density Peaks</h3>
+                  <div id="whatsapp-density-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select a data source to view communication density</span>
+                  </div>
+                </div>
+
+                <!-- Emotional Reaction Topics -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Topic Emotional Reactions</h3>
+                  <div id="whatsapp-emotional-list" style="display: flex; flex-direction: column; gap: 8px; font-size: 0.85rem;">
+                    <span style="color: #697386; font-style: italic;">Select a data source to view emotional indexes</span>
+                  </div>
+                </div>
+
+                <!-- Spam Analysis -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Content Integrity</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Spam/Promo Count</span>
+                      <span id="whatsapp-spam-count" style="font-weight: 500; font-size: 0.95rem; color: #0f172a;">-</span>
+                    </div>
+                    <div style="background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
+                      <span style="font-size: 0.85rem; color: #64748b; font-weight: 500;">Spam/Promo Ratio</span>
+                      <span id="whatsapp-spam-pct" style="font-weight: 500; font-size: 0.95rem; color: #ef4444;">-</span>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+                      <label for="whatsapp-spam-dropdown" style="font-size: 0.8rem; color: #4f566b; font-weight: 500;">Flagged Messages</label>
+                      <select id="whatsapp-spam-dropdown" style="width: 100%; padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.85rem; background: white; cursor: pointer;">
+                        <option value="">No spam messages loaded</option>
+                      </select>
+                    </div>
+                    <div id="whatsapp-spam-preview" style="background: #fff5f5; border: 1px solid #fed7d7; border-radius: 8px; padding: 10px 12px; font-size: 0.8rem; color: #c53030; display: none; word-break: break-all; max-height: 90px; overflow-y: auto;">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div> <!-- /.admin-content-wrapper -->
+
     </div> <!-- /.admin-layout-container -->
+  </div>
+
+  <!-- Restock Drawer Backdrop -->
+  <div id="restock-backdrop" class="restock-backdrop"></div>
+
+  <!-- Restock Drawer Panel -->
+  <aside id="restock-drawer" class="restock-drawer" aria-label="Restock Order Panel">
+    <div class="restock-drawer-header">
+      <h2 class="restock-drawer-title">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:8px;">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        Restock Order
+      </h2>
+      <button class="restock-close-btn" id="restock-close-btn" title="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Product Search -->
+    <div class="restock-search-wrapper">
+      <div class="restock-search-box">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="restock-search-icon">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="restock-product-search" class="restock-search-input" placeholder="Search products by name or category..." autocomplete="off" />
+      </div>
+      <div id="restock-product-dropdown" class="restock-product-dropdown" style="display:none;"></div>
+    </div>
+
+    <!-- Line Items -->
+    <div class="restock-items-list" id="restock-items-list">
+      <div class="restock-empty-state" id="restock-empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#c0c8d8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>
+          <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <p>Search and add products above to build your restock order.</p>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="restock-drawer-footer">
+      <div class="restock-summary">
+        <span id="restock-item-count">0 items</span>
+        <span id="restock-total-cost">€0.00 estimated cost</span>
+      </div>
+      <button id="restock-submit-btn" class="restock-submit-btn" disabled>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:6px;">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        Submit Restock Order
+      </button>
+    </div>
+  </aside>
+
+  <!-- Global Navigation & Document Search Modal -->
+  <div id="search-modal-backdrop" class="search-backdrop"></div>
+  <dialog id="search-modal" class="search-modal-dialog">
+    <div class="search-modal-header">
+      <div class="search-input-wrapper">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="search-bar-icon">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="global-search-input" placeholder="Search pages (e.g. Ledger, Polls) or documents..." autocomplete="off" />
+      </div>
+      <button id="search-modal-close" class="search-close-btn" title="Close Search">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+    
+    <div class="search-modal-body">
+      <!-- Section: Dashboard Pages -->
+      <div class="search-results-section" id="search-headings-section">
+        <h4 class="search-section-title">Dashboard Sections</h4>
+        <div class="search-results-list" id="search-headings-results">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+      
+      <!-- Section: Documents -->
+      <div class="search-results-section" id="search-documents-section">
+        <h4 class="search-section-title">Documents</h4>
+        <div class="search-results-list" id="search-documents-results">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+
+  <!-- Global Transition Loader Overlay -->
+  <div id="global-loading-overlay" style="position: fixed; inset: 0; background: rgba(248, 250, 253, 0.7); backdrop-filter: blur(4px); z-index: 99999; display: none; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.25s ease;">
+    <div style="display: flex; flex-direction: column; align-items: center; gap: 16px;">
+      <div class="spinner" style="width: 48px; height: 48px; border: 4px solid #e3e8ee; border-top-color: #2b58f9; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      <span style="font-family: 'Poppins', sans-serif; font-size: 1rem; font-weight: 600; color: #1a1f36; letter-spacing: -0.01em;">Loading...</span>
+    </div>
   </div>
 
   <script type="module" src="/js/main.js"></script>
 
   <!-- WebSocket Connection & Role-Based UI Script -->
-  <script type="module" src='js/admin.js'></script>
+  <script type="module" src='/js/admin.js'></script>
   <script src="js/notifications.js"></script>
   <script src="js/finance-reporting.js"></script>
 </body>

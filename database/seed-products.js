@@ -91,12 +91,13 @@ async function seedProducts() {
     `;
 
     const insertStockBatch = `
-      mutation InsertStockBatch($productId: UUID!, $initialQuantity: Int!, $currentQuantity: Int!, $expiryDate: Timestamp!) {
+      mutation InsertStockBatch($productId: UUID!, $initialQuantity: Int!, $currentQuantity: Int!, $expiryDate: Timestamp!, $piecePrice: Float!) {
         stockBatch_insert(data: {
           product: { id: $productId },
           initialQuantity: $initialQuantity,
           currentQuantity: $currentQuantity,
-          expiryDate: $expiryDate
+          expiryDate: $expiryDate,
+          piecePrice: $piecePrice
         })
       }
     `;
@@ -118,12 +119,14 @@ async function seedProducts() {
 
       // Create a stock batch for each product
       const productId = result.data.product_insert.id;
+      const piecePrice = Number((product.price * 0.6).toFixed(2)); // Wholesale cost: 60% of price
       await sqlConnect.executeGraphql(insertStockBatch, {
         variables: {
           productId,
           initialQuantity: 100,
           currentQuantity: 100,
-          expiryDate
+          expiryDate,
+          piecePrice
         }
       });
       console.log(`  → Stock batch created (100 units)`);

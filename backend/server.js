@@ -2518,12 +2518,17 @@ async function getWhatsAppLogs() {
   try {
     const selectQuery = `
       query GetWhatsAppLogs {
-        _select(sql: "SELECT id, timestamp, topic_cluster AS \\"topicCluster\\", sentiment_score AS \\"sentimentScore\\" FROM \\"whats_app_log\\"")
+        whatsAppLogs {
+          id
+          timestamp
+          topicCluster
+          sentimentScore
+        }
       }
     `;
     const result = await sqlConnect.executeGraphqlRead(selectQuery);
-    if (result && result.data && Array.isArray(result.data._select)) {
-      return result.data._select;
+    if (result && result.data && Array.isArray(result.data.whatsAppLogs)) {
+      return result.data.whatsAppLogs;
     }
     return [];
   } catch (err) {
@@ -2567,6 +2572,149 @@ const whatsappStatsProtect = (req, res, next) => {
     next();
   });
 };
+
+// NLP Analysis Helper for WhatsApp Messages
+function analyzeWhatsAppMessage(text) {
+  const t = text.toLowerCase();
+  
+  // 1. Topic Clustering
+  let topicCluster = 'Other Inquiry';
+  if (/\b(order|track|buy|purchase|cart|checkout|checkout_payment|pay|payment|receipt|refund)\b/.test(t)) {
+    topicCluster = 'Order Issue';
+  } else if (/\b(price|size|stock|item|product|catalog|details|spec|specification|brand|cost|costly|cheap)\b/.test(t)) {
+    topicCluster = 'Product Inquiry';
+  } else if (/\b(ship|deliver|delivery|address|courier|post|mail|receive|received|sent|transit|delay)\b/.test(t)) {
+    topicCluster = 'Delivery Query';
+  } else if (/\b(support|help|scrum|sprint|jira|confluence|meeting|minutes|vote|poll|work|member|presentation)\b/.test(t)) {
+    topicCluster = 'General Support';
+  }
+  
+  // 2. Sentiment Scoring (NLP)
+  const positiveWords = ['hello', 'great', 'love', 'thanks', 'good', 'fine', 'perfect', 'awesome', 'best', 'wonderful', 'happy', 'yes', 'yup', 'calm', 'nice', 'well', 'agree', 'ready'];
+  const negativeWords = ['bad', 'late', 'error', 'slow', 'hate', 'wrong', 'fail', 'failed', 'issue', 'problem', 'delay', 'delayed', 'sad', 'sorry', 'behind', 'worry', 'worried', 'ill', 'sick', 'angry', 'no', 'cannot'];
+  
+  let score = 0.0;
+  const tokens = t.split(/\s+/);
+  tokens.forEach(token => {
+    const cleanToken = token.replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?]/g, "");
+    if (positiveWords.includes(cleanToken)) score += 0.2;
+    if (negativeWords.includes(cleanToken)) score -= 0.2;
+  });
+  
+  score = Math.max(-1.0, Math.min(1.0, score));
+  return {
+    topicCluster,
+    sentimentScore: Number(score.toFixed(2))
+  };
+}
+
+// WhatsApp Log File Parser Helper (PII Stripped)
+function parseWhatsAppLogFile(fileContent) {
+  const lines = fileContent.split(/\r?\n/);
+  const parsedLogs = [];
+  
+  // Matches "DD/MM/YYYY, HH:MM - Sender: Message" or "MM/DD/YYYY, HH:MM - Sender: Message"
+  const messageRegex = /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*-\s*([^:]+):\s*(.*)$/;
+  
+  lines.forEach(line => {
+    const match = line.match(messageRegex);
+    if (match) {
+      const [_, dayStr, monthStr, yearStr, hourStr, minuteStr, sender, text] = match;
+      
+      let day = parseInt(dayStr, 10);
+      let month = parseInt(monthStr, 10);
+      let year = parseInt(yearStr, 10);
+      let hour = parseInt(hourStr, 10);
+      let minute = parseInt(minuteStr, 10);
+      
+      if (year < 100) {
+        year += 2000;
+      }
+      
+      let date;
+      if (month > 12) {
+        date = new Date(Date.UTC(year, day - 1, month, hour, minute));
+      } else {
+        date = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      }
+      
+      if (!isNaN(date.getTime())) {
+        const timestamp = date.toISOString();
+        const analysis = analyzeWhatsAppMessage(text);
+        
+        parsedLogs.push({
+          id: crypto.randomUUID(),
+          timestamp,
+          topicCluster: analysis.topicCluster,
+          sentimentScore: analysis.sentimentScore
+        });
+      }
+    }
+  });
+  
+  return parsedLogs;
+}
+
+// API: Upload WhatsApp Chat Log (Admin/Employee only)
+app.post('/api/analytics/whatsapp/upload', whatsappStatsProtect, upload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    // 1. Upload to Firebase Storage
+    const bucket = storage.bucket();
+    const uniqueFileName = `documents/${Date.now()}_${file.originalname.replace(/[^a-zA-Z0-9.]/g, '_')}`;
+    const storageFile = bucket.file(uniqueFileName);
+    await storageFile.save(file.buffer, {
+      metadata: {
+        contentType: 'text/plain',
+      }
+    });
+    const fileUrl = storageFile.publicUrl();
+
+    // 2. Insert metadata into "document" table
+    const insertDocMutation = `
+      mutation InsertDocument($id: UUID!, $title: String!, $category: String!, $fileUrl: String!, $uploadedById: UUID!) {
+        _execute(
+          sql: "INSERT INTO \\"document\\" (id, title, category, file_url, uploaded_by_id, created_at) VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP)",
+          params: [$id, $title, $category, $fileUrl, $uploadedById]
+        )
+      }
+    `;
+    const docId = crypto.randomUUID();
+    await sqlConnect.executeGraphql(insertDocMutation, {
+      variables: {
+        id: docId,
+        title: `WhatsApp Chat Log - ${file.originalname}`,
+        category: 'Analytics',
+        fileUrl,
+        uploadedById: req.user.id
+      }
+    });
+
+    // 3. Parse and ingest message logs (PII Stripped)
+    const fileContent = file.buffer.toString('utf8');
+    const parsedLogs = parseWhatsAppLogFile(fileContent);
+
+    // Ingest messages in parallel batches of 50
+    const batchSize = 50;
+    for (let i = 0; i < parsedLogs.length; i += batchSize) {
+      const chunk = parsedLogs.slice(i, i + batchSize);
+      await Promise.all(chunk.map(log => insertWhatsAppLog(log)));
+    }
+
+    res.status(201).json({
+      message: 'WhatsApp log file uploaded, parsed, and anonymized successfully',
+      documentId: docId,
+      recordsIngested: parsedLogs.length
+    });
+  } catch (error) {
+    console.error('Error in WhatsApp log upload:', error);
+    res.status(500).json({ error: 'Internal server error processing file upload' });
+  }
+});
 
 // Webhook endpoint: Ingest WhatsApp logs (PII Stripping enforced)
 app.post('/api/analytics/whatsapp/webhook', async (req, res) => {

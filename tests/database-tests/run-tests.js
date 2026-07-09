@@ -33,6 +33,9 @@ async function runAll() {
   const whatsappSuccess = await testWhatsAppAnalytics();
   console.log('');
 
+  const meetingsSuccess = await testMeetings();
+  console.log('');
+
   console.log('==================================================');
   if (operationsSuccess && checkoutSuccess && uploadSuccess && meetingsSuccess && whatsappSuccess) {
     console.log('ALL TESTS PASSED SUCCESSFULLY');

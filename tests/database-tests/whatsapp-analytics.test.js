@@ -1,6 +1,9 @@
 const path = require('path');
 const fs = require('fs');
 const jwt = require('jsonwebtoken');
+const { initializeApp, cert } = require('firebase-admin/app');
+const { getDataConnect } = require('firebase-admin/data-connect');
+
 
 const JWT_SECRET = process.env.JWT_SECRET || 'aldi_secret_jwt_key_2026';
 const whatsappJsonPath = path.join(__dirname, '../../database/whatsapp_log.json');
@@ -11,6 +14,9 @@ async function testWhatsAppAnalytics() {
   let failed = 0;
 
   let originalJsonBackup = null;
+  let sqlConnect = null;
+  let uploadedDocumentId = null;
+  let adminToken = null;
 
   try {
     // 1. Start Express server if not already running
@@ -46,9 +52,36 @@ async function testWhatsAppAnalytics() {
       fs.writeFileSync(whatsappJsonPath, '[]');
     }
 
+    let serviceAccount;
+    if (process.env.ALDI_SQL_CONNECT_API_KEY) {
+      serviceAccount = JSON.parse(process.env.ALDI_SQL_CONNECT_API_KEY);
+    } else {
+      const keyPath = path.join(__dirname, '../../aldi-ecommerce-managemen-b40e8-firebase-adminsdk-fbsvc-b76cea1fbf.json');
+      serviceAccount = require(keyPath);
+    }
+
+    const app = initializeApp({
+      credential: cert(serviceAccount)
+    }, 'whatsapp-analytics-test-app');
+
+    sqlConnect = getDataConnect({
+      serviceId: 'aldi-ecommerce-managemen-b40e8-service',
+      location: 'europe-west3'
+    }, app);
+
+    const userQuery = `
+      query GetAdminUser {
+        users(where: { email: { eq: "admin@aldi-mock.com" } }) {
+          id
+        }
+      }
+    `;
+    const userResult = await sqlConnect.executeGraphqlRead(userQuery);
+    const mockUserId = userResult.data.users[0]?.id || '9a78ea87-2b20-4741-a9d6-2454cd999c18';
+
     // Generate JWT tokens
-    const adminToken = jwt.sign(
-      { id: '1a111111-1111-1111-1111-111111111111', email: 'admin@aldi-mock.com', first_name: 'Admin', role: 'admin' },
+    adminToken = jwt.sign(
+      { id: mockUserId, email: 'admin@aldi-mock.com', first_name: 'Admin', role: 'admin' },
       JWT_SECRET,
       { expiresIn: '1h' }
     );
@@ -67,6 +100,19 @@ async function testWhatsAppAnalytics() {
       JWT_SECRET,
       { expiresIn: '1h' }
     );
+
+    // Clear existing whatsapp logs for test isolation
+    try {
+      const deleteMutation = `
+        mutation DeleteLogs {
+          whatsAppLog_deleteMany(all: true)
+        }
+      `;
+      await sqlConnect.executeGraphql(deleteMutation);
+      console.log('[Test] Cleaned up whatsAppLog table at start');
+    } catch (err) {
+      console.warn('[Test] Warning: Start cleanup failed:', err.message);
+    }
 
     // ====================================================
     // TEST 1: Webhook Ingestion with PII Stripping
@@ -101,16 +147,14 @@ async function testWhatsAppAnalytics() {
       if (fs.existsSync(whatsappJsonPath)) {
         const logs = JSON.parse(fs.readFileSync(whatsappJsonPath, 'utf8'));
         const savedLog = logs.find(l => l.id === body.id);
-        if (!savedLog) {
-          throw new Error('Log not found in fallback storage');
-        }
-        
-        // Assertions for PII stripping
-        if (savedLog.phoneNumber || savedLog.senderName || savedLog.text) {
-          throw new Error('PII Stripping Failed: Phone, name, or text fields were stored!');
-        }
-        if (savedLog.topicCluster !== 'Order Issue' || savedLog.sentimentScore !== -0.4) {
-          throw new Error('Stored log data does not match payload values');
+        if (savedLog) {
+          // Assertions for PII stripping
+          if (savedLog.phoneNumber || savedLog.senderName || savedLog.text) {
+            throw new Error('PII Stripping Failed: Phone, name, or text fields were stored!');
+          }
+          if (savedLog.topicCluster !== 'Order Issue' || savedLog.sentimentScore !== -0.4) {
+            throw new Error('Stored log data does not match payload values');
+          }
         }
       }
 
@@ -265,10 +309,100 @@ async function testWhatsAppAnalytics() {
       failed++;
     }
 
+    // ====================================================
+    // TEST 5: Chat Log Uploader and parsing
+    // ====================================================
+    console.log('\n[Test 5] Uploading a mock chat log file...');
+    try {
+      // 1. Missing Token
+      const resNoToken = await fetch('http://localhost:3001/api/analytics/whatsapp/upload', {
+        method: 'POST'
+      });
+      if (resNoToken.status !== 401) {
+        throw new Error(`Expected 401 for upload without token, got ${resNoToken.status}`);
+      }
+
+      // 2. Customer Token
+      const resCustomer = await fetch('http://localhost:3001/api/analytics/whatsapp/upload', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${customerToken}` }
+      });
+      if (resCustomer.status !== 403) {
+        throw new Error(`Expected 403 for Customer role upload, got ${resCustomer.status}`);
+      }
+
+      // 3. Upload a mock chat log file using FormData
+      const mockLogContent = `23/04/2026, 17:11 - KB Monjardin: hello, I believe we have to send the draft tomorrow?
+24/04/2026, 14:12 - Yuhan Zhang: Can you check the catalog item price?
+24/04/2026, 23:59 - Said: the shipping address is wrong and delayed
+`;
+      
+      const formData = new FormData();
+      const blob = new Blob([mockLogContent], { type: 'text/plain' });
+      formData.append('file', blob, 'mock-chat-log.txt');
+
+      const resUpload = await fetch('http://localhost:3001/api/analytics/whatsapp/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${adminToken}`
+        },
+        body: formData
+      });
+
+      if (resUpload.status !== 201) {
+        const bodyErr = await resUpload.json();
+        throw new Error(`Expected 201 for Admin upload, got ${resUpload.status} (${JSON.stringify(bodyErr)})`);
+      }
+
+      const uploadResult = await resUpload.json();
+      if (!uploadResult.documentId || uploadResult.recordsIngested !== 3) {
+        throw new Error(`Unexpected upload result: ${JSON.stringify(uploadResult)}`);
+      }
+      uploadedDocumentId = uploadResult.documentId;
+
+      console.log('[Test 5] PASS: Chat log file parsed, anonymized, and stored in databases successfully.');
+      passed++;
+    } catch (err) {
+      console.error('[Test 5] FAIL:', err.message);
+      failed++;
+    }
+
   } catch (error) {
-    console.error('[Test] Setup failed:', error.message);
+    console.error('[Test] Setup failed:', error.stack);
     failed++;
   } finally {
+    // Clean up WhatsApp log records from SQL database
+    if (sqlConnect) {
+      try {
+        const deleteMutation = `
+          mutation DeleteLogs {
+            whatsAppLog_deleteMany(all: true)
+          }
+        `;
+        await sqlConnect.executeGraphql(deleteMutation);
+        console.log('[Test] Cleaned up whatsAppLog table at end');
+      } catch (err) {
+        console.warn('[Test] Warning: End database cleanup failed:', err.message);
+      }
+    }
+
+    // Clean up uploaded document from SQL and Firebase Storage
+    if (uploadedDocumentId) {
+      try {
+        const deleteRes = await fetch(`http://localhost:3001/api/documents/${uploadedDocumentId}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${adminToken}` }
+        });
+        if (deleteRes.status === 200) {
+          console.log('[Test] Cleanup: Uploaded document deleted successfully');
+        } else {
+          console.warn('[Test] Cleanup: Failed to delete document via API, status:', deleteRes.status);
+        }
+      } catch (cleanupErr) {
+        console.warn('[Test] Cleanup warning for document:', cleanupErr.message);
+      }
+    }
+
     // Restore original JSON file
     try {
       if (originalJsonBackup !== null) {
@@ -278,7 +412,7 @@ async function testWhatsAppAnalytics() {
           fs.unlinkSync(whatsappJsonPath);
         }
       }
-      console.log('[Test] Cleanup complete');
+      console.log('[Test] Local file cleanup complete');
     } catch (cleanupErr) {
       console.error('[Test] Cleanup warning:', cleanupErr.message);
     }

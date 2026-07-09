@@ -115,20 +115,34 @@ function renderFinanceLedger(records) {
     if (!records.length) {
         financeLedgerBody.innerHTML = `
             <tr>
-                <td colspan="5">No records found for the selected date range.</td>
+                <td colspan="5" style="padding: 24px; text-align: center; color: #697386; font-size: 0.95rem;">No records found for the selected date range.</td>
             </tr>
         `;
         return;
     }
 
     financeLedgerBody.innerHTML = records.map((record) => {
+        let displayDate = record.createdAt || "";
+        if (displayDate && typeof displayDate === "string" && /^\d{4}-\d{2}-\d{2}T/.test(displayDate)) {
+            const d = new Date(displayDate);
+            if (!isNaN(d.getTime())) {
+                displayDate = d.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+            }
+        }
+
+        const isExpense = record.transactionType === "operational_cost";
+        const typeLabel = isExpense ? "Stock Purchase" : "Ecommerce Sale";
+        const typeStyle = isExpense ? "color: #b91c1c; font-weight: 600;" : "color: #059669; font-weight: 600;";
+        const amountPrefix = isExpense ? "-" : "+";
+        const amountStyle = isExpense ? "color: #b91c1c; font-weight: 600;" : "color: #059669; font-weight: 600;";
+
         return `
             <tr>
-                <td>${record.createdAt || ""}</td>
-                <td>${record.transactionType || ""}</td>
-                <td>${record.description || ""}</td>
-                <td>${formatCurrency(record.amount)}</td>
-                <td>${record.relatedOrderId || "N/A"}</td>
+                <td style="padding: 14px 20px; color: #1a1f36; font-size: 0.9rem; border-bottom: 1px solid #f4f5f7; text-align: left;">${displayDate}</td>
+                <td style="padding: 14px 20px; font-size: 0.9rem; border-bottom: 1px solid #f4f5f7; text-align: left; ${typeStyle}">${typeLabel}</td>
+                <td style="padding: 14px 20px; color: #1a1f36; font-size: 0.9rem; border-bottom: 1px solid #f4f5f7; text-align: left;">${record.description || ""}</td>
+                <td style="padding: 14px 20px; font-size: 0.9rem; border-bottom: 1px solid #f4f5f7; text-align: left; ${amountStyle}">${amountPrefix}${formatCurrency(record.amount)}</td>
+                <td style="padding: 14px 20px; color: #1a1f36; font-size: 0.9rem; border-bottom: 1px solid #f4f5f7; text-align: left; font-family: monospace;">${record.relatedOrderId || "N/A"}</td>
             </tr>
         `;
     }).join("");

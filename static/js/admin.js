@@ -314,6 +314,30 @@
     if (notifsViewer) notifsViewer.style.display = 'none';
     if (meetingsViewer) meetingsViewer.style.display = 'none';
   }
+
+  // Helper to transition views with a glassmorphism loading buffer
+  function triggerLoadingBuffer(callback) {
+    const overlay = document.getElementById('global-loading-overlay');
+    if (!overlay) {
+      if (typeof callback === 'function') callback();
+      return;
+    }
+    overlay.style.display = 'flex';
+    // force reflow
+    overlay.offsetHeight;
+    overlay.style.opacity = '1';
+    
+    setTimeout(() => {
+      if (typeof callback === 'function') callback();
+      
+      setTimeout(() => {
+        overlay.style.opacity = '0';
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 250);
+      }, 300); // 300ms loading visual hold
+    }, 150); // 150ms delay to complete fade-in before action
+  }
   function clearSidebarActive() {
     document.querySelectorAll('.admin-sidebar .sidebar-icon').forEach(i => i.classList.remove('active'));
   }
@@ -332,64 +356,76 @@
 ) {
     dbBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'database');
-      hideAllViews();
-      if (dbViewer) dbViewer.style.display = 'flex';
-      clearSidebarActive();
-      dbBtn.classList.add('active');
-      const activeTab = document.querySelector('.db-tab.active');
-      if (activeTab) loadTableData(activeTab.dataset.table);
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'database');
+        hideAllViews();
+        if (dbViewer) dbViewer.style.display = 'flex';
+        clearSidebarActive();
+        dbBtn.classList.add('active');
+        const activeTab = document.querySelector('.db-tab.active');
+        if (activeTab) loadTableData(activeTab.dataset.table);
+      });
     });
 
     homeBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'home');
-      hideAllViews();
-      if (dashboardView) dashboardView.style.display = 'block';
-      clearSidebarActive();
-      homeBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'home');
+        hideAllViews();
+        if (dashboardView) dashboardView.style.display = 'block';
+        clearSidebarActive();
+        homeBtn.classList.add('active');
+      });
     });
 
     financialsBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'financials');
-      hideAllViews();
-      if (financialsViewer) financialsViewer.style.display = 'flex';
-      clearSidebarActive();
-      financialsBtn.classList.add('active');
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'financials');
+        hideAllViews();
+        if (financialsViewer) financialsViewer.style.display = 'flex';
+        clearSidebarActive();
+        financialsBtn.classList.add('active');
+      });
     });
 
     usersBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'users');
-      hideAllViews();
-      if (usersViewer) usersViewer.style.display = 'flex';
-      clearSidebarActive();
-      usersBtn.classList.add('active');
-      loadUsersManagerData();
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'users');
+        hideAllViews();
+        if (usersViewer) usersViewer.style.display = 'flex';
+        clearSidebarActive();
+        usersBtn.classList.add('active');
+        loadUsersManagerData();
+      });
     });
 
     filesBtn.addEventListener('click', (e) => {
       e.preventDefault();
-      sessionStorage.setItem('adminActiveView', 'files');
-      hideAllViews();
-      if (filesViewer) filesViewer.style.display = 'flex';
-      clearSidebarActive();
-      filesBtn.classList.add('active');
-      loadFilesManagerData();
+      triggerLoadingBuffer(() => {
+        sessionStorage.setItem('adminActiveView', 'files');
+        hideAllViews();
+        if (filesViewer) filesViewer.style.display = 'flex';
+        clearSidebarActive();
+        filesBtn.classList.add('active');
+        loadFilesManagerData();
+      });
     });
 
     // Polls Manager button
     if (pollsBtn) {
       pollsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'polls');
-        hideAllViews();
-        if (pollsViewer) pollsViewer.style.display = 'flex';
-        clearSidebarActive();
-        pollsBtn.classList.add('active');
-        // Load polls when navigating to the view
-        if (typeof window.loadPolls === 'function') window.loadPolls();
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'polls');
+          hideAllViews();
+          if (pollsViewer) pollsViewer.style.display = 'flex';
+          clearSidebarActive();
+          pollsBtn.classList.add('active');
+          // Load polls when navigating to the view
+          if (typeof window.loadPolls === 'function') window.loadPolls();
+        });
       });
     }
 
@@ -397,11 +433,13 @@
     if (notifsBtn) {
       notifsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'notifications');
-        hideAllViews();
-        if (notifsViewer) notifsViewer.style.display = 'flex';
-        clearSidebarActive();
-        notifsBtn.classList.add('active');
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'notifications');
+          hideAllViews();
+          if (notifsViewer) notifsViewer.style.display = 'flex';
+          clearSidebarActive();
+          notifsBtn.classList.add('active');
+        });
       });
     }
 
@@ -409,12 +447,14 @@
     if (meetingsBtn) {
       meetingsBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        sessionStorage.setItem('adminActiveView', 'meetings');
-        hideAllViews();
-        if (meetingsViewer) meetingsViewer.style.display = 'flex';
-        clearSidebarActive();
-        meetingsBtn.classList.add('active');
-        if (typeof window.loadMeetings === 'function') window.loadMeetings();
+        triggerLoadingBuffer(() => {
+          sessionStorage.setItem('adminActiveView', 'meetings');
+          hideAllViews();
+          if (meetingsViewer) meetingsViewer.style.display = 'flex';
+          clearSidebarActive();
+          meetingsBtn.classList.add('active');
+          if (typeof window.loadMeetings === 'function') window.loadMeetings();
+        });
       });
     }
 

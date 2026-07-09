@@ -1059,20 +1059,34 @@
           <div style="flex: 1; padding: 0 32px 32px 32px; display: flex; gap: 24px; min-height: 0; overflow-y: auto; align-items: flex-start;">
             
             <!-- Left: Upload WhatsApp Chat Log Form -->
-            <div id="whatsapp-upload-panel" class="widget" style="width: 320px; flex-shrink: 0; padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-              <div class="widget-header" style="margin-bottom: 16px;">
-                <h2 class="widget-title">Ingest Chat Log</h2>
-              </div>
-              <form id="whatsapp-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
-                <div style="display: flex; flex-direction: column; gap: 4px;">
-                  <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">WhatsApp Export File (.txt) *</label>
-                  <input type="file" id="whatsapp-file" accept=".txt" required style="padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-size: 0.9rem; font-family: inherit; cursor: pointer;" />
+            <div style="width: 320px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px;">
+              <div id="whatsapp-upload-panel" class="widget" style="padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="widget-header" style="margin-bottom: 16px;">
+                  <h2 class="widget-title">Ingest Chat Log</h2>
                 </div>
-                <div id="whatsapp-upload-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
-                <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
-                  Upload & Analyze
-                </button>
-              </form>
+                <form id="whatsapp-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
+                  <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <label style="font-size: 0.85rem; font-weight: 500; color: #4f566b;">WhatsApp Export File (.txt) *</label>
+                    <input type="file" id="whatsapp-file" accept=".txt" required style="padding: 8px 10px; border: 1px solid #e3e8ee; border-radius: 8px; font-size: 0.9rem; font-family: inherit; cursor: pointer;" />
+                  </div>
+                  <div id="whatsapp-upload-status" style="font-size: 0.85rem; font-weight: 500; text-align: center; display: none;"></div>
+                  <button type="submit" style="background: linear-gradient(135deg, #2b58f9, #1a3ed8); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; margin-top: 6px; font-size: 0.95rem;">
+                    Upload & Analyze
+                  </button>
+                </form>
+              </div>
+
+              <div id="whatsapp-source-panel" class="widget" style="padding: 24px; border-radius: 12px; background: white; border: 1px solid #e3e8ee; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div class="widget-header" style="margin-bottom: 12px;">
+                  <h2 class="widget-title" style="font-size: 1rem;">Select Analysis Source</h2>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 6px;">
+                  <label for="whatsapp-log-history" style="font-size: 0.8rem; color: #4f566b; font-weight: 500;">Chat Log History</label>
+                  <select id="whatsapp-log-history" style="width: 100%; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 8px; outline: none; font-size: 0.9rem; font-family: inherit; background: white; cursor: pointer;">
+                    <option value="live">Live Webhook Data (PostgreSQL)</option>
+                  </select>
+                </div>
+              </div>
             </div>
 
             <!-- Right: Peak Chat Hours & Common Interaction Clusters -->
@@ -1100,6 +1114,57 @@
                   <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 0.5px;">Common Interaction Clusters</h3>
                   <div id="whatsapp-topics-list" style="display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: 180px;">
                     <div style="color: #697386; font-size: 0.9rem; text-align: center; padding-top: 24px;">No analytics data ingested yet.</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Sender Activity & Message Frequency Metrics -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; border-top: 1px solid #e3e8ee; padding-top: 24px;">
+                <!-- User Activity -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">User Participation</h3>
+                  <div style="display: flex; gap: 16px; flex-direction: column;">
+                    <div>
+                      <h4 style="font-size: 0.85rem; font-weight: 600; color: #10b981; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <span>🔥 Most Active Users</span>
+                      </h4>
+                      <div id="whatsapp-most-active" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+                        <span style="color: #697386; font-style: italic;">Select an uploaded file to view user statistics</span>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 style="font-size: 0.85rem; font-weight: 600; color: #f59e0b; margin: 0 0 8px 0; display: flex; align-items: center; gap: 6px;">
+                        <span>💤 Least Active Users</span>
+                      </h4>
+                      <div id="whatsapp-least-active" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+                        <span style="color: #697386; font-style: italic;">Select an uploaded file to view user statistics</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Message Frequency -->
+                <div style="display: flex; flex-direction: column; gap: 16px;">
+                  <h3 style="font-size: 0.9rem; font-weight: 600; color: #4f566b; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">Message Frequency</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Daily Average</span>
+                        <span id="whatsapp-freq-daily" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Weekly Average</span>
+                        <span id="whatsapp-freq-weekly" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 6px; background: #f8fafc; border-radius: 8px; padding: 10px 14px; border: 1px solid #e2e8f0;">
+                      <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 500; color: #64748b;">
+                        <span>Monthly Average</span>
+                        <span id="whatsapp-freq-monthly" style="color: #0f172a; font-weight: 700; font-size: 0.95rem;">-</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

@@ -2906,36 +2906,213 @@ app.post('/api/analytics/whatsapp/webhook', async (req, res) => {
   }
 });
 
+// WhatsApp Log File Parser Helper that keeps Sender (for in-memory reporting analysis)
+function parseWhatsAppLogText(fileContent) {
+  const lines = fileContent.split(/\r?\n/);
+  const parsedLogs = [];
+  const messageRegex = /^(\d{1,2})[\/\.-](\d{1,2})[\/\.-](\d{2,4}),?\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*-\s*([^:]+):\s*(.*)$/;
+
+  lines.forEach(line => {
+    const match = line.match(messageRegex);
+    if (match) {
+      const [_, dayStr, monthStr, yearStr, hourStr, minuteStr, sender, text] = match;
+      
+      let day = parseInt(dayStr, 10);
+      let month = parseInt(monthStr, 10);
+      let year = parseInt(yearStr, 10);
+      let hour = parseInt(hourStr, 10);
+      let minute = parseInt(minuteStr, 10);
+      
+      if (year < 100) {
+        year += 2000;
+      }
+      
+      let date;
+      if (month > 12) {
+        date = new Date(Date.UTC(year, day - 1, month, hour, minute));
+      } else {
+        date = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      }
+      
+      if (!isNaN(date.getTime())) {
+        const timestamp = date.toISOString();
+        const analysis = analyzeWhatsAppMessage(text);
+        
+        parsedLogs.push({
+          id: crypto.randomUUID(),
+          timestamp,
+          sender: sender.trim(),
+          text: text.trim(),
+          topicCluster: analysis.topicCluster,
+          sentimentScore: analysis.sentimentScore
+        });
+      }
+    }
+  });
+  
+  return parsedLogs;
+}
+
 // Stats reporting endpoint: Aggregate logs (protected)
 app.get('/api/analytics/whatsapp/stats', whatsappStatsProtect, async (req, res) => {
+  const { documentId } = req.query;
+  let targetDocId = documentId;
+  let targetFileUrl = null;
+  let targetDocTitle = null;
+
   try {
-    const logs = await getWhatsAppLogs();
-    
-    // Initialize 24-hour slots
+    // 1. Resolve documentId. Default is 'live' (read from database logs) if not provided.
+    if (targetDocId === 'latest') {
+      const latestDocSql = `SELECT id, title, file_url AS "fileUrl" FROM "document" WHERE category = 'Analytics' OR title LIKE 'WhatsApp Chat Log - %' ORDER BY created_at DESC LIMIT 1`;
+      const queryResult = await sqlConnect.executeGraphqlRead(`
+        query GetLatestWhatsAppLogDoc {
+          _select(sql: ${graphqlSqlString(latestDocSql)})
+        }
+      `);
+      const rows = (queryResult.data && queryResult.data._select) || [];
+      if (rows.length > 0) {
+        targetDocId = rows[0].id;
+        targetFileUrl = rows[0].fileUrl;
+        targetDocTitle = rows[0].title;
+      } else {
+        targetDocId = 'live';
+      }
+    } else if (targetDocId && targetDocId !== 'live') {
+      // Fetch specific document details
+      const safeDocId = sanitizeUuid(targetDocId);
+      const docSql = `SELECT id, title, file_url AS "fileUrl" FROM "document" WHERE id = '${safeDocId}' LIMIT 1`;
+      const queryResult = await sqlConnect.executeGraphqlRead(`
+        query GetWhatsAppLogDoc {
+          _select(sql: ${graphqlSqlString(docSql)})
+        }
+      `);
+      const rows = (queryResult.data && queryResult.data._select) || [];
+      if (rows.length > 0) {
+        targetFileUrl = rows[0].fileUrl;
+        targetDocTitle = rows[0].title;
+      } else {
+        return res.status(404).json({ error: 'Selected chat log file not found in documents.' });
+      }
+    }
+
+    // 2. Perform analysis
+    let parsedMessages = [];
+    let isLiveDatabase = false;
+
+    if (targetDocId && targetDocId !== 'live' && targetFileUrl) {
+      // Analyze from specific document
+      const fileContent = await docCache.getDocumentContent(targetDocId, targetFileUrl);
+      if (fileContent) {
+        parsedMessages = parseWhatsAppLogText(fileContent);
+      }
+    } else {
+      // Fallback: No uploads exist or requested 'live', read all logs from whats_app_log table
+      const logs = await getWhatsAppLogs();
+      parsedMessages = logs.map(l => ({
+        id: l.id,
+        timestamp: l.timestamp,
+        topicCluster: l.topicCluster,
+        sentimentScore: l.sentimentScore,
+        sender: null // Anonymized
+      }));
+      isLiveDatabase = true;
+    }
+
+    // 3. Compute Aggregated Metrics
     const peakHours = Array.from({ length: 24 }, (_, i) => ({ hour: i, count: 0 }));
     const topicMap = {};
+    const senderMap = {};
+    const dailyMap = {};
+    const weeklyMap = {};
+    const monthlyMap = {};
 
-    logs.forEach(log => {
-      if (log.timestamp) {
-        const date = new Date(log.timestamp);
+    parsedMessages.forEach(msg => {
+      // Hour aggregation
+      if (msg.timestamp) {
+        const date = new Date(msg.timestamp);
         const hour = date.getUTCHours();
         if (hour >= 0 && hour < 24) {
           peakHours[hour].count++;
         }
+
+        // Date grouping for daily frequency
+        const yyyymmdd = msg.timestamp.substring(0, 10);
+        dailyMap[yyyymmdd] = (dailyMap[yyyymmdd] || 0) + 1;
+
+        // Month grouping (YYYY-MM)
+        const yyyymm = msg.timestamp.substring(0, 7);
+        monthlyMap[yyyymm] = (monthlyMap[yyyymm] || 0) + 1;
+
+        // Week grouping (Get ISO week)
+        const target = new Date(date.valueOf());
+        const dayNr = (date.getUTCDay() + 6) % 7;
+        target.setUTCDate(target.getUTCDate() - dayNr + 3);
+        const firstThursday = target.valueOf();
+        target.setUTCMonth(0, 1);
+        if (target.getUTCDay() !== 4) {
+          target.setUTCMonth(0, 1 + ((4 - target.getUTCDay()) + 7) % 7);
+        }
+        const weekNum = 1 + Math.ceil((firstThursday - target) / 604800000);
+        const year = new Date(firstThursday).getUTCFullYear();
+        const weekStr = `${year}-W${String(weekNum).padStart(2, '0')}`;
+        weeklyMap[weekStr] = (weeklyMap[weekStr] || 0) + 1;
       }
-      
-      const topic = log.topicCluster || 'Unknown';
+
+      // Topic cluster aggregation
+      const topic = msg.topicCluster || 'Unknown';
       topicMap[topic] = (topicMap[topic] || 0) + 1;
+
+      // Sender aggregation
+      if (msg.sender) {
+        senderMap[msg.sender] = (senderMap[msg.sender] || 0) + 1;
+      }
     });
 
+    // Format Topic Clusters
     const topicClusters = Object.entries(topicMap).map(([topicCluster, count]) => ({
       topicCluster,
       count
     })).sort((a, b) => b.count - a.count);
 
+    // Active Users (Top 5 / Bottom 5)
+    const sortedSenders = Object.entries(senderMap).map(([name, count]) => ({
+      name,
+      count
+    })).sort((a, b) => b.count - a.count);
+
+    const mostActiveUsers = sortedSenders.slice(0, 5);
+    const leastActiveUsers = [...sortedSenders].reverse().slice(0, 5);
+
+    // Format Frequencies
+    const dailyFrequency = Object.entries(dailyMap).map(([date, count]) => ({ date, count })).sort((a, b) => a.date.localeCompare(b.date));
+    const weeklyFrequency = Object.entries(weeklyMap).map(([week, count]) => ({ week, count })).sort((a, b) => a.week.localeCompare(b.week));
+    const monthlyFrequency = Object.entries(monthlyMap).map(([month, count]) => ({ month, count })).sort((a, b) => a.month.localeCompare(b.month));
+
+    // Calculate Averages
+    const dailyCount = dailyFrequency.length;
+    const weeklyCount = weeklyFrequency.length;
+    const monthlyCount = monthlyFrequency.length;
+    const totalMsgs = parsedMessages.length;
+
+    const averages = {
+      daily: dailyCount > 0 ? Number((totalMsgs / dailyCount).toFixed(1)) : 0,
+      weekly: weeklyCount > 0 ? Number((totalMsgs / weeklyCount).toFixed(1)) : 0,
+      monthly: monthlyCount > 0 ? Number((totalMsgs / monthlyCount).toFixed(1)) : 0
+    };
+
     res.json({
       peakHours,
-      topicClusters
+      topicClusters,
+      mostActiveUsers,
+      leastActiveUsers,
+      frequency: {
+        daily: dailyFrequency,
+        weekly: weeklyFrequency,
+        monthly: monthlyFrequency
+      },
+      averages,
+      isLiveDatabase,
+      selectedDocument: targetDocId && targetDocId !== 'live' ? { id: targetDocId, title: targetDocTitle } : { id: 'live', title: 'Live Database Logs (Anonymized)' }
     });
   } catch (error) {
     console.error('Error fetching WhatsApp stats:', error);

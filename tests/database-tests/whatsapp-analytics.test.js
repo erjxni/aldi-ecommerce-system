@@ -367,6 +367,55 @@ async function testWhatsAppAnalytics() {
       failed++;
     }
 
+    // ====================================================
+    // TEST 6: Stats with documentId and Metrics Verification
+    // ====================================================
+    console.log('\n[Test 6] Fetching stats for uploaded document and validating metrics...');
+    try {
+      if (!uploadedDocumentId) {
+        throw new Error('Skipping Test 6: Document ID from Test 5 not available');
+      }
+
+      const resStats = await fetch(`http://localhost:3001/api/analytics/whatsapp/stats?documentId=${uploadedDocumentId}`, {
+        headers: { 'Authorization': `Bearer ${adminToken}` }
+      });
+
+      if (resStats.status !== 200) {
+        throw new Error(`Expected 200 for stats with documentId, got ${resStats.status}`);
+      }
+
+      const data = await resStats.json();
+
+      // Verify most active & least active users
+      if (!data.mostActiveUsers || !Array.isArray(data.mostActiveUsers)) {
+        throw new Error('Response did not contain mostActiveUsers array');
+      }
+      if (!data.leastActiveUsers || !Array.isArray(data.leastActiveUsers)) {
+        throw new Error('Response did not contain leastActiveUsers array');
+      }
+
+      // Check specific parsed user names from Test 5 mockLogContent
+      const users = ['KB Monjardin', 'Yuhan Zhang', 'Said'];
+      const hasMostActiveUsers = data.mostActiveUsers.some(u => users.includes(u.name));
+      if (!hasMostActiveUsers) {
+        throw new Error(`Most active users list did not contain expected senders: ${JSON.stringify(data.mostActiveUsers)}`);
+      }
+
+      // Verify frequencies
+      if (!data.frequency || !data.frequency.daily || !data.frequency.weekly || !data.frequency.monthly) {
+        throw new Error('Response did not contain daily/weekly/monthly frequency data');
+      }
+      if (!data.averages || typeof data.averages.daily !== 'number') {
+        throw new Error('Response did not contain average calculations');
+      }
+
+      console.log('[Test 6] PASS: Stats returned complete user activity and frequency calculations.');
+      passed++;
+    } catch (err) {
+      console.error('[Test 6] FAIL:', err.message);
+      failed++;
+    }
+
   } catch (error) {
     console.error('[Test] Setup failed:', error.stack);
     failed++;

@@ -30,17 +30,63 @@
   };
   window.updateTopbarProfilePic();
 
+  // --- Populate WhatsApp History Dropdown ---
+  async function populateWhatsAppHistoryDropdown(selectedId) {
+    const historySelect = document.getElementById('whatsapp-log-history');
+    if (!historySelect) return;
+
+    try {
+      const res = await fetch('/api/admin/database/Document', {
+        headers: { 'Authorization': `Bearer ${userToken}` }
+      });
+      if (!res.ok) throw new Error('Failed to fetch documents');
+
+      const docs = await res.json();
+      const logDocs = docs.filter(d => d.category === 'Analytics' || (d.title && d.title.startsWith('WhatsApp Chat Log -')));
+
+      // Clear but preserve first option
+      historySelect.innerHTML = '<option value="live">Live Webhook Data (PostgreSQL)</option>';
+
+      logDocs.forEach(d => {
+        const option = document.createElement('option');
+        option.value = d.id;
+        const dateStr = d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-AU') : '';
+        option.textContent = `${d.title} (${dateStr})`;
+        historySelect.appendChild(option);
+      });
+
+      if (selectedId) {
+        historySelect.value = selectedId;
+      }
+    } catch (err) {
+      console.error('[WhatsApp] Failed to populate history dropdown:', err);
+    }
+  }
+
   // --- WhatsApp Analytics Loader (User Story 13) ---
-  async function loadWhatsAppAnalytics() {
+  async function loadWhatsAppAnalytics(forcedDocId) {
     if (userRole !== 'admin' && userRole !== 'employee') return;
 
     const hoursChart = document.getElementById('whatsapp-hours-chart');
     const topicsList = document.getElementById('whatsapp-topics-list');
+    const historySelect = document.getElementById('whatsapp-log-history');
 
     if (!hoursChart || !topicsList) return;
 
+    let docId = 'latest';
+    if (forcedDocId) {
+      docId = forcedDocId;
+    } else if (historySelect) {
+      docId = historySelect.value || 'latest';
+    }
+
+    let url = '/api/analytics/whatsapp/stats';
+    if (docId && docId !== 'latest') {
+      url += `?documentId=${docId}`;
+    }
+
     try {
-      const res = await fetch('/api/analytics/whatsapp/stats', {
+      const res = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${userToken}`
         }
@@ -48,7 +94,18 @@
       if (!res.ok) throw new Error('Failed to fetch WhatsApp analytics stats');
 
       const data = await res.json();
-      const { peakHours, topicClusters } = data;
+      const { peakHours, topicClusters, mostActiveUsers, leastActiveUsers, frequency, averages, selectedDocument, isLiveDatabase } = data;
+
+      // Sync dropdown selections
+      if (historySelect) {
+        const currentSelectedValue = selectedDocument ? selectedDocument.id : 'live';
+        const selectOptions = Array.from(historySelect.options).map(o => o.value);
+        if (selectOptions.length <= 1 || forcedDocId || (selectedDocument && !selectOptions.includes(selectedDocument.id))) {
+          await populateWhatsAppHistoryDropdown(currentSelectedValue);
+        } else {
+          historySelect.value = currentSelectedValue;
+        }
+      }
 
       // Update badge
       const totalCount = topicClusters.reduce((sum, t) => sum + t.count, 0);
@@ -105,6 +162,60 @@
           topicsList.appendChild(topicItem);
         });
       }
+
+      // 3. Render Most & Least Active Users
+      const mostActiveDiv = document.getElementById('whatsapp-most-active');
+      const leastActiveDiv = document.getElementById('whatsapp-least-active');
+
+      if (isLiveDatabase) {
+        const piiMsg = '<span style="color: #697386; font-style: italic; font-size: 0.8rem;">Anonymized to comply with database PII stripping guidelines. Select an upload file to view.</span>';
+        if (mostActiveDiv) mostActiveDiv.innerHTML = piiMsg;
+        if (leastActiveDiv) leastActiveDiv.innerHTML = piiMsg;
+      } else {
+        if (mostActiveDiv) {
+          mostActiveDiv.innerHTML = '';
+          if (!mostActiveUsers || mostActiveUsers.length === 0) {
+            mostActiveDiv.innerHTML = '<span style="color: #697386; font-style: italic;">No users detected.</span>';
+          } else {
+            mostActiveUsers.forEach(u => {
+              const div = document.createElement('div');
+              div.style.display = 'flex';
+              div.style.justifyContent = 'space-between';
+              div.style.padding = '4px 0';
+              div.style.borderBottom = '1px dashed #e2e8f0';
+              div.innerHTML = `<span><strong>${u.name}</strong></span><span style="color: #10b981; font-weight: 600;">${u.count} messages</span>`;
+              mostActiveDiv.appendChild(div);
+            });
+          }
+        }
+
+        if (leastActiveDiv) {
+          leastActiveDiv.innerHTML = '';
+          if (!leastActiveUsers || leastActiveUsers.length === 0) {
+            leastActiveDiv.innerHTML = '<span style="color: #697386; font-style: italic;">No users detected.</span>';
+          } else {
+            leastActiveUsers.forEach(u => {
+              const div = document.createElement('div');
+              div.style.display = 'flex';
+              div.style.justifyContent = 'space-between';
+              div.style.padding = '4px 0';
+              div.style.borderBottom = '1px dashed #e2e8f0';
+              div.innerHTML = `<span><strong>${u.name}</strong></span><span style="color: #697386;">${u.count} message${u.count !== 1 ? 's' : ''}</span>`;
+              leastActiveDiv.appendChild(div);
+            });
+          }
+        }
+      }
+
+      // 4. Render Message Frequency
+      const dailySpan = document.getElementById('whatsapp-freq-daily');
+      const weeklySpan = document.getElementById('whatsapp-freq-weekly');
+      const monthlySpan = document.getElementById('whatsapp-freq-monthly');
+
+      if (dailySpan) dailySpan.textContent = averages.daily > 0 ? `${averages.daily} msg / day avg` : '-';
+      if (weeklySpan) weeklySpan.textContent = averages.weekly > 0 ? `${averages.weekly} msg / week avg` : '-';
+      if (monthlySpan) monthlySpan.textContent = averages.monthly > 0 ? `${averages.monthly} msg / month avg` : '-';
+
     } catch (err) {
       console.error('Error loading WhatsApp analytics:', err);
       hoursChart.innerHTML = `<div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #e53935; font-size: 0.85rem; width: 100%; text-align: center;">Failed to load analytics data</div>`;
@@ -3314,7 +3425,7 @@
             whatsappUploadStatus.textContent = `Success! Ingested ${result.recordsIngested} messages.`;
           }
           fileInput.value = ''; // Reset input
-          if (typeof window.loadWhatsAppAnalytics === 'function') await window.loadWhatsAppAnalytics();
+          if (typeof window.loadWhatsAppAnalytics === 'function') await window.loadWhatsAppAnalytics(result.documentId);
           if (typeof showToast === 'function') {
             showToast(`Ingested ${result.recordsIngested} messages successfully!`, 'success');
           }
@@ -3335,6 +3446,13 @@
 
   if (whatsappRefreshBtn) {
     whatsappRefreshBtn.addEventListener('click', () => { if (typeof window.loadWhatsAppAnalytics === 'function') window.loadWhatsAppAnalytics(); });
+  }
+
+  const historySelect = document.getElementById('whatsapp-log-history');
+  if (historySelect) {
+    historySelect.addEventListener('change', () => {
+      if (typeof window.loadWhatsAppAnalytics === 'function') window.loadWhatsAppAnalytics();
+    });
   }
 
   // ── Page Load Active Section Restore ────────────────────────

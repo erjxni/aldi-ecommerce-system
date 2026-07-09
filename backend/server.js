@@ -1590,29 +1590,51 @@ app.get("/api/finance/summary", authenticateJWT, requireFinanceAccess, async (re
     }
 
     try {
-        // Records live in the SQL database — use sqlConnect, NOT Firestore
+        // 1. Fetch financial records (ecommerce sales)
         const selectQuery = `
             query GetFinancialRecords {
                 _select(sql: "SELECT id, transaction_id AS \\"transactionId\\", amount, transaction_type AS \\"transactionType\\", description, related_order_id AS \\"relatedOrderId\\", created_at AS \\"createdAt\\" FROM \\"financial_record\\" WHERE created_at >= '${dateRange.startDate}' AND created_at <= '${dateRange.endDate}' ORDER BY created_at DESC")
             }
         `;
-
         const result = await sqlConnect.executeGraphqlRead(selectQuery);
         const records = (result.data && result.data._select) || [];
 
-        // Normalise amounts to numbers (SQL may return strings)
         const normalised = records.map(r => ({
             ...r,
             amount: Number(r.amount || 0)
         }));
 
-        const summary = summarizeFinancialRecords(normalised);
+        // 2. Fetch stock batches within the date range to calculate expenses
+        const batchesQuery = `
+            query GetStockBatches {
+                _select(sql: "SELECT sb.id, sb.initial_quantity AS \\"initialQuantity\\", sb.piece_price AS \\"piecePrice\\", sb.received_at AS \\"receivedAt\\", p.name AS \\"productName\\" FROM \\"stock_batch\\" sb LEFT JOIN \\"product\\" p ON sb.product_id = p.id WHERE sb.received_at >= '${dateRange.startDate}' AND sb.received_at <= '${dateRange.endDate}' ORDER BY sb.received_at DESC")
+            }
+        `;
+        const batchesResult = await sqlConnect.executeGraphqlRead(batchesQuery);
+        const batches = (batchesResult.data && batchesResult.data._select) || [];
+
+        // 3. Map stock batches to operational cost records
+        const batchRecords = batches.map(b => ({
+            id: b.id,
+            transactionId: `sb-${b.id.substring(0, 8)}`,
+            amount: Number((Number(b.initialQuantity || 0) * Number(b.piecePrice || 0)).toFixed(2)),
+            transactionType: "operational_cost",
+            description: `Restocked ${b.initialQuantity} units of ${b.productName || 'unknown product'} @ €${Number(b.piecePrice || 0).toFixed(2)}/unit`,
+            relatedOrderId: null,
+            createdAt: b.receivedAt
+        }));
+
+        // 4. Merge and sort chronologically descending
+        const allRecords = [...normalised, ...batchRecords];
+        allRecords.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        const summary = summarizeFinancialRecords(allRecords);
 
         return res.status(200).json({
             startDate: dateRange.startDate,
             endDate: dateRange.endDate,
             summary,
-            records: normalised
+            records: allRecords
         });
     } catch (error) {
         console.error("Failed to load finance summary:", error);
